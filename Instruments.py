@@ -10,15 +10,41 @@ import visa
 import time
 
 class FakeInstr(object):
+    timeout = 3000
+    curStep = 70000 #Making life interesting for SPEX instrument
     def write(self, string):
-        print string
+        print ' '*15 + string
+        if 'F0' in string: #SPEX Relative move
+            self.curStep += int(string[3:])
+        if ':DIG' in string: #Agilent telling it to start data collection
+            time.sleep(0.75)
     def ask(self, string):
-        print string
+        print ' '*12 + string
         #Test for some basic instrument questions and output the expected output
         if 'SLVL' in string or 'OUTP' in string:
             return str(np.random.random())
         elif 'SNAP?' in string:
             return str(np.random.random())+','+str(np.random.random())
+        elif 'H0' in string: #SPEX Relative move
+            return str(self.curStep) + '\r'
+        elif string == 'E': #SPEX, is it moving
+            return 'oz'
+        elif ':WAV:PRE?' == string:#agilent oscilloscope, waveform preamble
+            a = np.random.random((10,))
+            a[4] = 3 #Forcing some numbers for reasonable consistancy
+            a[5] = 0
+            a[6] = 0
+            st = ''
+            for i in a:
+                st+=str(i)+','
+            return st
+        elif ':WAV:DATA?' == string: #agilent querying data
+            return np.random.random((1000,))
+        elif '*OPC?'==string:
+            time.sleep(0.5)
+            return u'1\r'
+            
+            
             
             
         b = [str(i) for i in np.random.random((5,))]
@@ -27,6 +53,11 @@ class FakeInstr(object):
             st = st+i+','
             
         return b
+        
+        
+    def query_binary_values(self, string, datatype):
+        if ':WAV:DATA?' == string: #agilent querying data
+            return np.random.random((1000,))
         
     def close(self):
         print 'closed'
@@ -42,6 +73,7 @@ class BaseInstr(object):
             rm = visa.ResourceManager()
             try:
                 self.instrument = rm.get_instrument(GPIB_Number)
+                self.instrument.timeout = timeout
             except:
                 print 'Error opening GPIB'
         #Ensure the instrument writes out to the GPIB
@@ -56,11 +88,12 @@ class BaseInstr(object):
             return False
         return True
     
-    def ask(self, command, strip=1):
+    def ask(self, command, strip=1, timeout = 3000):
         '''A function to catch reading errors. 
         strip = 1 will strip tailing \n and encode from unicode
         strip = 0 will simply encode from unicode
         strip < 0 will do nothing'''
+        self.instrument.timeout = timeout
         ret = False
         try:
             ret = self.instrument.ask(command)
@@ -88,11 +121,127 @@ class BaseInstr(object):
             print 'Error asking,', command
         return ret
         
+    def query_binary_values(self, command):
+        ret = False
+        try:
+            ret = self.instrument.query_binary_values(command, datatype='b')
+        except Exception as e:
+            print 'error querying binary,', command
+            print 'Error is', e
+        return ret
+        
     def close(self):
         self.instrument.close()
         
+class Agilent6000(BaseInstr):
+    def __init__(self, GPIB_Number=None, timeout = 3000):
+        super(Agilent6000, self).__init__(GPIB_Number, timeout)
+
+        #Keep in memory which channel it is        
+        self.channel = 1
+        self.setSource(self.channel)
+#        self.write(':DISP:PERS INF')
+        
+    def setSource(self, channel):
+    #Specify the source channel for reading information
+    #can either specify channel number alone, or 'CHAN#'
+        if channel in (1, 2, 3, 4):
+            channel = str(channel)
+        else:
+            channel = channel[-1]
+        self.write(':WAV:SOUR CHAN'+channel)
+        self.channel = int(channel)
+        
+        #Set it to output data as bytes (for speed)
+        self.write(':WAV:FORM BYTE')
+        #set it so data is sent as unsigned bytes        
+        self.write(':WAV:UNS OFF')
+        
+    def readChannel(self, channel = None):
+        if channel == None:
+            channel = self.channel
+        elif channel != self.channel:
+            self.setSource(channel)
+        values = self.query_binary_values(':WAV:DATA?')
+#        self.write(':DIG CHAN'+str(channel))
+        return values
+        
+    def scaleData(self, data=None):
+        #See page 638
+        #get the preamble
+        pre = self.ask(':WAV:PRE?').split(',')
+        xinc = float(pre[4])
+        xori = float(pre[5])
+        xref = float(pre[6])
+        yinc = float(pre[7])
+        yori = float(pre[8])
+        yref = float(pre[9])
+        
+        x = np.arange(len(data))
+        data = np.array(data)
+        volt = (data - yref) * yinc + yori
+        time = (x - xref) * xinc + xori
+        
+        return np.vstack((time, volt)).T
+        
+    def readMultipleChannels(self, *channels):
+        #Channels should be a tuple of channel numbers to read
+        if len(channels) == 1:
+            self.setSource(channels[0])
+            return self.readChannel([0])
+        #Need to 'digitize' each of the channels we want to read
+        st = ':DIG '
+        for i in channels:
+            st += 'CHAN'+str(i)+','
+        st = st[:-1]
+        self.write(st)
+            
+        
+        self.waitForComplete()
+        
+        results = []
+        for i in channels:
+            raw = self.readChannel(i)
+            results.append(self.scaleData(raw))
+        
+        return tuple(results)
         
         
+    def waitForComplete(self, timeout=3000):
+        origTO = self.instrument.timeout        
+        self.instrument.timeout = timeout
+        #Ask for operations complete        
+        self.ask('*OPC?')
+        self.instrument.timeout = origTO
+        
+    def setTrigger(self, isNormal = True, mode = 'EDGE', level=2.5, slope = 'POS', source = 4):
+        '''Set up the triggering of the oscilloscope. See the doucmentation for details.
+        isNormal switches between normal (as expected) or auto, where it internally triggers if no external trigger
+        level is the voltage at which it triggers
+        slope = [POS | NEG | EITHER | ALTERNATE]
+        source is the channel source, EXT for external
+        '''
+        
+        sweep = 'AUTO'
+        if isNormal:
+            sweep = 'NORM'
+        
+        self.write(':TRIG:SWE '+sweep)
+        
+        self.write(':TRIG:MODE '+mode)
+        if mode == 'EDGE':
+            self.write(':TRIG:EDGE:LEV '+str(level))
+            self.write(':TRIG:EDGE:SLOP '+slope)
+            ch = source
+            if source in (1, 2, 3, 4):
+                ch = 'CHAN'+str(source)
+#                print ch
+            self.write(':TRIG:EDGE:SOUR ' + ch)
+            
+        
+    
+   
+#a = Agilent6000('GPIB::5::INSTR')     
 class SPEX(BaseInstr):
     
     def __init__(self, GPIB_Number=None, timeout=3000):
@@ -101,7 +250,8 @@ class SPEX(BaseInstr):
         self.maxWavenumber = 31000
         self.stepsPerWavenumber = 400
         self.backlash = 8000
-        self.currentPosition = 13160
+        self.currentPositionWN = 13160
+        self.currentPositionSteps = self.wavenumberToSteps(self.currentPositionWN)
     def ask(self, command):
         #Call the parent asking function, but only encode
         return super(SPEX, self).ask(command, strip=0)
@@ -173,7 +323,7 @@ class SPEX(BaseInstr):
         print 'Setting internal position...'
         #This is what the dial reads on the SPEX.
         #Either enter manually or read from a file        
-        currentPosition = self.currentPosition
+        currentPosition = self.currentPositionWN
         currentStep = self.wavenumberToSteps(currentPosition)
         ret = self.ask('G0,'+str(currentStep))
         if not ret:
@@ -225,7 +375,8 @@ class SPEX(BaseInstr):
         print 'Wanted,', desiredWNSteps
         print 'Got,', newPos
         
-        self.currentPosition = self.stepsToWN(newPos)
+        self.currentPositionSteps = newPos
+        self.currentPositionWN = self.stepsToWN(newPos)
         
     def curStep(self):
         #Return the current position, in steps
@@ -273,7 +424,6 @@ class SPEX(BaseInstr):
         
 
 
-a = SPEX('GPIB::4::INSTR')
 
 class SR830Instr(BaseInstr):
     def __init__(self, GPIB_Number = None, timeout = 3000):
@@ -325,16 +475,7 @@ class SR830Instr(BaseInstr):
             
         
         
-    #add to the base write/ask commands since the SR830 requires a newline
-#    def write(self, command):
-#        if not command[-1]=='\n':
-#            command = command + '\n'
-#        super(SR830Instr, self).write(command)
-#    
-#    def ask(self, command):
-#        if not command[-1]=='\n':
-#            command = command + '\n'
-#        super(SR830Instr, self).ask(command)
+
         
 
         
