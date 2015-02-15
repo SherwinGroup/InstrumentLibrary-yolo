@@ -1,0 +1,6 @@
+setup.py
+InstsAndQt.egg-info/PKG-INFO
+InstsAndQt.egg-info/SOURCES.txt
+InstsAndQt.egg-info/dependency_links.txt
+InstsAndQt.egg-info/not-zip-safe
+InstsAndQt.egg-info/top_level.txt
