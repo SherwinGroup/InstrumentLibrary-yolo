@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Feb 10 22:49:13 2015
+
 @author: dreadnought
+
 "Brevity required, prurience preferred"
 """
 

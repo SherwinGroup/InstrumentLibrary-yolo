@@ -66,7 +66,7 @@ class QINumberEdit(QtGui.QLineEdit):
     #a signal to emit the new, approved number. Will emit False if the 
     # inputted value is not accepted. Intended for integer inputs
     textAccepted = QtCore.pyqtSignal(object)
-    def __init__(self, contents = '', parent = None):
+    def __init__(self, parent = None, contents = ''):
         super(QINumberEdit, self).__init__(parent)
         self.editingFinished.connect(self._handleEditingFinished)
         self.textChanged.connect(lambda: self._handleEditingFinished())
