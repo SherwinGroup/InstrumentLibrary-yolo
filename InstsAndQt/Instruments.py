@@ -43,10 +43,22 @@ class FakeInstr(object):
         elif '*OPC?'==string:
             time.sleep(0.5)
             return u'1\r'
+        ###
+        # spectrometer commands
+        ####
+        elif '?nm'==string:
+            val = np.random.randint(600, 700) + np.random.randint(1, 1000)/1000.
+            return "?nm {} nm  ok\r".format(val)
             
+        elif '?grating' == string:
+            val = np.random.randint(1, 3)
+            return "?grating {}  ok\r\n".format(val)
+        elif 'GOTO' in string:
+            return string[:4]
+        elif 'grating' in string:
+            return string[0]
             
-            
-            
+ 
         b = [str(i) for i in np.random.random((5,))]
         st = ''
         for i in b:
@@ -473,12 +485,6 @@ class SR830Instr(BaseInstr):
         ret = self.ask('SNAP?'+toRead)
         return [float(i) for i in ret.split(',')]
             
-        
-        
-
-        
-
-        
 
 class Keithley236Instr(BaseInstr):
     def __init__(self, GPIB_Number=None, timeout = 3000):
@@ -588,8 +594,36 @@ class Keithley2400Instr(BaseInstr):
     
     def turnOff(self):
         self.write('OUTP OFF')
+        
+        
+class ActonSP(BaseInstr):
+    def gotoWavelength(self, wl):
+        """ Will go to the sepcified wavelength, given in nm, up to 3 decimal places """
+        wl = round(wl, 3) # ensure that it's 3 decimal places, at most
+        self.ask(str(wl)+' GOTO', timeout = 5000)
+        
+    def getWavelength(self):
+        ret = self.ask('?nm')
+        # return is "?nm <wavelength> nm  ok\r\n. base class removes \n
+        
+        return float(ret[3:-8])
+        
+    def setGrating(self, grating):
+        if grating not in (1, 2):
+            print 'Not a valid grating'
+            return
+        print self.ask(str(grating)+' grating', timeout=25000)
+        
+    def getGrating(self):
+        ret = self.ask('?grating')
+        return int(ret[8:-5])
+        
+    def goAndAsk(self, wl):
+        self.gotoWavelength(wl)
+        return self.getWavelength()
+        
             
-                
+#a = ActonSP("ASRL1::INSTR")
         
 
 
