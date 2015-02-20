@@ -85,6 +85,7 @@ class BaseInstr(object):
             rm = visa.ResourceManager()
             try:
                 self.instrument = rm.get_instrument(GPIB_Number)
+                print "GOT INSTRUMENT AT {}".format(GPIB_Number)
                 self.instrument.timeout = timeout
             except:
                 print 'Error opening GPIB'
@@ -597,8 +598,29 @@ class Keithley2400Instr(BaseInstr):
         
         
 class ActonSP(BaseInstr):
+    def __init__(self, GPIB_Number=None, timeout=3000):
+        super(ActonSP, self).__init__(GPIB_Number, timeout)
+        self.grating = self.getGrating() # Need for calibration
     def gotoWavelength(self, wl):
         """ Will go to the sepcified wavelength, given in nm, up to 3 decimal places """
+        # Dominik, circa summer 2014, found that you could tell the spectrometer
+        # to center on a HeNe line, but it would be off slightly. He did a bunch of 
+        # fitting to find this polynomial which would correct for this factor
+        if self.grating == 1:
+            wl =(-2.390886286390188e+00) + \
+                wl*(1.018907291726042e+00) + \
+                wl**2* (-5.239267779155798e-05) + \
+                wl**3*(6.855487569805709e-08) + \
+                wl**4*(-4.220550493992102e-11) + \
+                wl**5*(9.494053877262009e-15)
+        else:
+            wl =(1.557630636882798e+01) + \
+                 wl*(8.698266750061570e-01) + \
+                 wl**2* (4.272703967701712e-04) + \
+                 wl**3*(-6.850387039022057e-07) + \
+                 wl**4*(5.382546874122902e-10) + \
+                 wl**5*(-1.661406555420829e-13)
+        
         wl = round(wl, 3) # ensure that it's 3 decimal places, at most
         self.ask(str(wl)+' GOTO', timeout = 5000)
         

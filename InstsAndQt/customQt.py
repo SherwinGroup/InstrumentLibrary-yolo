@@ -47,6 +47,15 @@ class QFNumberEdit(QtGui.QLineEdit):
             return ret
         except:
             pass
+
+        toMatch = re.compile('(\d+\.?\d*|\d*\.\d+)\*(\d+\.?\d*|\d*\.\d+)')
+        if re.match(toMatch, inp):
+            print "it's a command! {}".format(inp)
+            try:
+                ret = eval(inp)
+                return ret
+            except:
+                pass
         #tests to see whether digit is whole number or decimal, and if it has 
         #some modifier at the end
         toMatch = re.compile('-?(\d+\.?\d*|\d*\.\d+)(m|u|n|M|k)?\Z')
