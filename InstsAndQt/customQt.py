@@ -38,7 +38,8 @@ class QFNumberEdit(QtGui.QLineEdit):
                 self.textAccepted.emit(val)
                 
             
-        
+    def value(self):
+        return float(self.text())
     def parseInp(self, inp):
         ret = None
         #see if we can just turn it into a number and leave if we can
@@ -95,6 +96,8 @@ class QINumberEdit(QtGui.QLineEdit):
                 self.setText(str(val))
                 self._before = str(val)
                 self.textAccepted.emit(val)
+    def value(self):
+        return int(self.text())
             
         
     def parseInp(self, inp):

@@ -39,7 +39,9 @@ class FakeInstr(object):
                 st+=str(i)+','
             return st
         elif ':WAV:DATA?' == string: #agilent querying data
-            return np.random.random((1000,))
+            a = np.random.random((1000,)) + 100
+            b = np.random.random((1000,)) + 200
+            return np.concatenate((a,b))
         elif '*OPC?'==string:
             time.sleep(0.5)
             return u'1\r'
@@ -69,17 +71,19 @@ class FakeInstr(object):
         
     def query_binary_values(self, string, datatype):
         if ':WAV:DATA?' == string: #agilent querying data
-            return np.random.random((1000,))
+            a = np.random.random((1000,)) + 100
+            b = np.random.random((1000,)) + 200
+            return np.concatenate((a,b))
         
     def close(self):
-        print 'closed'
+        print self.__class__.__name__ + 'closed'
 
 
 class BaseInstr(object):
     '''Base class which handles opening the GPIB and safely reading/writing to the instrument'''
     def __init__(self, GPIB_Number = None, timeout = 3000):
         if GPIB_Number == None or GPIB_Number == 'Fake':
-            print 'Error. No GPIB assigned'
+            print 'Error. No GPIB assigned {}'.format(GPIB_Number)
             self.instrument = FakeInstr()
         else:
             rm = visa.ResourceManager()
@@ -182,6 +186,8 @@ class Agilent6000(BaseInstr):
     def scaleData(self, data=None):
         #See page 638
         #get the preamble
+        # Assumes you're scaling the data that is
+        # currently active
         pre = self.ask(':WAV:PRE?').split(',')
         xinc = float(pre[4])
         xori = float(pre[5])
@@ -196,20 +202,28 @@ class Agilent6000(BaseInstr):
         time = (x - xref) * xinc + xori
         
         return np.vstack((time, volt)).T
-        
-    def readMultipleChannels(self, *channels):
-        #Channels should be a tuple of channel numbers to read
+
+    def getSingleChannel(self, channel):
+        if channel not in (1, 2, 3, 4):
+            print "Error, invalid channel for reading"
+            return
+        st = ":DIG CHAN"+str(channel)
+        self.write(st)
+        self.waitForComplete()
+
+        raw = self.readChannel(channel)
+        return self.scaleData(raw)
+    def getMultipleChannels(self, *channels):
+        #pass the channels that should be read
         if len(channels) == 1:
             self.setSource(channels[0])
-            return self.readChannel([0])
+            return self.getSingleChannel([0])
         #Need to 'digitize' each of the channels we want to read
         st = ':DIG '
         for i in channels:
             st += 'CHAN'+str(i)+','
         st = st[:-1]
         self.write(st)
-            
-        
         self.waitForComplete()
         
         results = []
@@ -228,12 +242,12 @@ class Agilent6000(BaseInstr):
         self.instrument.timeout = origTO
         
     def setTrigger(self, isNormal = True, mode = 'EDGE', level=2.5, slope = 'POS', source = 4):
-        '''Set up the triggering of the oscilloscope. See the doucmentation for details.
+        """Set up the triggering of the oscilloscope. See the doucmentation for details.
         isNormal switches between normal (as expected) or auto, where it internally triggers if no external trigger
         level is the voltage at which it triggers
         slope = [POS | NEG | EITHER | ALTERNATE]
         source is the channel source, EXT for external
-        '''
+        """
         
         sweep = 'AUTO'
         if isNormal:
