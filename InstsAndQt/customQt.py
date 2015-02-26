@@ -39,13 +39,19 @@ class QFNumberEdit(QtGui.QLineEdit):
                 
             
     def value(self):
-        return float(self.text())
+        ret = -1
+        try:
+            ret = float(self.text())
+        except:
+            self._handleEditingFinished()
+            ret = float(self.text())
+        return ret
+                
     def parseInp(self, inp):
         ret = None
         #see if we can just turn it into a number and leave if we can
         try:
             ret = float(inp)
-            return ret
         except:
             pass
 
@@ -97,7 +103,13 @@ class QINumberEdit(QtGui.QLineEdit):
                 self._before = str(val)
                 self.textAccepted.emit(val)
     def value(self):
-        return int(self.text())
+        ret = -1
+        try:
+            ret = int(self.text())
+        except:
+            self._handleEditingFinished()
+            ret = int(self.text())
+        return ret
             
         
     def parseInp(self, inp):
