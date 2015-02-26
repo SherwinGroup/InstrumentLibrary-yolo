@@ -424,11 +424,13 @@ class SPEX(BaseInstr):
         i = 0 #Counter to not get stuck forever if things aren't working right
         ret = False
         while True:
+            if i >= 800: # did something go terribly wrong?
+                break
             val = self.ask('E')
             if not val:
                 print 'bad return from waiting'
                 i = i+1
-                if i == 10:
+                if i >= 10:
                     print 'Tried too many times'
                     break
             elif val == notBusy:
@@ -438,6 +440,7 @@ class SPEX(BaseInstr):
             elif val==busy:
                 pass
             time.sleep(0.05)
+            i += 1
         return ret
             
         

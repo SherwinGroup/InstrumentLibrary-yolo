@@ -52,6 +52,7 @@ class QFNumberEdit(QtGui.QLineEdit):
         #see if we can just turn it into a number and leave if we can
         try:
             ret = float(inp)
+            return ret
         except:
             pass
 
@@ -61,8 +62,8 @@ class QFNumberEdit(QtGui.QLineEdit):
             try:
                 ret = eval(inp)
                 return ret
-            except:
-                pass
+            except Exception as e:
+                print "Can't parse command", inp, e
         #tests to see whether digit is whole number or decimal, and if it has 
         #some modifier at the end
         toMatch = re.compile('-?(\d+\.?\d*|\d*\.\d+)(m|u|n|M|k)?\Z')
@@ -72,8 +73,11 @@ class QFNumberEdit(QtGui.QLineEdit):
                 ret = (float(inp[:-1]) * #convert first part to number
                    convDict[[b for b in convDict.keys() if b in inp][0]]) #and multiply by the exponential
                 return ret
-            except:
-                print 'uh oh'
+            except Exception as e:
+                print "Can't parse float string"
+                print inp, type(inp)
+                print e
+                print ''
         else:
             return False
 
