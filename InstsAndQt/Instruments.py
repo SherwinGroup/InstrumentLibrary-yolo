@@ -91,8 +91,8 @@ class BaseInstr(object):
                 self.instrument = rm.get_instrument(GPIB_Number)
                 print "GOT INSTRUMENT AT {}".format(GPIB_Number)
                 self.instrument.timeout = timeout
-            except:
-                print 'Error opening GPIB'
+            except Exception as e:
+                print 'Error opening GPIB,',e
         #Ensure the instrument writes out to the GPIB
         
     def write(self, command, strip=True):
@@ -371,6 +371,9 @@ class SPEX(BaseInstr):
         
     def gotoWN(self, wn):
         #Will move the SPEX to the specified wavenumber
+        if wn>15000:
+            print "NO. BAD. DON'T GO THERE.\n\tDesired SPEX wavenumber too large"
+            return
         notMoving = self.waitForMove()
         
         #Break because something went wrong and we weren't able to wait
@@ -617,7 +620,10 @@ class Keithley2400Instr(BaseInstr):
 class ActonSP(BaseInstr):
     def __init__(self, GPIB_Number=None, timeout=3000):
         super(ActonSP, self).__init__(GPIB_Number, timeout)
-        self.grating = self.getGrating() # Need for calibration
+        try:
+            self.grating = self.getGrating() # Need for calibration
+        except:
+            raise
     def gotoWavelength(self, wl):
         """ Will go to the sepcified wavelength, given in nm, up to 3 decimal places """
         # Dominik, circa summer 2014, found that you could tell the spectrometer
@@ -655,6 +661,9 @@ class ActonSP(BaseInstr):
         
     def getGrating(self):
         ret = self.ask('?grating')
+        if not ret:
+            print "ERROR GETTING SPECTROMETER GRATING\nENSURE COMMUNICATION"
+            return 2
         return int(ret[8:-5])
         
     def goAndAsk(self, wl):
