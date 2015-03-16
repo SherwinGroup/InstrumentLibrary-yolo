@@ -630,19 +630,19 @@ class ActonSP(BaseInstr):
             self.grating = self.getGrating() # Need for calibration
         except:
             raise
-    def gotoWavelength(self, wl):
+    def gotoWavelength(self, wl, doCal=True):
         """ Will go to the sepcified wavelength, given in nm, up to 3 decimal places """
         # Dominik, circa summer 2014, found that you could tell the spectrometer
         # to center on a HeNe line, but it would be off slightly. He did a bunch of 
         # fitting to find this polynomial which would correct for this factor
-        if self.grating == 1:
+        if self.grating == 1 and doCal:
             wl =(-2.390886286390188e+00) + \
                 wl*(1.018907291726042e+00) + \
                 wl**2* (-5.239267779155798e-05) + \
                 wl**3*(6.855487569805709e-08) + \
                 wl**4*(-4.220550493992102e-11) + \
                 wl**5*(9.494053877262009e-15)
-        else:
+        elif doCal:
             wl =(1.557630636882798e+01) + \
                  wl*(8.698266750061570e-01) + \
                  wl**2* (4.272703967701712e-04) + \
