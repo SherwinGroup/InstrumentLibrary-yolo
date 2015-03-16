@@ -43,4 +43,9 @@ Temporary Items
 .apdisk
 
 #python compiled scripts
-*.pyc
+InstsAndQt/*.pyc
+
+# Setup folders
+build/
+dist/
+InstsAndQt.egg-info/

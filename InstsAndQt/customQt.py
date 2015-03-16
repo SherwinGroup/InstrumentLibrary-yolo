@@ -6,6 +6,7 @@ Inspiration: http://stackoverflow.com/questions/12182133/pyqt4-combine-textchang
 """
 
 import numpy as np
+import copy
 from PyQt4 import QtGui, QtCore
 import re
 
@@ -92,6 +93,16 @@ class QINumberEdit(QtGui.QLineEdit):
         self.textChanged.connect(lambda: self._handleEditingFinished())
         self.returnPressed.connect(lambda: self._handleEditingFinished(True))
         self._before = contents
+
+    def __add__(self, other):
+        ret = copy.deepcopy(self)
+        ret.setText(str(self.value()+other))
+        return ret
+
+    def __sub__(self, other):
+        ret = copy.deepcopy(self)
+        ret.setText(str(self.value()-other))
+        return ret
         
     def _handleEditingFinished(self, _return = False):
         before, after = self._before, str(self.text())

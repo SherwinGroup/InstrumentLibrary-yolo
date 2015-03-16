@@ -30,7 +30,8 @@ class FakeInstr(object):
         elif string == 'E': #SPEX, is it moving
             return 'oz'
         elif ':WAV:PRE?' == string:#agilent oscilloscope, waveform preamble
-            a = np.random.random((10,))
+            # a = np.random.random((10,))
+            a = np.ones((10,))
             a[4] = 3 #Forcing some numbers for reasonable consistancy
             a[5] = 0
             a[6] = 0
@@ -39,8 +40,8 @@ class FakeInstr(object):
                 st+=str(i)+','
             return st
         elif ':WAV:DATA?' == string: #agilent querying data
-            a = np.random.random((1000,)) + 100
-            b = np.random.random((1000,)) + 200
+            a = 10.*np.random.random((1000,)) + 100
+            b = 10.*np.random.random((1000,)) + 200
             return np.concatenate((a,b))
         elif '*OPC?'==string:
             time.sleep(0.5)
@@ -71,9 +72,14 @@ class FakeInstr(object):
         
     def query_binary_values(self, string, datatype):
         if ':WAV:DATA?' == string: #agilent querying data
-            a = np.random.random((1000,)) + 100
-            b = np.random.random((1000,)) + 200
-            return np.concatenate((a,b))
+            # Simulate a missed pulse 1/10
+            if np.random.randint(0,10)==0:
+                return np.random.random((2500,))
+            a = 10.*np.random.random((1000,))
+            b = 10.*np.random.random((1000,)) + np.random.randint(150,250)
+            c = 10.*np.random.random((50,)) + np.random.randint(700,1000)
+            d = 10.*np.random.random((450,))
+            return np.concatenate((a,b, c, d))
         
     def close(self):
         print self.__class__.__name__ + 'closed'
