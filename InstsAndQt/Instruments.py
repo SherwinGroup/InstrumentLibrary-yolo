@@ -627,7 +627,9 @@ class ActonSP(BaseInstr):
     def __init__(self, GPIB_Number=None, timeout=3000):
         super(ActonSP, self).__init__(GPIB_Number, timeout)
         try:
+            time.sleep(0.5) # maybe asking too soon after communication has been established?
             self.grating = self.getGrating() # Need for calibration
+            self.wavelength = self.getWavelength()
         except:
             raise
     def gotoWavelength(self, wl, doCal=True):
@@ -650,8 +652,8 @@ class ActonSP(BaseInstr):
                  wl**4*(5.382546874122902e-10) + \
                  wl**5*(-1.661406555420829e-13)
         
-        wl = round(wl, 3) # ensure that it's 3 decimal places, at most
-        self.ask(str(wl)+' GOTO', timeout = 5000)
+        wl = wl = "{:.3f} GOTO".format(float(wl)) # ensure that it's 3 decimal places, at most
+        self.ask(wl, timeout = 5000) # ask so it waits for the response when finished
         
     def getWavelength(self):
         ret = self.ask('?nm')
@@ -672,9 +674,17 @@ class ActonSP(BaseInstr):
             return 2
         return int(ret[8:-5])
         
-    def goAndAsk(self, wl):
-        self.gotoWavelength(wl)
+    def goAndAsk(self, wl, doCal = True):
+        self.gotoWavelength(wl, doCal)
         return self.getWavelength()
+        
+    def getSpeed(self):
+        ret = self.ask("?nm/min")
+        if not ret:
+            pass
+    def gotoSpeed(self, wl):
+        wl = "{:.3f} nm".format(float(wl))
+        self.ask(wl, timeout=None)
         
             
 #a = ActonSP("ASRL1::INSTR")
