@@ -645,15 +645,25 @@ class ActonSP(BaseInstr):
                 wl**4*(-4.220550493992102e-11) + \
                 wl**5*(9.494053877262009e-15)
         elif doCal:
-            wl =(1.557630636882798e+01) + \
-                 wl*(8.698266750061570e-01) + \
-                 wl**2* (4.272703967701712e-04) + \
-                 wl**3*(-6.850387039022057e-07) + \
-                 wl**4*(5.382546874122902e-10) + \
-                 wl**5*(-1.661406555420829e-13)
+            #wl =(1.557630636882798e+01) + \
+            #     wl*(8.698266750061570e-01) + \
+            #     wl**2* (4.272703967701712e-04) + \
+            #     wl**3*(-6.850387039022057e-07) + \
+            #     wl**4*(5.382546874122902e-10) + \
+            #     wl**5*(-1.661406555420829e-13)
+            print "didcal pre: {}".format(wl)
+            wl = (5.629988767723054e-2) + \
+                wl * 1.0001494544120224
+            print "didcal pos: {:.3f}".format(wl)
+        # Some weird hystersis in the spectrometer. 
+        # Want to go past the desired amount and step back up.
+        if wl < self.wavelength:
+            goto = "{:.3f} GOTO".format(float(wl)-6)
+            self.ask(goto, timeout = 10000)
         
-        wl = wl = "{:.3f} GOTO".format(float(wl)) # ensure that it's 3 decimal places, at most
-        self.ask(wl, timeout = 5000) # ask so it waits for the response when finished
+        wl = "{:.3f} GOTO".format(float(wl)) # ensure that it's 3 decimal places, at most
+        self.ask(wl, timeout = 10000) # ask so it waits for the response when finished
+        self.wavelength = self.getWavelength()
         
     def getWavelength(self):
         ret = self.ask('?nm')
