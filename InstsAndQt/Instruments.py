@@ -9,17 +9,21 @@ import numpy as np
 import visa
 import time
 
+PRINT_OUTPUT = False
+
 class FakeInstr(object):
     timeout = 3000
     curStep = 70000 #Making life interesting for SPEX instrument
     def write(self, string):
-        print ' '*15 + string
+        if PRINT_OUTPUT:
+            print ' '*15 + string
         if 'F0' in string: #SPEX Relative move
             self.curStep += int(string[3:])
         if ':DIG' in string: #Agilent telling it to start data collection
             time.sleep(0.75)
     def ask(self, string):
-        print ' '*12 + string
+        if PRINT_OUTPUT:
+            print ' '*12 + string
         #Test for some basic instrument questions and output the expected output
         if 'SLVL' in string or 'OUTP' in string:
             return str(np.random.random())
@@ -32,9 +36,10 @@ class FakeInstr(object):
         elif ':WAV:PRE?' == string:#agilent oscilloscope, waveform preamble
             # a = np.random.random((10,))
             a = np.ones((10,))
-            a[4] = 3 #Forcing some numbers for reasonable consistancy
+            a[4] = 1e-7 #Forcing some numbers for reasonable consistancy
             a[5] = 0
             a[6] = 0
+            a[7] = 1e-3
             st = ''
             for i in a:
                 st+=str(i)+','
@@ -71,6 +76,7 @@ class FakeInstr(object):
         
         
     def query_binary_values(self, string, datatype):
+        np.random.seed()
         if ':WAV:DATA?' == string: #agilent querying data
             # Simulate a missed pulse 1/10
             if np.random.randint(0,10)==0:
@@ -163,7 +169,6 @@ class Agilent6000(BaseInstr):
         #Keep in memory which channel it is        
         self.channel = 1
         self.setSource(self.channel)
-#        self.write(':DISP:PERS INF')
         
     def setSource(self, channel):
     #Specify the source channel for reading information
@@ -211,7 +216,7 @@ class Agilent6000(BaseInstr):
 
     def getSingleChannel(self, channel):
         if channel not in (1, 2, 3, 4):
-            print "Error, invalid channel for reading"
+            print "Error, invalid channel for reading, {}".format(channel)
             return
         st = ":DIG CHAN"+str(channel)
         self.write(st)
@@ -219,11 +224,12 @@ class Agilent6000(BaseInstr):
 
         raw = self.readChannel(channel)
         return self.scaleData(raw)
+
     def getMultipleChannels(self, *channels):
         #pass the channels that should be read
         if len(channels) == 1:
             self.setSource(channels[0])
-            return self.getSingleChannel([0])
+            return (self.getSingleChannel(channels[0]),)
         #Need to 'digitize' each of the channels we want to read
         st = ':DIG '
         for i in channels:
@@ -270,11 +276,21 @@ class Agilent6000(BaseInstr):
                 ch = 'CHAN'+str(source)
 #                print ch
             self.write(':TRIG:EDGE:SOUR ' + ch)
+
+    def setMode(self, mode):
+        if mode.lower() not in ["normal", "average", "hresolution", "peak",
+                                "norm", "aver", "hres"]:
+            mode = "NORM"
+        self.write(":ACQ:TYPE {}".format(mode))
+    def setAverages(self, num):
+        try:
+            num = int(num)
+        except:
+            num = 1
+
+        self.write(":ACQ:COUN {}".format(num))
             
-        
-    
-   
-#a = Agilent6000('GPIB::5::INSTR')     
+
 class SPEX(BaseInstr):
     
     def __init__(self, GPIB_Number=None, timeout=3000):
