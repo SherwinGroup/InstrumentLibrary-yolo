@@ -112,17 +112,18 @@ class BaseInstr(object):
         proper ending to command. '''
         try:
             self.instrument.write(command)
-        except:
-            print 'Error writting command,', str(command)
+        except Exception as e:
+            print 'Error writting command, {}. {}'.format(command, e)
             return False
         return True
     
-    def ask(self, command, strip=1, timeout = 3000):
+    def ask(self, command, strip=1, timeout = None):
         '''A function to catch reading errors. 
         strip = 1 will strip tailing \n and encode from unicode
         strip = 0 will simply encode from unicode
         strip < 0 will do nothing'''
-        self.instrument.timeout = timeout
+        if timeout is not None:
+            self.instrument.timeout = timeout
         ret = False
         try:
             ret = self.instrument.ask(command)
@@ -246,9 +247,11 @@ class Agilent6000(BaseInstr):
         return tuple(results)
         
         
-    def waitForComplete(self, timeout=3000):
-        origTO = self.instrument.timeout        
-        self.instrument.timeout = timeout
+    def waitForComplete(self, timeout=None):
+
+        origTO = self.instrument.timeout
+        if timeout is not None:
+            self.instrument.timeout = timeout
         #Ask for operations complete        
         self.ask('*OPC?')
         self.instrument.timeout = origTO
@@ -287,6 +290,11 @@ class Agilent6000(BaseInstr):
             num = int(num)
         except:
             num = 1
+
+        # Set it so it hopefully doesn't timeout
+        # 0.75 = ~FEL RR
+        # 1.5 is factor in case maybe 1/3 pulses is missed
+        self.instrument.timeout = num/0.75 * 1.5*1000
 
         self.write(":ACQ:COUN {}".format(num))
             

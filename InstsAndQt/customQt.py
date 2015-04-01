@@ -8,6 +8,7 @@ Inspiration: http://stackoverflow.com/questions/12182133/pyqt4-combine-textchang
 import numpy as np
 import copy
 from PyQt4 import QtGui, QtCore
+import pyqtgraph as pg
 import re
 
 
@@ -136,6 +137,19 @@ class QINumberEdit(QtGui.QLineEdit):
         except:
             return False
 
+class QTimedText(QtGui.QLabel):
+    showTime = 3000
+    def setMessage(self, message, showTime = None):
+        if showTime is None:
+            showTime = self.showTime
+        self.setText(str(message))
+        QtCore.QTimer.singleShot(showTime, self.clearText)
+
+    def clearText(self):
+        self.setText("")
+
+
+
 class QButtonDblClick(QtGui.QPushButton):
     """
     http://stackoverflow.com/questions/19247436/pyqt-mouse-mousebuttondblclick-event
@@ -191,7 +205,20 @@ class TempThread(QtCore.QThread):
 
 
 
+class pgPlot(QtGui.QMainWindow):
+    """ Dirt simple class for a window with a pyqtgraph plot
+        that allows me to emit a signal wh en it's closed
+    """
+    closedSig = QtCore.pyqtSignal()
+    def __init__(self, parent = None):
+        super(pgPlot, self).__init__(parent)
+        self.pw = pg.PlotWidget()
+        self.setCentralWidget(self.pw)
+        self.show()
 
+    def closeEvent(self, event):
+        self.closedSig.emit()
+        event.accept()
 
 
 
