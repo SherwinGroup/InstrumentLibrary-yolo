@@ -25,6 +25,12 @@ def calcLRC(byteArr):
         lrc = (lrc + i)
         lrc = rol(lrc)
     return lrc
+
+def printByteArray(byteArr):
+    for i in byteArr:
+        print "{:02x}".format(i).upper(),
+    print ""
+
     
 CTRL_GETSTATUS  = [0x02, 0x00]
 CTRL_STOP       = [0x02, 0x10]
@@ -145,7 +151,7 @@ class TIMS0201(object):
         packet = TIMS0201.makePacket(CTRL_STOP)
         self.write(packet)
         # ignore the response packet
-        self.read()
+        self.read(verbose = True)
         
     def singleStep(self, fwd = True):
         direction = 0 # reverse
@@ -167,13 +173,30 @@ class TIMS0201(object):
         print "NOT IMPLEMENTED: moveAbsolute"
         
     def moveRelative(self, move):
-        print "NOT IMPLEMENTED: moveRelative"
+        data = int(move)
+        data = (c_ubyte * 4).from_buffer_copy(pack(">i", data))
+        packet = TIMS0201.makePacket(CTRL_MVREL, data)
+        self.write(packet)
+        self.read(13, verbose=True)
         
     def getSteps(self):
-        print "NOT IMPLEMENTED: getSteps"
+        packet = TIMS0201.makePacket(CTRL_STEPSGET)
+        self.write(packet)
+        ret = self.read(13, verbose = True)
+        if ret is not None:
+            return unpack(">i", str(bytearray(ret[8:-1])))[0]
+        else:
+            print "ERROR GETTING STEPS"
+            return 0
+            
+            
     
-    def setSteps(self):
-        print "NOT IMPLEMENTED: setSteps"
+    def setSteps(self, steps):
+        data = int(steps)
+        data = (c_ubyte * 4).from_buffer_copy(pack(">i", data))
+        packet = TIMS0201.makePacket(CTRL_STEPSSET, data)
+        self.write(packet)
+        self.read(verbose=True)
         
     def getCurrentLimit(self):
         packet = TIMS0201.makePacket(CTRL_CURLIMGET)
@@ -213,13 +236,45 @@ class TIMS0201(object):
 #            print "{:02x}".format(i).upper(),
 #        return
         self.write(packet)
-        self.read(verbose = True)
+        self.read(10, verbose = True)
 
     def getStepRate(self):
         packet = TIMS0201.makePacket(CTRL_STEPRATEGET)
         self.write(packet)
-        ret = self.read(10)
-        return unpack(">H", bytearray(ret[8:-1]))[0]
+        ret = self.read(11, verbose=True)
+        if ret is not None:
+            try:
+                return unpack(">H", bytearray(ret[8:-1]))[0]
+            except:
+                print "ERROR GETTING STEPRATE\n"
+                printByteArray(bytearray(ret))
+                printByteArray(bytearray(ret[8:-1]))
+        else:
+            print "ERROR GETTING STEPRATE, NONE READ"
+            return 100
+            
+    def getDeviceStatus(self):
+        packet = TIMS0201.makePacket(CTRL_GETSTATUS)
+        self.write(packet)
+        ret = self.read(10, verbose = True)
+        if ret is not None:
+            return unpack(">h", bytearray(ret[8:-1]))[0]
+        else:
+            print "ERROR GETTING DEVICE STATUS"
+            return -1
+            
+    def isBusy(self):
+        status = self.getDeviceStatus()
+        if status == -1:
+            return True
+        busy = 0b01
+        move = 0b10
+        
+        if status&busy or status&move:
+            return True
+        return False
+        
+
         
         
         
