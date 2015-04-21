@@ -201,7 +201,7 @@ class TempThread(QtCore.QThread):
             else:
                 self.target(self.args)
         except Exception as e:
-            print "ERROR IN THREAD,",e
+            print "ERROR IN THREAD,",self.target.__name__,e
 
 
 

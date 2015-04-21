@@ -2,15 +2,71 @@
 """
 Created on Thu Mar 26 11:24:38 2015
 
-@author: dvalovcin
+A note on synchronization:
+----------------------------------
+Serious issues were had when trying to deal with synchronization (in multithreading)
+with this motor driver. It was desired to be able to query the drive often to read the
+voltages, while still being able to move the motor.
+
+Mutex's are locks which are supposed to be able to control that. However, trying to
+pass one between GUI classes, where they belong, was fruitless and countless
+synchronization issues were still present. It was found necessary to put them here,
+as somehow orderings would get messed up and elements would lock. For some reason,
+ it doesn't happen when you add Mutex's here.
+
 """
 
 import numpy as np
+import inspect
 import matplotlib.pylab as plt
 from matplotlib import rcParams
 from ctypes import *
 from struct import *
 import time
+
+try:
+    from PyQt4.QtCore import QMutex
+except:
+    # Still allow functionality if no PyQt4 is detected.
+    class QMutex:
+        def lock(self):pass
+        def unlock(self):pass
+        def tryLock(self): return False
+
+import logging
+log = logging.getLogger("MotorDriver")
+log.setLevel(logging.DEBUG)
+handler1 = logging.StreamHandler()
+handler1.setLevel(logging.WARNING)
+formatter = logging.Formatter('%(message)s')
+handler1.setFormatter(formatter)
+log.addHandler(handler1)
+import traceback
+
+class MyMutex(QMutex):
+    """
+    Custom mutex for debugging purposes
+    """
+    def lock(self):
+        log.debug("\tMD Attempting lock")
+        for i in traceback.format_stack()[:-2]:
+            log.debug("\t\t{}".format(i.splitlines()[1]))
+        super(MyMutex, self).lock()
+        log.debug("\tMD Locked")
+    def tryLock(self, *args):
+        ret = super(MyMutex, self).tryLock(*args)
+        log.debug("\tMD (try)Locked, {}".format(ret))
+        for i in traceback.format_stack()[:-2]:
+            log.debug("\t\t{}".format(i.splitlines()[1]))
+        return ret
+    def unlock(self):
+        log.debug("\tMDUnlocked")
+        for i in traceback.format_stack()[:-2]:
+            log.debug("\t\t{}".format(i.splitlines()[1]))
+        log.debug("")
+        log.debug("")
+        super(MyMutex, self).unlock()
+
 
 # cyclical left bitshift for calulating LRC
 rol = lambda val, r_bits=1, max_bits=8: \
@@ -59,11 +115,15 @@ CTRL_SEEKRATESAV= [0x02, 0x46]
 
 
 
+
+
 class TIMS0201(object):
     readTimeout = 20 #ms
+    mutex = MyMutex()
     def __init__(self):
         self.dll = None
         self.registerFunctions()
+
         
         
     @staticmethod
@@ -118,7 +178,7 @@ class TIMS0201(object):
             print "already closed"
         
     def purge(self):
-        self.dll.FT_Purge(A.handle, c_ulong(3))
+        self.dll.FT_Purge(self.handle, c_ulong(3))
         
     def write(self, packet):
         written = c_ulong()
@@ -135,6 +195,7 @@ class TIMS0201(object):
             count += 1
             if count >= self.readTimeout:
                 print "Nothing to read, ", toRead
+                print "Called from,", inspect.stack()[1][3]
                 return
         readPacket = (c_ubyte * toRead)()
         read = c_ulong()
@@ -149,15 +210,19 @@ class TIMS0201(object):
         
     def stopMotor(self):
         packet = TIMS0201.makePacket(CTRL_STOP)
+        self.mutex.lock()
+        self.purge()
         self.write(packet)
         # ignore the response packet
         self.read(verbose = True)
+        self.mutex.unlock()
         
     def singleStep(self, fwd = True):
         direction = 0 # reverse
         if fwd:
             direction = 1
         packet = TIMS0201.makePacket(CTRL_SINGLESTEP, [direction])
+        self.purge()
         self.write(packet)
         self.read()
         
@@ -166,6 +231,7 @@ class TIMS0201(object):
         if fwd:
             direction = 1
         packet = TIMS0201.makePacket(CTRL_CONTSTEP, [direction])
+        self.purge()
         self.write(packet)
         self.read()
         
@@ -176,13 +242,22 @@ class TIMS0201(object):
         data = int(move)
         data = (c_ubyte * 4).from_buffer_copy(pack(">i", data))
         packet = TIMS0201.makePacket(CTRL_MVREL, data)
+
+        self.mutex.lock()
+        self.purge()
         self.write(packet)
         self.read(13, verbose=True)
+        self.mutex.unlock()
         
     def getSteps(self):
         packet = TIMS0201.makePacket(CTRL_STEPSGET)
+
+        self.mutex.lock()
+        self.purge()
         self.write(packet)
         ret = self.read(13, verbose = True)
+        self.mutex.unlock()
+
         if ret is not None:
             return unpack(">i", str(bytearray(ret[8:-1])))[0]
         else:
@@ -195,13 +270,20 @@ class TIMS0201(object):
         data = int(steps)
         data = (c_ubyte * 4).from_buffer_copy(pack(">i", data))
         packet = TIMS0201.makePacket(CTRL_STEPSSET, data)
+
+        self.mutex.lock()
+        self.purge()
         self.write(packet)
         self.read(verbose=True)
+        self.mutex.unlock()
         
     def getCurrentLimit(self):
         packet = TIMS0201.makePacket(CTRL_CURLIMGET)
+        self.mutex.lock()
+        self.purge()
         self.write(packet)
         read = self.read(verbose=True)
+        self.mutex.unlock()
         if read is not None:
             return read[8:-1][0]
         
@@ -211,13 +293,19 @@ class TIMS0201(object):
             print "ERROR: DO NOT EXCEED 20\%"
             limit = 20
         packet = TIMS0201.makePacket(CTRL_CURLIMSET, [limit])
+        self.mutex.lock()
+        self.purge()
         self.write(packet)
         self.read(verbose=True)
+        self.mutex.unlock()
     
     def getMotorPowers(self):
         packet= TIMS0201.makePacket(CTRL_MOTPOWREAD)
+        self.mutex.lock()
+        self.purge()
         self.write(packet)
         ret = self.read(20, verbose=True) # 12 bytes of data
+        self.mutex.unlock()
         if ret is not None:
             # (Motor Voltage, Winding A current, Winding B current)
             # (     V,               A,                  A        )
@@ -235,13 +323,19 @@ class TIMS0201(object):
 #        for i in packet:
 #            print "{:02x}".format(i).upper(),
 #        return
+        self.mutex.lock()
+        self.purge()
         self.write(packet)
         self.read(10, verbose = True)
+        self.mutex.unlock()
 
     def getStepRate(self):
         packet = TIMS0201.makePacket(CTRL_STEPRATEGET)
+        self.mutex.lock()
+        self.purge()
         self.write(packet)
         ret = self.read(11, verbose=True)
+        self.mutex.unlock()
         if ret is not None:
             try:
                 return unpack(">H", bytearray(ret[8:-1]))[0]
@@ -255,10 +349,17 @@ class TIMS0201(object):
             
     def getDeviceStatus(self):
         packet = TIMS0201.makePacket(CTRL_GETSTATUS)
+        self.mutex.lock()
+        self.purge()
         self.write(packet)
         ret = self.read(10, verbose = True)
+        self.mutex.unlock()
         if ret is not None:
-            return unpack(">h", bytearray(ret[8:-1]))[0]
+            try:
+                return unpack(">h", bytearray(ret[8:-1]))[0]
+            except:
+                log.debug("\tMDCRITICAL: NO DEVICE STATUS: {}".format(ret))
+                return -1
         else:
             print "ERROR GETTING DEVICE STATUS"
             return -1
