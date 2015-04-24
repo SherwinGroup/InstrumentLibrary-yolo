@@ -10,6 +10,7 @@ import copy
 from PyQt4 import QtGui, QtCore
 import pyqtgraph as pg
 import re
+import traceback
 
 
 class QFNumberEdit(QtGui.QLineEdit):
@@ -83,7 +84,6 @@ class QFNumberEdit(QtGui.QLineEdit):
         else:
             return False
 
-
 class QINumberEdit(QtGui.QLineEdit):
     #a signal to emit the new, approved number. Will emit False if the 
     # inputted value is not accepted. Intended for integer inputs
@@ -148,8 +148,6 @@ class QTimedText(QtGui.QLabel):
     def clearText(self):
         self.setText("")
 
-
-
 class QButtonDblClick(QtGui.QPushButton):
     """
     http://stackoverflow.com/questions/19247436/pyqt-mouse-mousebuttondblclick-event
@@ -189,7 +187,7 @@ class TempThread(QtCore.QThread):
     """ Creates a QThread which will monitor the temperature changes in the
         CCD. Actually more general than that since it simply takes a function and some args...
     """
-    def __init__(self, target, args = None):
+    def __init__(self, target = None, args = None):
         super(TempThread, self).__init__()
         self.target = target
         self.args = args
@@ -201,7 +199,9 @@ class TempThread(QtCore.QThread):
             else:
                 self.target(self.args)
         except Exception as e:
-            print "ERROR IN THREAD,",self.target.__name__,e
+            print "ERROR IN THREAD,",self.target.__name__
+            print e
+			traceback.print_exc()
 
 
 
