@@ -203,7 +203,7 @@ class TempThread(QtCore.QThread):
         except Exception as e:
             print "ERROR IN THREAD,",self.target.__name__
             print e
-			traceback.print_exc()
+            traceback.print_exc()
 
 
 
