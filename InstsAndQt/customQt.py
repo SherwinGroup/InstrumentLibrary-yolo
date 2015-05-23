@@ -205,8 +205,6 @@ class TempThread(QtCore.QThread):
             print e
             traceback.print_exc()
 
-
-
 class pgPlot(QtGui.QMainWindow):
     """ Dirt simple class for a window with a pyqtgraph plot
         that allows me to emit a signal wh en it's closed
@@ -221,6 +219,95 @@ class pgPlot(QtGui.QMainWindow):
     def closeEvent(self, event):
         self.closedSig.emit()
         event.accept()
+
+class DoubleYPlot(pg.PlotWidget):
+    """
+    Often want to have a graph which has two independent
+    y axes. it's a bit more work to always handle, so have
+    a simple function with conveniences for easy calling
+    and manipulating
+
+    Add linear regions to plotItem1 or p2
+    """
+    def __init__(self, *args, **kwargs):
+        super(DoubleYPlot, self).__init__(*args, **kwargs)
+
+        self.plotOne = self.plot()
+        self.plotItem1 = self.plotItem
+
+        #http://bazaar.launchpad.net/~luke-campagnola/pyqtgraph/inp/view/head:/examples/MultiplePlotAxes.py
+        #Need to do all this nonsense to make it plot on two different axes.
+        #Also note the self.updatePhase plot which shows how to update the data.
+        self.p2 = pg.ViewBox()
+        self.plotItem1.showAxis('right')
+        self.plotItem1.scene().addItem(self.p2)
+        self.plotItem1.getAxis('right').linkToView(self.p2)
+        self.p2.setXLink(self.plotItem1)
+        self.plotTwo = pg.PlotCurveItem()
+        self.p2.addItem(self.plotTwo)
+
+        #need to set it up so that when the window (and thus main plotItem) is
+        #resized, it informs the ViewBox for the second plot that it must update itself.
+        self.plotItem1.vb.sigResized.connect(lambda: self.p2.setGeometry(self.plotItem1.vb.sceneBoundingRect()))
+        self.setY1Color('k')
+        self.setY2Color('r')
+
+    def setXLabel(self, label="X", units=""):
+        self.plotItem1.setLabel('bottom',text=label, units=units)
+
+    def setY1Label(self, label="Y1", units=""):
+        self.plotItem1.setLabel('left', text=label, units=units, color = self.y1Pen.color().name())
+
+    def setY2Label(self, label="Y2", units=""):
+        self.plotItem1.getAxis('right').setLabel(label, units=units, color=self.y2Pen.color().name())
+
+    def setTitle(self, title="Title"):
+        self.plotItem1.setTitle(title)
+
+    def setY1Data(self, data):
+        self.plotOne.setData(data)
+
+    def setY2Data(self, data):
+        if len(data.shape) == 2:
+            self.plotTwo.setData(data[:,0], data[:,1])
+        else:
+            self.plotTwo.setData(data)
+        self.p2.setGeometry(self.plotItem1.vb.sceneBoundingRect())
+
+    def setY1Color(self, color='k'):
+        self.y1Pen = pg.mkPen(color)
+        self.plotItem1.getAxis("left").setPen(self.y1Pen)
+        self.plotOne.setPen(self.y1Pen)
+
+    def setY2Color(self, color='r'):
+        self.y2Pen = pg.mkPen(color)
+        self.plotItem1.getAxis("right").setPen(self.y2Pen)
+        self.plotTwo.setPen(self.y2Pen)
+
+class LockableBool(object):
+    def __init__(self, val = True):
+        self._value = bool(val)
+        self._changeable = True
+
+    def __repr__(self):
+        return str(bool(self._value))
+
+    def __get__(self, instance, owner):
+        return self
+
+    def __set__(self, instance, value):
+        if self._changeable: self._value = bool(value)
+
+    def __nonzero__(self):
+        return self._value
+
+    def unlock(self):
+        self._changeable = True
+
+    def lock(self):
+        self._changeable = False
+
+
 
 
 

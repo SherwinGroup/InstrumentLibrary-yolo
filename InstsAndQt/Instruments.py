@@ -8,8 +8,19 @@ Created on Tue Jan 27 16:38:33 2015
 import numpy as np
 import visa
 import time
+import logging
 
-PRINT_OUTPUT = False
+from customQt import *
+
+log = logging.getLogger("Instruments")
+log.setLevel(logging.DEBUG)
+handler1 = logging.StreamHandler()
+handler1.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - [%(filename)s:%(lineno)s - %(funcName)s()] - %(levelname)s - %(message)s')
+handler1.setFormatter(formatter)
+log.addHandler(handler1)
+
+PRINT_OUTPUT = True
 
 class FakeInstr(object):
     timeout = 3000
@@ -483,10 +494,6 @@ class SPEX(BaseInstr):
         
     def stepsToWN(self, step):
         return self.maxWavenumber - (float(step)/400.)
-        
-        
-
-
 
 class SR830Instr(BaseInstr):
     def __init__(self, GPIB_Number = None, timeout = 3000):
@@ -561,8 +568,14 @@ class Keithley236Instr(BaseInstr):
         
         
 class Keithley2400Instr(BaseInstr):
+    # Custom bool which can be locked
+    # to prevent changing
+    breakLoop = LockableBool(False)
     def __init__(self ,GPIB_Number=None, timeout = 3000, stopCurrent=1e-4, compliance=1e-3):
         super(Keithley2400Instr, self).__init__(GPIB_Number)
+
+        self.sleepTime = 0.05 # s
+        self.breakLoop = False # flag for when to stop ramping/measuring
 
         #Reset the instrument, clear flags and errors
         self.write("*rst; status:preset; *cls")
@@ -645,6 +658,89 @@ class Keithley2400Instr(BaseInstr):
     
     def turnOff(self):
         self.write('OUTP OFF')
+
+    def rampVoltage(self, vrange, toCall=lambda: None, sleep = None):
+        """
+        Ramp through the given voltages in range. Sleep the time given,
+        and then call the callable function. Will NOT turn on the voltage
+        and will NOT turn it off
+        """
+        if sleep is None:
+            sleep = self.sleepTime
+        for voltage in vrange:
+#            if PRINT_OUTPUT:
+#                print "at {}V".format(voltage)
+            if self.breakLoop:
+                return voltage # Let caller know where we were stopped
+            self.setVoltage(voltage)
+            try: toCall(voltage)
+            except TypeError: toCall()
+            time.sleep(sleep)
+        return vrange[-1]
+
+    def doLoop(self, start, stop, step=0.1, sleep = None, toCall = lambda: None, measureHyst = False):
+
+        # Do some tests to make sure the start/stop parameters are correct
+        if start * stop < 0:
+            # If on opposite sides of zero, should always be stepping
+            # away from the starting point
+            assert np.sign(step) == -np.sign(start)
+        else:
+            # Otherwise, on the same side, but need to make sure you're properly stepping
+            assert np.sign(step) == np.sign(stop - start)
+
+        if sleep is None:
+            sleep = self.sleepTime
+        self.breakLoop = False
+        self.turnOn()
+        stoppedAt = 0
+        # Make sure we start off ramping where we want to be.
+        if not start == 0:
+            voltages = np.arange(0, start, np.sign(start) * np.abs(step))
+            voltages = np.append(voltages, start)
+            stoppedAt = self.rampVoltage(voltages, sleep=sleep)
+
+        if self.shouldStopLoop(stoppedAt, step, sleep):
+            self.turnOff()
+            return
+
+        # do the real loop
+        voltages = np.arange(start, stop, step)
+        voltages = np.append(voltages, stop)
+        stoppedAt = self.rampVoltage(voltages, toCall, sleep)
+
+        if measureHyst:
+            if self.shouldStopLoop(stoppedAt, step, sleep):
+                self.turnOff()
+                return
+            voltages = np.arange(stop, start, -step)
+            voltages = np.append(voltages, start)
+            stoppedAt = self.rampVoltage(voltages, toCall, sleep)
+            
+        # Cheap hack to make it ramp down
+        self.breakLoop = True
+
+        self.shouldStopLoop(stoppedAt, step, sleep)
+        self.turnOff()
+
+
+
+    def shouldStopLoop(self, voltage, step, sleep):
+        """ Convenience function to check whether
+         we should stop doing a loop. If true, will automatically
+         step down
+        """
+        if not self.breakLoop: return False
+
+        self.breakLoop = False
+        self.breakLoop.lock()
+
+        voltages = np.arange(voltage, 0, -np.sign(voltage) * np.abs(step))
+        voltages = np.append(voltages, 0)
+
+        self.rampVoltage(voltages, sleep = sleep)
+        self.breakLoop.unlock()
+        self.breakLoop = True
         
         
 class ActonSP(BaseInstr):
@@ -721,7 +817,7 @@ class ActonSP(BaseInstr):
         self.ask(wl, timeout=None)
         
             
-#a = ActonSP("ASRL1::INSTR")
+a = Keithley2400Instr("Fake")
         
 
 
