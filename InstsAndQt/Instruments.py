@@ -308,6 +308,38 @@ class Agilent6000(BaseInstr):
         self.instrument.timeout = num/0.75 * 1.5*1000
 
         self.write(":ACQ:COUN {}".format(num))
+
+    @staticmethod
+    def integrateData(data, bounds):
+        """
+        So often, I find myself having to integrate osc data
+        for boxcar purposes. I'm tired of doing it by hand. Henceforth,
+        call this function.
+
+        Data = 2D array. Data[:,0] = x, data[:,1] = y
+        bounds = tuple of x points overwhich to integrate
+        """
+        st = bounds[0]
+        en = bounds[1]
+
+        x = data[:,0]
+        y = data[:,1]
+
+        gt = set(np.where(x>st))
+        lt = set(np.where(x<en))
+
+        # find the intersection of the sets
+        vals = list(gt&lt)
+
+        # Calculate the average
+        tot = np.sum(y[vals])
+
+        # Multiply by sampling
+        tot *= (x[1]-x[0])
+
+        # Normalize by total width
+        tot /= (en-st)
+        return tot
             
 
 class SPEX(BaseInstr):
@@ -817,7 +849,7 @@ class ActonSP(BaseInstr):
         self.ask(wl, timeout=None)
         
             
-a = Keithley2400Instr("Fake")
+# a = Keithley2400Instr("Fake")
         
 
 
