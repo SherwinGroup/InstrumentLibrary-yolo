@@ -803,10 +803,10 @@ class ActonSP(BaseInstr):
             #     wl**3*(-6.850387039022057e-07) + \
             #     wl**4*(5.382546874122902e-10) + \
             #     wl**5*(-1.661406555420829e-13)
-            print "didcal pre: {}".format(wl)
+            # print "didcal pre: {}".format(wl)
             wl = (5.629988767723054e-2) + \
                 wl * 1.0001494544120224
-            print "didcal pos: {:.3f}".format(wl)
+            # print "didcal pos: {:.3f}".format(wl)
         # Some weird hystersis in the spectrometer. 
         # Want to go past the desired amount and step back up.
         if wl < self.wavelength:
