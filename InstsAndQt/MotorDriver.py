@@ -100,6 +100,8 @@ CTRL_MVREL      = [0x02, 0x17]
 CTRL_STEPSGET   = [0x02, 0x20]
 CTRL_STEPSSET   = [0x02, 0x21]
 
+CTRL_STEPMODE   = [0x02, 0x28]
+
 CTRL_CURLIMGET  = [0x02, 0x30]
 CTRL_CURLIMSET  = [0x02, 0x31]
 CTRL_MOTPOWREAD = [0x02, 0x32]
@@ -240,6 +242,10 @@ class TIMS0201(object):
         
     def moveRelative(self, move):
         data = int(move)
+        # if data%2==1: # motor can't move to odd steps
+        #             # I suspect it has to do with full/half stepping mode
+        #             #but I haven't the slihgtest idea
+        #     data+=1
         data = (c_ubyte * 4).from_buffer_copy(pack(">i", data))
         packet = TIMS0201.makePacket(CTRL_MVREL, data)
 
@@ -263,8 +269,20 @@ class TIMS0201(object):
         else:
             print "ERROR GETTING STEPS"
             return 0
-            
-            
+
+    def setSteppingMode(self, toHalf = True):
+        # if  toHalf -> On
+        # ifn toHalf -> Off
+        toHalf = int(bool(toHalf))
+        data = (c_ubyte * 1).from_buffer_copy(pack(">?", toHalf))
+        packet = TIMS0201.makePacket(CTRL_STEPMODE, data)
+
+        self.mutex.lock()
+        self.purge()
+        self.write(packet)
+        self.read(verbose=True)
+        self.mutex.unlock()
+
     
     def setSteps(self, steps):
         data = int(steps)
@@ -285,13 +303,18 @@ class TIMS0201(object):
         read = self.read(verbose=True)
         self.mutex.unlock()
         if read is not None:
-            return read[8:-1][0]
+            try:
+                return read[8:-1][0]
+            except Exception as e:
+                print "Error getting current, ", e
+                print " "*5, read
+                return 0
         
     def setCurrentLimit(self, limit=1):
         limit = int(limit)
-        if limit > 20:
-            print "ERROR: DO NOT EXCEED 20\%"
-            limit = 20
+        if limit > 35:
+            print "ERROR: DO NOT EXCEED 35\%"
+            limit = 35
         packet = TIMS0201.makePacket(CTRL_CURLIMSET, [limit])
         self.mutex.lock()
         self.purge()
@@ -356,9 +379,9 @@ class TIMS0201(object):
         self.mutex.unlock()
         if ret is not None:
             try:
-                return unpack(">h", bytearray(ret[8:-1]))[0]
+                return unpack(">H", bytearray(ret[8:-1]))[0]
             except:
-                log.debug("\tMDCRITICAL: NO DEVICE STATUS: {}".format(ret))
+                log.warning("\tMDCRITICAL: NO DEVICE STATUS: {}".format(ret))
                 return -1
         else:
             print "ERROR GETTING DEVICE STATUS"
