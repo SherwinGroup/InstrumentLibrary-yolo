@@ -220,6 +220,61 @@ class pgPlot(QtGui.QMainWindow):
         self.closedSig.emit()
         event.accept()
 
+class BorderlessPgPlot(QtGui.QMainWindow):
+    """ Dirt simple class for a window with a pyqtgraph plot
+        that allows me to emit a signal wh en it's closed
+    """
+    closedSig = QtCore.pyqtSignal()
+    def __init__(self, parent = None):
+        super(BorderlessPgPlot, self).__init__(parent)
+        self.setWindowFlags(QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnTopHint)
+        self.pw = DraggablePlotWidget()
+        self.setCentralWidget(self.pw)
+        self.pw.plotItem.vb.sigDropEvent.connect(self.moveWindow)
+        self.show()
+
+    def closeEvent(self, event):
+        self.closedSig.emit()
+        event.accept()
+
+    def moveWindow(self, obj, pos):
+        # newpos = QtCore.QPoint(self.frameGeometry().x(), self.frameGeometry().y())
+        newpos = self.pos()
+        newpos += pos.toQPoint()
+
+        self.move(newpos)
+
+
+class DraggablePlotWidget(pg.PlotWidget):
+    def __init__(self, parent=None, background='default', **kargs):
+        vb = DraggableViewBox()
+        kargs["viewBox"] = vb
+        super(DraggablePlotWidget, self).__init__(parent, background, **kargs)
+
+
+class DraggableViewBox(pg.ViewBox):
+    """
+    Subclassing which allows me to have a viewbox
+    where I can overwrite the dragging controls
+    """
+    # emits (<self>, <drop pos>)
+    sigDropEvent = QtCore.pyqtSignal(object, object)
+    def __init__(self, parent=None, border=None, lockAspect=False, enableMouse=True, invertY=False, enableMenu=True, name=None, invertX=False):
+        super(DraggableViewBox, self).__init__(parent, border, lockAspect, enableMouse, invertY, enableMenu, name, invertX)
+
+        self.canMove = QtCore.QTimer()
+
+    def mouseDragEvent(self, ev, axis=None):
+        # if QtGui.QApplication.queryKeyboardModifiers() & QtCore.Qt.ShiftModifier:
+        if ev.modifiers() & QtCore.Qt.ShiftModifier:
+            ev.accept()
+            # if not ev.isFinish(): return
+            self.sigDropEvent.emit(self, ev.pos()-ev.lastPos())
+        else:
+            super(DraggableViewBox, self).mouseDragEvent(ev, axis)
+
+
+
 class DoubleYPlot(pg.PlotWidget):
     """
     Often want to have a graph which has two independent

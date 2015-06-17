@@ -116,6 +116,7 @@ class BaseInstr(object):
                 self.instrument.timeout = timeout
             except Exception as e:
                 print 'Error opening GPIB,',e
+                raise
         #Ensure the instrument writes out to the GPIB
         
     def write(self, command, strip=True):
