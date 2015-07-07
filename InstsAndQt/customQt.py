@@ -231,6 +231,7 @@ class BorderlessPgPlot(QtGui.QMainWindow):
         self.pw = DraggablePlotWidget()
         self.setCentralWidget(self.pw)
         self.pw.plotItem.vb.sigDropEvent.connect(self.moveWindow)
+        self.pw.plotItem.vb.sigCloseRequested.connect(self.close)
         self.show()
 
     def closeEvent(self, event):
@@ -259,19 +260,23 @@ class DraggableViewBox(pg.ViewBox):
     """
     # emits (<self>, <drop pos>)
     sigDropEvent = QtCore.pyqtSignal(object, object)
+    sigCloseRequested = QtCore.pyqtSignal(object)
     def __init__(self, parent=None, border=None, lockAspect=False, enableMouse=True, invertY=False, enableMenu=True, name=None, invertX=False):
         super(DraggableViewBox, self).__init__(parent, border, lockAspect, enableMouse, invertY, enableMenu, name, invertX)
-
-        self.canMove = QtCore.QTimer()
+        close = QtGui.QAction("Close", self)
+        close.triggered.connect(lambda val, self=self: self.sigCloseRequested.emit(self))
+        self.menu.addAction(close)
+        # self.canMove = QtCore.QTimer()
 
     def mouseDragEvent(self, ev, axis=None):
         # if QtGui.QApplication.queryKeyboardModifiers() & QtCore.Qt.ShiftModifier:
         if ev.modifiers() & QtCore.Qt.ShiftModifier:
             ev.accept()
             # if not ev.isFinish(): return
-            self.sigDropEvent.emit(self, ev.pos()-ev.lastPos())
+            self.sigDropEvent.emit(self, ev.screenPos()-ev.lastScreenPos())
         else:
             super(DraggableViewBox, self).mouseDragEvent(ev, axis)
+
 
 
 
