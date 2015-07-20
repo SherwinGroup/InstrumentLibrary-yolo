@@ -43,29 +43,49 @@ handler1.setFormatter(formatter)
 log.addHandler(handler1)
 import traceback
 
-class MyMutex(QMutex):
-    """
-    Custom mutex for debugging purposes
-    """
-    def lock(self):
-        log.debug("\tMD Attempting lock")
-        for i in traceback.format_stack()[:-2]:
-            log.debug("\t\t{}".format(i.splitlines()[1]))
-        super(MyMutex, self).lock()
-        log.debug("\tMD Locked")
-    def tryLock(self, *args):
-        ret = super(MyMutex, self).tryLock(*args)
-        log.debug("\tMD (try)Locked, {}".format(ret))
-        for i in traceback.format_stack()[:-2]:
-            log.debug("\t\t{}".format(i.splitlines()[1]))
-        return ret
-    def unlock(self):
-        log.debug("\tMDUnlocked")
-        for i in traceback.format_stack()[:-2]:
-            log.debug("\t\t{}".format(i.splitlines()[1]))
-        log.debug("")
-        log.debug("")
-        super(MyMutex, self).unlock()
+
+try:
+    from PyQt4.QtCore import QMutex
+    class MyMutex(QMutex):
+        """
+        Custom mutex for debugging purposes
+        """
+        def lock(self):
+            log.debug("\tMD Attempting lock")
+            for i in traceback.format_stack()[:-2]:
+                lines = i.splitlines()
+                if len(lines) > 1: # make sure it's not empty, when calling it outside
+                          # of some larger program
+                    log.debug("\t\t{}".format(i.splitlines()[1]))
+            super(MyMutex, self).lock()
+            log.debug("\tMD Locked")
+        def tryLock(self, *args):
+            ret = super(MyMutex, self).tryLock(*args)
+            log.debug("\tMD (try)Locked, {}".format(ret))
+            for i in traceback.format_stack()[:-2]:
+                lines = i.splitlines()
+                if len(lines) > 1: # make sure it's not empty, when calling it outside
+                          # of some larger program
+                    log.debug("\t\t{}".format(i.splitlines()[1]))
+            return ret
+        def unlock(self):
+            super(MyMutex, self).unlock()
+            log.debug("\tMDUnlocked")
+            for i in traceback.format_stack()[:-2]:
+                lines = i.splitlines()
+                if len(lines) > 1: # make sure it's not empty, when calling it outside
+                          # of some larger program
+                    log.debug("\t\t{}".format(i.splitlines()[1]))
+            log.debug("")
+            log.debug("")
+except:
+    # Still allow functionality if no PyQt4 is detected.
+    class MyMutex(object):
+        def lock(self):pass
+        def unlock(self):pass
+        def tryLock(self): return False
+
+
 
 
 # cyclical left bitshift for calulating LRC
@@ -160,8 +180,16 @@ class TIMS0201(object):
         return rx.value, tx.value
     
     def open_(self):
+        # HEY! YOU!
+        # Are the drivers installed and the software opens,
+        # But you can't seem to get anything from the device?
+        # (Won't read a goddamn thing?)
+        # May be because the computer has multiple FTDI devices
+        # connected, which changes the index needed to open
+        # You can try to find out
+
         self.handle = c_uint(0)
-        print "opened: {}".format(self.dllOpen(0, self.handle))
+        print "opened: {}".format(self.dllOpen(1, self.handle))
         
         # Need toset up other things to talk to the device properly
         # I don't think it should be done ever again, so they're not
