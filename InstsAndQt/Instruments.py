@@ -777,6 +777,7 @@ class Keithley2400Instr(BaseInstr):
         
         
 class ActonSP(BaseInstr):
+    backlashCorr = -6
     def __init__(self, GPIB_Number=None, timeout=3000):
         super(ActonSP, self).__init__(GPIB_Number, timeout)
         try:
@@ -810,8 +811,12 @@ class ActonSP(BaseInstr):
             # print "didcal pos: {:.3f}".format(wl)
         # Some weird hystersis in the spectrometer. 
         # Want to go past the desired amount and step back up.
-        if wl < self.wavelength:
-            goto = "{:.3f} GOTO".format(float(wl)-6)
+        #
+        # self.backlash < 0: always step down
+        # self.backlash > 0: always step up
+
+        if (self.wavelength - wl)*self.backlashCorr > 0:
+            goto = "{:.3f} GOTO".format(float(wl) - self.backlashCorr)
             self.ask(goto, timeout = 10000)
         
         wl = "{:.3f} GOTO".format(float(wl)) # ensure that it's 3 decimal places, at most
