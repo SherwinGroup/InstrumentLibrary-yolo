@@ -353,9 +353,9 @@ class SPEX(BaseInstr):
         self.backlash = 8000
         self.currentPositionWN = 13160
         self.currentPositionSteps = self.wavenumberToSteps(self.currentPositionWN)
-    def ask(self, command):
+    def ask(self, command, timeout=None):
         #Call the parent asking function, but only encode
-        return super(SPEX, self).ask(command, strip=0)
+        return super(SPEX, self).ask(command, strip=0, timeout=timeout)
         
     def query(self, command):
         ret = super(SPEX, self).query(command, strip=-1)
@@ -368,9 +368,12 @@ class SPEX(BaseInstr):
         print val
         return val
         
-    def initBoot(self):
+    def initBoot(self, wavenumber = None):
         '''This function should be called if the SPEX isn't in the proper boot mode
         (e.g. if after being power cycled)'''
+        
+        if wavenumber is not None:
+            self.currentPositionWN = wavenumber
         print 'Checking position'
         pos = self.whereAmI()
         #First make sure the query didn't return FALSE if it timed out
@@ -384,7 +387,7 @@ class SPEX(BaseInstr):
             return
         #start main program
         print 'Starting main SPEX software'
-        ret = self.ask('O2000', timeout = .5)
+        ret = self.ask('O2000', timeout = 5)
         if not ret:
             print 'Error starting SPEX main program. Retry init suggested'
             return
@@ -411,7 +414,7 @@ class SPEX(BaseInstr):
         if not ret:
             print 'Error initalizing motor speed'
             return
-        elif not ret.lower()=='o':
+        elif not ret.lower()[0]=='o':
             print "Bad motor speed set", ret
             return
         ret = self.ask('C0')
@@ -778,19 +781,28 @@ class Keithley2400Instr(BaseInstr):
         
 class ActonSP(BaseInstr):
     backlashCorr = -6
+	doCal = None
     def __init__(self, GPIB_Number=None, timeout=3000):
         super(ActonSP, self).__init__(GPIB_Number, timeout)
         try:
             time.sleep(0.5) # maybe asking too soon after communication has been established?
             self.grating = self.getGrating() # Need for calibration
             self.wavelength = self.getWavelength()
-        except:
-            raise
+        except Exception, e:
+            print "ERROR INIT:", e
+#            raise
     def gotoWavelength(self, wl, doCal=True):
         """ Will go to the sepcified wavelength, given in nm, up to 3 decimal places """
         # Dominik, circa summer 2014, found that you could tell the spectrometer
         # to center on a HeNe line, but it would be off slightly. He did a bunch of 
         # fitting to find this polynomial which would correct for this factor
+		if self.doCal is not None and self.doCal:
+			# Have a class parameter which can be used to overwrite
+			# whatever is sent (for debugging) 
+			# self.doCal = None: Follow passed parameter
+			# self.doCal = True: always calibrate
+			# self.doCal = False: never calibrate
+			doCal = True
         if self.grating == 1 and doCal:
             wl =(-2.390886286390188e+00) + \
                 wl*(1.018907291726042e+00) + \
