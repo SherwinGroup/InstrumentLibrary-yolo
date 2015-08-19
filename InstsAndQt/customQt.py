@@ -324,8 +324,13 @@ class DoubleYPlot(pg.PlotWidget):
     def setTitle(self, title="Title"):
         self.plotItem1.setTitle(title)
 
-    def setY1Data(self, data):
-        self.plotOne.setData(data)
+    def setY1Data(self, *data):
+        if len(data)==1:
+            self.plotOne.setData(data[0])
+        elif len(data)==2:
+            self.plotOne.setData(*data)
+        else:
+            raise ValueError("I don't know what you want me to plot {}".format(data))
 
     def setY2Data(self, data):
         if len(data.shape) == 2:
