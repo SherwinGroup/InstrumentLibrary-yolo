@@ -781,7 +781,7 @@ class Keithley2400Instr(BaseInstr):
         
 class ActonSP(BaseInstr):
     backlashCorr = -6
-	doCal = None
+    doCal = None
     def __init__(self, GPIB_Number=None, timeout=3000):
         super(ActonSP, self).__init__(GPIB_Number, timeout)
         try:
@@ -796,13 +796,13 @@ class ActonSP(BaseInstr):
         # Dominik, circa summer 2014, found that you could tell the spectrometer
         # to center on a HeNe line, but it would be off slightly. He did a bunch of 
         # fitting to find this polynomial which would correct for this factor
-		if self.doCal is not None and self.doCal:
-			# Have a class parameter which can be used to overwrite
-			# whatever is sent (for debugging) 
-			# self.doCal = None: Follow passed parameter
-			# self.doCal = True: always calibrate
-			# self.doCal = False: never calibrate
-			doCal = True
+        if self.doCal is not None and self.doCal:
+            # Have a class parameter which can be used to overwrite
+            # whatever is sent (for debugging)
+            # self.doCal = None: Follow passed parameter
+            # self.doCal = True: always calibrate
+            # self.doCal = False: never calibrate
+            doCal = True
         if self.grating == 1 and doCal:
             wl =(-2.390886286390188e+00) + \
                 wl*(1.018907291726042e+00) + \
