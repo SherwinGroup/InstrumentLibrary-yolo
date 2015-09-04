@@ -796,13 +796,13 @@ class ActonSP(BaseInstr):
         # Dominik, circa summer 2014, found that you could tell the spectrometer
         # to center on a HeNe line, but it would be off slightly. He did a bunch of 
         # fitting to find this polynomial which would correct for this factor
-        if self.doCal is not None and self.doCal:
+        if self.doCal is not None:
             # Have a class parameter which can be used to overwrite
             # whatever is sent (for debugging)
             # self.doCal = None: Follow passed parameter
             # self.doCal = True: always calibrate
             # self.doCal = False: never calibrate
-            doCal = True
+            doCal = self.doCal
         if self.grating == 1 and doCal:
             wl =(-2.390886286390188e+00) + \
                 wl*(1.018907291726042e+00) + \
@@ -811,16 +811,11 @@ class ActonSP(BaseInstr):
                 wl**4*(-4.220550493992102e-11) + \
                 wl**5*(9.494053877262009e-15)
         elif doCal:
-            #wl =(1.557630636882798e+01) + \
-            #     wl*(8.698266750061570e-01) + \
-            #     wl**2* (4.272703967701712e-04) + \
-            #     wl**3*(-6.850387039022057e-07) + \
-            #     wl**4*(5.382546874122902e-10) + \
-            #     wl**5*(-1.661406555420829e-13)
-            # print "didcal pre: {}".format(wl)
-            wl = (5.629988767723054e-2) + \
-                wl * 1.0001494544120224
+            # Sept 2015, aligned so no software
+            # calibration is needed
+            wl = wl
             # print "didcal pos: {:.3f}".format(wl)
+
         # Some weird hystersis in the spectrometer. 
         # Want to go past the desired amount and step back up.
         #
@@ -842,7 +837,7 @@ class ActonSP(BaseInstr):
         return float(ret[3:-8])
         
     def setGrating(self, grating):
-        if grating not in (1, 2):
+        if grating not in (1, 2, 3):
             print 'Not a valid grating'
             return
         print self.ask(str(grating)+' grating', timeout=25000)
