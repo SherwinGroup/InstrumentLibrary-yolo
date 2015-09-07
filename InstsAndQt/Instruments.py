@@ -793,28 +793,12 @@ class ActonSP(BaseInstr):
 #            raise
     def gotoWavelength(self, wl, doCal=True):
         """ Will go to the sepcified wavelength, given in nm, up to 3 decimal places """
-        # Dominik, circa summer 2014, found that you could tell the spectrometer
-        # to center on a HeNe line, but it would be off slightly. He did a bunch of 
-        # fitting to find this polynomial which would correct for this factor
-        if self.doCal is not None:
-            # Have a class parameter which can be used to overwrite
-            # whatever is sent (for debugging)
-            # self.doCal = None: Follow passed parameter
-            # self.doCal = True: always calibrate
-            # self.doCal = False: never calibrate
-            doCal = self.doCal
-        if self.grating == 1 and doCal:
-            wl =(-2.390886286390188e+00) + \
-                wl*(1.018907291726042e+00) + \
-                wl**2* (-5.239267779155798e-05) + \
-                wl**3*(6.855487569805709e-08) + \
-                wl**4*(-4.220550493992102e-11) + \
-                wl**5*(9.494053877262009e-15)
-        elif doCal:
-            # Sept 2015, aligned so no software
-            # calibration is needed
-            wl = wl
-            # print "didcal pos: {:.3f}".format(wl)
+        """
+        doCal is a parameter that was used when the spectrometer was not well aligned.
+        A polynomial correction was used so lines would be centered properly. In summer '15,
+        the spectrometer was opened and fully aligned so software corrections
+        were deemed unnecessary. Parameter left for legacy reasons.
+        """
 
         # Some weird hystersis in the spectrometer. 
         # Want to go past the desired amount and step back up.
