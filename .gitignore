@@ -49,3 +49,4 @@ InstsAndQt/*.pyc
 build/
 dist/
 InstsAndQt.egg-info/
+.idea/

@@ -83,7 +83,7 @@ class FakeInstr(object):
         for i in b:
             st = st+i+','
             
-        return b
+        return st
         
         
     def query_binary_values(self, string, datatype):
@@ -326,8 +326,8 @@ class Agilent6000(BaseInstr):
         x = data[:,0]
         y = data[:,1]
 
-        gt = set(np.where(x>st))
-        lt = set(np.where(x<en))
+        gt = set(np.where(x>st)[0])
+        lt = set(np.where(x<en)[0])
 
         # find the intersection of the sets
         vals = list(gt&lt)
@@ -612,6 +612,7 @@ class Keithley2400Instr(BaseInstr):
 
         self.sleepTime = 0.05 # s
         self.breakLoop = False # flag for when to stop ramping/measuring
+        self.voltage = 0.0
 
         #Reset the instrument, clear flags and errors
         self.write("*rst; status:preset; *cls")
@@ -688,6 +689,7 @@ class Keithley2400Instr(BaseInstr):
         
     def setVoltage(self, voltage):
         self.write('sour:volt:lev ' + str(voltage))
+        self.voltage = voltage
         
     def turnOn(self):
         self.write('OUTP ON')
@@ -695,7 +697,7 @@ class Keithley2400Instr(BaseInstr):
     def turnOff(self):
         self.write('OUTP OFF')
 
-    def rampVoltage(self, vrange, toCall=lambda: None, sleep = None):
+    def rampVoltage(self, vrange, toCall=lambda x: None, sleep = None):
         """
         Ramp through the given voltages in range. Sleep the time given,
         and then call the callable function. Will NOT turn on the voltage
@@ -709,12 +711,16 @@ class Keithley2400Instr(BaseInstr):
             if self.breakLoop:
                 return voltage # Let caller know where we were stopped
             self.setVoltage(voltage)
-            try: toCall(voltage)
-            except TypeError: toCall()
+            try:
+                toCall(voltage)
+            except TypeError:
+                toCall()
+            except Exception as e:
+                print "Error calling intermediate function!", e
             time.sleep(sleep)
         return vrange[-1]
 
-    def doLoop(self, start, stop, step=0.1, sleep = None, toCall = lambda: None, measureHyst = False):
+    def doLoop(self, start, stop, step=0.1, sleep = None, toCall = lambda x: None, measureHyst = False):
 
         # Do some tests to make sure the start/stop parameters are correct
         if start * stop < 0:
@@ -729,13 +735,19 @@ class Keithley2400Instr(BaseInstr):
             sleep = self.sleepTime
         self.breakLoop = False
         self.turnOn()
-        stoppedAt = 0
+        stoppedAt = 0.0
+
         # Make sure we start off ramping where we want to be.
         if not start == 0:
             voltages = np.arange(0, start, np.sign(start) * np.abs(step))
             voltages = np.append(voltages, start)
+            # start ramping to the start voltage. Get the value
+            # where we're supposed to stop
+            # (in case it was stopped prematurely)
             stoppedAt = self.rampVoltage(voltages, sleep=sleep)
 
+        # make sure we haven't been told to stop. Turn off
+        # after ramping and return if we have been.
         if self.shouldStopLoop(stoppedAt, step, sleep):
             self.turnOff()
             return
