@@ -7,6 +7,7 @@ Created on Tue Jan 27 16:38:33 2015
 
 import numpy as np
 import visa
+import pyvisa.errors
 import time
 import logging
 
@@ -47,10 +48,13 @@ class FakeInstr(object):
         elif ':WAV:PRE?' == string:#agilent oscilloscope, waveform preamble
             # a = np.random.random((10,))
             a = np.ones((10,))
-            a[4] = 1e-7 #Forcing some numbers for reasonable consistancy
-            a[5] = 0
-            a[6] = 0
-            a[7] = 1e-3
+             #Forcing some numbers for reasonable consistancy
+            a[4] = 1e-7 # x inc
+            a[5] = 0 # x origin
+            a[6] = 0 # x reference?
+            a[7] = 1e-3 # y increment
+            a[8] = 0 # y origin
+            a[9] = 0 # y ref?
             st = ''
             for i in a:
                 st+=str(i)+','
@@ -76,6 +80,13 @@ class FakeInstr(object):
             return string[:4]
         elif 'grating' in string:
             return string[0]
+        else:
+            # arduino wavemeter
+            try:
+                float(string)
+                return ";".join(np.random.randint(300, 3000, (401,)))
+            except Exception as e:
+                print "it's not you", string, type(string), e
             
  
         b = [str(i) for i in np.random.random((5,))]
@@ -91,19 +102,32 @@ class FakeInstr(object):
         if ':WAV:DATA?' == string: #agilent querying data
             # Simulate a missed pulse 1/10
             if np.random.randint(0,10)==0:
-                return np.random.random((2500,))
-            a = 10.*np.random.random((1000,))
-            b = 10.*np.random.random((1000,)) + np.random.randint(150,250)
-            c = 10.*np.random.random((50,)) + np.random.randint(700,1000)
-            d = 10.*np.random.random((450,))
+                return np.random.normal(scale=0.5, size=(2500,))
+            a = 10.*np.random.normal(scale=0.5, size=(1000,))
+            b = 10.*np.random.normal(scale=0.5, size=(1000,)) + np.random.randint(50,70)
+            c = 10.*np.random.normal(scale=0.5, size=(20,)) + np.random.randint(1200,1300)
+            d = 10.*np.random.normal(scale=0.5, size=(480,))
+            # a = np.random.normal(scale=0.5, size=(2500,))
             return np.concatenate((a,b, c, d))
+            # return a
+
+    def query_ascii_values(self, str=''):
+        """
+        ArduinoWavemeter calls this
+        :param str:
+        :return:
+        """
+        return ";".join(np.random.randint(300, 3000, (401,)))
         
     def close(self):
         print self.__class__.__name__ + 'closed'
 
+    def open(self):
+        print self.__class__.__name__ + 'opened'
+
 
 class BaseInstr(object):
-    '''Base class which handles opening the GPIB and safely reading/writing to the instrument'''
+    """Base class which handles opening the GPIB and safely reading/writing to the instrument"""
     def __init__(self, GPIB_Number = None, timeout = 3000):
         if GPIB_Number == None or GPIB_Number == 'Fake':
             print 'Error. No GPIB assigned {}'.format(GPIB_Number)
@@ -120,8 +144,8 @@ class BaseInstr(object):
         #Ensure the instrument writes out to the GPIB
         
     def write(self, command, strip=True):
-        '''A safer function to catch errors in writing commands. Also ensures
-        proper ending to command. '''
+        """A safer function to catch errors in writing commands. Also ensures
+        proper ending to command. """
         try:
             self.instrument.write(command)
         except Exception as e:
@@ -130,10 +154,10 @@ class BaseInstr(object):
         return True
     
     def ask(self, command, strip=1, timeout = None):
-        '''A function to catch reading errors. 
+        """A function to catch reading errors. 
         strip = 1 will strip tailing \n and encode from unicode
         strip = 0 will simply encode from unicode
-        strip < 0 will do nothing'''
+        strip < 0 will do nothing"""
         if timeout is not None:
             self.instrument.timeout = timeout
         ret = False
@@ -146,12 +170,20 @@ class BaseInstr(object):
         except:
             print 'Error asking,', command
         return ret
+
+    def read(self):
+        ret = False
+        try:
+            ret = self.instrument.read()
+        except pyvisa.errors.VisaIOError:
+            print "timeout while reading"
+        return ret
         
     def query(self, command, strip=1):
-        '''A function to catch reading errors. 
+        """A function to catch reading errors. 
         strip = 1 will strip tailing \n and encode from unicode
         strip = 0 will simply encode from unicode
-        strip < 0 will do nothing'''
+        strip < 0 will do nothing"""
         ret = False
         try:
             ret = self.instrument.query(command)
@@ -171,10 +203,45 @@ class BaseInstr(object):
             print 'error querying binary,', command
             print 'Error is', e
         return ret
+
+    def query_ascii_values(self, *arg, **kwargs):
+        ret = False
+        try:
+            ret = self.instrument.query_ascii_values(*arg, **kwargs)
+        except Exception as e:
+            print "Error querying ascii values", arg, kwargs
+            print "Error is", e
+        return ret
         
     def close(self):
         self.instrument.close()
-        
+
+    def open(self):
+        self.instrument.open()
+
+
+
+class ArduinoWavemeter(BaseInstr):
+    def __init__(self, GPIB_Number=None, timeout = 3000):
+        super(ArduinoWavemeter, self).__init__(GPIB_Number, timeout)
+        self.instrument.open()
+        self.instrument._write_termination = '\n'
+        self.instrument._read_termination = '\r\n'
+        self.instrument.baud_rate = 115200
+        self.exposureTime = 100 # ms
+
+    def read_values(self, exposureTime = None):
+        if exposureTime is None:
+            exposureTime = self.exposureTime
+
+        values = self.ask(str(exposureTime))
+        if not values:
+            return [0]
+
+        return map(int, values.split(';'))
+
+
+
 class Agilent6000(BaseInstr):
     def __init__(self, GPIB_Number=None, timeout = 3000):
         super(Agilent6000, self).__init__(GPIB_Number, timeout)
@@ -363,14 +430,14 @@ class SPEX(BaseInstr):
 
     
     def whereAmI(self):
-        ''' Should return 'B' if in boot sequence or 'F' in main sequence'''
+        """ Should return 'B' if in boot sequence or 'F' in main sequence"""
         val = self.ask(' ')
         print val
         return val
         
     def initBoot(self, wavenumber = None):
-        '''This function should be called if the SPEX isn't in the proper boot mode
-        (e.g. if after being power cycled)'''
+        """This function should be called if the SPEX isn't in the proper boot mode
+        (e.g. if after being power cycled)"""
         
         if wavenumber is not None:
             self.currentPositionWN = wavenumber
@@ -494,7 +561,7 @@ class SPEX(BaseInstr):
             return int(ret)
         
     def relMove(self, moveAmount):
-        ''' Takes a relative amount of steps to move'''
+        """ Takes a relative amount of steps to move"""
         self.write('F0,'+str(moveAmount))
         
     def waitForMove(self):
@@ -537,7 +604,7 @@ class SR830Instr(BaseInstr):
         self.write('OUTX 1')
                 
     def setRefFreq(self, freq):
-        '''Set the reference frequency  '''
+        """Set the reference frequency  """
         if type(freq) not in (float, int):
             print 'Error. Given frequency is not a number'
             return
@@ -562,8 +629,8 @@ class SR830Instr(BaseInstr):
             ch = d[ch.lower()[0]]
         return float(self.ask('OUTP? '+str(ch)))
     def getMultiple(self, *args):
-        '''Use the SNAP? command to read the values instantanously and avoid
-            timing issues'''
+        """Use the SNAP? command to read the values instantanously and avoid
+            timing issues"""
         toRead = ''
         for (i, ch) in enumerate(args):
             if ch not in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
@@ -600,9 +667,7 @@ class Keithley236Instr(BaseInstr):
     
     def turnOn(self):
         self.write('N1X')
-        
-        
-        
+
 class Keithley2400Instr(BaseInstr):
     # Custom bool which can be locked
     # to prevent changing
@@ -673,7 +738,7 @@ class Keithley2400Instr(BaseInstr):
         self.write(st)
     
     def set4Probe(self, flag):
-        '''Set whether to use 4 probe measurement (True) or not (False)'''
+        """Set whether to use 4 probe measurement (True) or not (False)"""
         doIt = 'OFF'
         if flag:
             doIt = 'ON'
@@ -858,7 +923,16 @@ class ActonSP(BaseInstr):
         self.ask(wl, timeout=None)
         
             
-# a = Keithley2400Instr("Fake")
+if __name__ == '__main__':
+
+    a = ArduinoWavemeter('ASRL4::INSTR')
+    try:
+        # print a.read_values()
+        print a.instrument.baud_rate
+        print a.instrument.ask('50')
+    finally:
+        a.close()
+
         
 
 

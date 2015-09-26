@@ -431,7 +431,12 @@ class TIMS0201(object):
         
         
     def registerFunctions(self):
-        self.dll = CDLL("ftd2xx")
+        # try:
+        self.dll = CDLL("FTD2XX.dll")
+        # except WindowsError:
+        #     log.critical("Error, dll file isn't opened!")
+        #     self.__getattribute__ = lambda x: -1
+        #     return
         
         self.dllOpen = self.dll.FT_Open
         self.dllOpen.argtypes = [c_int, POINTER(c_ulong)]
@@ -528,14 +533,14 @@ class TIMS0201(object):
         
         
 
-        
-        
-try:
-    A.close_()
-except:
-    pass
-        
-A = TIMS0201()
+
+if __name__ == '__main__':
+    try:
+        A.close_()
+    except:
+        pass
+
+    A = TIMS0201()
     
     
 
