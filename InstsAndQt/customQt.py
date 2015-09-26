@@ -43,6 +43,8 @@ class QFNumberEdit(QtGui.QLineEdit):
             
     def value(self):
         ret = -1
+        if str(self.text()) == '':
+            return float(self._before)
         try:
             ret = float(self.text())
         except:
@@ -120,6 +122,8 @@ class QINumberEdit(QtGui.QLineEdit):
                 self.textAccepted.emit(val)
     def value(self):
         ret = -1
+        if str(self.text())=='':
+            return int(self._before)
         try:
             ret = int(self.text())
         except:

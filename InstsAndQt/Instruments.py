@@ -83,8 +83,9 @@ class FakeInstr(object):
         else:
             # arduino wavemeter
             try:
-                float(string)
-                return ";".join(np.random.randint(300, 3000, (401,)))
+                t = float(string)
+                time.sleep(t/1000)
+                return 'd{}'.format(int(t))
             except Exception as e:
                 print "it's not you", string, type(string), e
             
@@ -95,6 +96,13 @@ class FakeInstr(object):
             st = st+i+','
             
         return st
+
+    def read(self):
+        # so far, only the arduino calls the reads
+        # directly
+        if hasattr(self, 'parent'):
+            if isinstance(self.parent, ArduinoWavemeter):
+                return ";".join([str(ii) for ii in np.random.randint(300, 3000, (401,))])
         
         
     def query_binary_values(self, string, datatype):
@@ -167,8 +175,10 @@ class BaseInstr(object):
                 ret = ret.encode('ascii')
             if strip>=1:
                 ret = ret[:-1]
-        except:
-            print 'Error asking,', command
+        except pyvisa.errors.VisaIOError:
+            print "error: timeout while asking", command
+        except Exception as e:
+            print 'Error asking,', command, e
         return ret
 
     def read(self):
@@ -224,21 +234,39 @@ class BaseInstr(object):
 class ArduinoWavemeter(BaseInstr):
     def __init__(self, GPIB_Number=None, timeout = 3000):
         super(ArduinoWavemeter, self).__init__(GPIB_Number, timeout)
+        self.instrument.parent = self
         self.instrument.open()
         self.instrument._write_termination = '\n'
         self.instrument._read_termination = '\r\n'
         self.instrument.baud_rate = 115200
         self.exposureTime = 100 # ms
 
+    def ask(self, command, strip=-1, timeout = None):
+        return super(ArduinoWavemeter, self).ask(command, strip, timeout)
+
     def read_values(self, exposureTime = None):
         if exposureTime is None:
             exposureTime = self.exposureTime
+        exposureTime = int(exposureTime)
+        print "querying to expose for,", exposureTime
 
-        values = self.ask(str(exposureTime))
+        retVal = self.ask(str(exposureTime))
+        print "arduino response:", retVal
+
+        time.sleep(float(exposureTime)/1000)
+
+        # values = self.ask(str(exposureTime))
+        values = self.read()
+
         if not values:
-            return [0]
-
-        return map(int, values.split(';'))
+            return False
+        try:
+            return map(int, values.split(';'))
+        except ValueError:
+            # for some reason, sometimes pyvisa will not remove a
+            # \n, which map tries to parse to an int, which throws
+            # the value error. Just remove the problem non-numbert
+            return map(int, values.split(';')[:-1])
 
 
 
