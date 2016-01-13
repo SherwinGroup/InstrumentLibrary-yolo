@@ -145,8 +145,6 @@ class TIMS0201(object):
     def __init__(self):
         self.dll = None
         self.registerFunctions()
-
-        
         
     @staticmethod
     def makeMotorStatusPacket():

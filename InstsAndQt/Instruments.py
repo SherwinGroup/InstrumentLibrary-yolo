@@ -15,10 +15,14 @@ from customQt import *
 
 log = logging.getLogger("Instruments")
 log.setLevel(logging.DEBUG)
+handler = logging.FileHandler("TheInstrumentLog.log")
+handler.setLevel(logging.DEBUG)
 handler1 = logging.StreamHandler()
 handler1.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(asctime)s - [%(filename)s:%(lineno)s - %(funcName)s()] - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
 handler1.setFormatter(formatter)
+log.addHandler(handler)
 log.addHandler(handler1)
 
 PRINT_OUTPUT = True
@@ -26,6 +30,22 @@ PRINT_OUTPUT = True
 class FakeInstr(object):
     timeout = 3000
     curStep = 70000 #Making life interesting for SPEX instrument
+    def __init__(self):
+        self._locked = False
+    def lock(self):
+        if self._locked:
+            raise IOError("instrument locked")
+        else:
+            self._locked = True
+
+    def unlock(self):
+        if not self._locked:
+            raise IOError("Instrument isn't locked")
+        else:
+            self._locked = False
+    def lock_excl(self):
+        self.lock()
+
     def write(self, string):
         if PRINT_OUTPUT:
             print ' '*15 + string
@@ -138,19 +158,25 @@ class BaseInstr(object):
     """Base class which handles opening the GPIB and safely reading/writing to the instrument"""
     def __init__(self, GPIB_Number = None, timeout = 3000):
         if GPIB_Number == None or GPIB_Number == 'Fake':
-            print 'Error. No GPIB assigned {}'.format(GPIB_Number)
+            log.debug('Error. No GPIB assigned {}'.format(GPIB_Number))
             self.instrument = FakeInstr()
         else:
             rm = visa.ResourceManager()
             try:
-                self.instrument = rm.get_instrument(GPIB_Number)
-                print "GOT INSTRUMENT AT {}".format(GPIB_Number)
+                self.instrument = rm.open_resource(GPIB_Number)
+                log.debug( "GOT INSTRUMENT AT {}".format(GPIB_Number))
                 self.instrument.timeout = timeout
             except Exception as e:
-                print 'Error opening GPIB,',e
+                log.warning('Error opening GPIB {}'.format(e))
                 raise
-        #Ensure the instrument writes out to the GPIB
-        
+
+        # try:
+        #     # key = self.instrument.lock()
+        #     self.instrument.lock_excl()
+        # except:
+        #     log.warning("Instrument is already open in anothe program")
+        #     raise RuntimeError("Instrument is already open, don't open it again")
+
     def write(self, command, strip=True):
         """A safer function to catch errors in writing commands. Also ensures
         proper ending to command. """
@@ -225,6 +251,10 @@ class BaseInstr(object):
         
     def close(self):
         self.instrument.close()
+        try:
+            self.instrument.unlock()
+        except:
+            pass
 
     def open(self):
         self.instrument.open()
