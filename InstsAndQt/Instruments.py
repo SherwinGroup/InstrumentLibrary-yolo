@@ -27,6 +27,11 @@ log.addHandler(handler1)
 
 PRINT_OUTPUT = True
 
+
+def setPrintOutput(enabled = True):
+    global PRINT_OUTPUT
+    PRINT_OUTPUT = enabled
+
 class FakeInstr(object):
     timeout = 3000
     curStep = 70000 #Making life interesting for SPEX instrument
@@ -69,11 +74,11 @@ class FakeInstr(object):
             # a = np.random.random((10,))
             a = np.ones((10,))
              #Forcing some numbers for reasonable consistancy
-            a[4] = 1e-7 # x inc
-            a[5] = 0 # x origin
+            a[4] = 5e-9 # x inc
+            a[5] = 1.659e-2 # x origin
             a[6] = 0 # x reference?
-            a[7] = 1e-3 # y increment
-            a[8] = 0 # y origin
+            a[7] = 1.5625e-3 # y increment
+            a[8] = -4e-2 # y origin
             a[9] = 0 # y ref?
             st = ''
             for i in a:
@@ -301,6 +306,14 @@ class ArduinoWavemeter(BaseInstr):
 
 
 class Agilent6000(BaseInstr):
+    # We need a static 16.6ms offset for instrument triggering purposes,
+    # but often look at timescales of us's, which causes long and ugly
+    # time-bases. This number will subtract a static number so save files
+    # can be smaller and generally less obnoxious
+    EXTERNAL_OFFSET = 16.59e-3
+
+    # Will convert the time base to this value. Default is us
+    TIME_BASE = 1e6
     def __init__(self, GPIB_Number=None, timeout = 3000):
         super(Agilent6000, self).__init__(GPIB_Number, timeout)
 
@@ -349,6 +362,8 @@ class Agilent6000(BaseInstr):
         data = np.array(data)
         volt = (data - yref) * yinc + yori
         time = (x - xref) * xinc + xori
+        time -= self.EXTERNAL_OFFSET
+        time *= self.TIME_BASE
         
         return np.vstack((time, volt)).T
 
