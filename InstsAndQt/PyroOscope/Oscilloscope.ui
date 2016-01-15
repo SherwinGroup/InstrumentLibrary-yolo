@@ -15,36 +15,87 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="PlotWidget" name="gOsc">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-       <horstretch>0</horstretch>
-       <verstretch>1</verstretch>
-      </sizepolicy>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QTabWidget" name="tabWidget_2">
+    <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="tab">
+     <widget class="QWidget" name="tab_4">
       <attribute name="title">
-       <string>Boxcar Regions</string>
+       <string>Waveform</string>
       </attribute>
-      <layout class="QHBoxLayout" name="horizontalLayout_4">
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="PlotWidget" name="gOsc">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_4">
+         <item>
+          <spacer name="horizontalSpacer_2">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="bOscInit">
+           <property name="text">
+            <string>Initialize Regions</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="bOPop">
+           <property name="text">
+            <string>Pop Out</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_5">
+      <attribute name="title">
+       <string>Misc Settings</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_3">
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
        <item>
         <layout class="QGridLayout" name="gridLayout_5">
-         <item row="0" column="0">
-          <widget class="QGroupBox" name="groupBox_25">
+         <item row="0" column="2">
+          <widget class="QGroupBox" name="groupBox_29">
            <property name="title">
-            <string>Background Start</string>
+            <string>Cavity Dump Start</string>
            </property>
            <property name="flat">
             <bool>true</bool>
            </property>
-           <layout class="QHBoxLayout" name="horizontalLayout_23">
+           <layout class="QHBoxLayout" name="horizontalLayout_27">
             <property name="leftMargin">
              <number>0</number>
             </property>
@@ -58,11 +109,34 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QFNumberEdit" name="tBgSt">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
+             <widget class="QFNumberEdit" name="tCdSt"/>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QGroupBox" name="groupBox_30">
+           <property name="title">
+            <string>Cavity Dump End</string>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_28">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>10</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QFNumberEdit" name="tCdEn"/>
             </item>
            </layout>
           </widget>
@@ -94,15 +168,15 @@
            </layout>
           </widget>
          </item>
-         <item row="0" column="2">
-          <widget class="QGroupBox" name="groupBox_29">
+         <item row="1" column="1">
+          <widget class="QGroupBox" name="groupBox_28">
            <property name="title">
-            <string>Cavity Dump Start</string>
+            <string>Front Porch End</string>
            </property>
            <property name="flat">
             <bool>true</bool>
            </property>
-           <layout class="QHBoxLayout" name="horizontalLayout_27">
+           <layout class="QHBoxLayout" name="horizontalLayout_26">
             <property name="leftMargin">
              <number>0</number>
             </property>
@@ -116,7 +190,38 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QFNumberEdit" name="tCdSt"/>
+             <widget class="QFNumberEdit" name="tFpEn"/>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QGroupBox" name="groupBox_25">
+           <property name="title">
+            <string>Background Start</string>
+           </property>
+           <property name="flat">
+            <bool>true</bool>
+           </property>
+           <layout class="QHBoxLayout" name="horizontalLayout_23">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>10</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QFNumberEdit" name="tBgSt">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>
@@ -152,76 +257,8 @@
            </layout>
           </widget>
          </item>
-         <item row="1" column="1">
-          <widget class="QGroupBox" name="groupBox_28">
-           <property name="title">
-            <string>Front Porch End</string>
-           </property>
-           <property name="flat">
-            <bool>true</bool>
-           </property>
-           <layout class="QHBoxLayout" name="horizontalLayout_26">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>10</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QFNumberEdit" name="tFpEn"/>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item row="1" column="2">
-          <widget class="QGroupBox" name="groupBox_30">
-           <property name="title">
-            <string>Cavity Dump End</string>
-           </property>
-           <property name="flat">
-            <bool>true</bool>
-           </property>
-           <layout class="QHBoxLayout" name="horizontalLayout_28">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>10</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QFNumberEdit" name="tCdEn"/>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item row="0" column="3">
-          <widget class="QPushButton" name="bOscInit">
-           <property name="text">
-            <string>Initialize Regions</string>
-           </property>
-          </widget>
-         </item>
         </layout>
        </item>
-      </layout>
-     </widget>
-     <widget class="QWidget" name="tab_2">
-      <attribute name="title">
-       <string>Pulse Counting Settings</string>
-      </attribute>
-      <layout class="QHBoxLayout" name="horizontalLayout_48">
        <item>
         <layout class="QGridLayout" name="gridLayout">
          <item row="0" column="0">
@@ -380,13 +417,6 @@
          </item>
         </layout>
        </item>
-      </layout>
-     </widget>
-     <widget class="QWidget" name="tab_3">
-      <attribute name="title">
-       <string>Field Parameters</string>
-      </attribute>
-      <layout class="QHBoxLayout" name="horizontalLayout_6">
        <item>
         <layout class="QGridLayout" name="gridLayout_2">
          <item row="0" column="0">
@@ -698,123 +728,121 @@
     </widget>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QPushButton" name="bOPause">
-       <property name="text">
-        <string>Pause</string>
-       </property>
-       <property name="checkable">
-        <bool>true</bool>
-       </property>
-       <property name="checked">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QGroupBox" name="groupBox_31">
-       <property name="title">
-        <string>GPIB</string>
-       </property>
-       <property name="flat">
-        <bool>true</bool>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_29">
-        <property name="leftMargin">
-         <number>0</number>
+    <widget class="QWidget" name="oscControlsWidget" native="true">
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <property name="margin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QPushButton" name="bOPause">
+        <property name="text">
+         <string>Pause</string>
         </property>
-        <property name="topMargin">
-         <number>10</number>
+        <property name="checkable">
+         <bool>true</bool>
         </property>
-        <property name="rightMargin">
-         <number>0</number>
+        <property name="checked">
+         <bool>true</bool>
         </property>
-        <property name="bottomMargin">
-         <number>0</number>
+       </widget>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="groupBox_31">
+        <property name="title">
+         <string>GPIB</string>
         </property>
-        <item>
-         <widget class="QComboBox" name="cOGPIB">
-          <property name="toolTip">
-           <string>GPIB0::5::INSTR</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <widget class="QGroupBox" name="groupBox_32">
-       <property name="title">
-        <string>Channel</string>
-       </property>
-       <property name="flat">
-        <bool>true</bool>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_30">
-        <property name="leftMargin">
-         <number>0</number>
+        <property name="flat">
+         <bool>true</bool>
         </property>
-        <property name="topMargin">
-         <number>10</number>
-        </property>
-        <property name="rightMargin">
-         <number>0</number>
-        </property>
-        <property name="bottomMargin">
-         <number>0</number>
-        </property>
-        <item>
-         <widget class="QComboBox" name="cOChannel">
-          <property name="currentIndex">
-           <number>2</number>
-          </property>
-          <item>
-           <property name="text">
-            <string>1</string>
+        <layout class="QHBoxLayout" name="horizontalLayout_29">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>10</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QComboBox" name="cOGPIB">
+           <property name="toolTip">
+            <string>GPIB0::5::INSTR</string>
            </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>2</string>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="groupBox_32">
+        <property name="title">
+         <string>Channel</string>
+        </property>
+        <property name="flat">
+         <bool>true</bool>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_30">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>10</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QComboBox" name="cOChannel">
+           <property name="currentIndex">
+            <number>2</number>
            </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>3</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>4</string>
-           </property>
-          </item>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
-      <widget class="QPushButton" name="bOPop">
-       <property name="text">
-        <string>Pop Out</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
+           <item>
+            <property name="text">
+             <string>1</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>2</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>3</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>4</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </widget>
    </item>
   </layout>
  </widget>

@@ -1,4 +1,8 @@
 import scipy.integrate as spi
+import scipy.stats as spt # for calculating FEL pulse information
+import scipy.special as sps
+import scipy.optimize as spo
+import warnings
 from ..Instruments import *
 import visa
 from Oscilloscope_ui import Ui_Oscilloscope
@@ -10,6 +14,12 @@ import logging
 log = logging.getLogger("EMCCD")
 
 setPrintOutput(False)
+
+def sig(x, *p):
+    # For fitting the hole-coupler integrated waveform
+    a, mu, b, offset = p
+    return a*sps.expit(b*(x-mu)) + offset
+
 
 class OscWid(QtGui.QWidget):
 
@@ -28,11 +38,14 @@ class OscWid(QtGui.QWidget):
     # for processing?
     sigOscDataCollected = QtCore.pyqtSignal()
 
-    sigPulseCounted = QtCore.pyqtSignal()
+    # emits the number of pulses counted when a pulse
+    # was successfully acounted.
+    # otherwise, emits -1
+    sigPulseCounted = QtCore.pyqtSignal(object)
 
 
     def __init__(self, *args, **kwargs):
-        super(OscWid, self).__init__()
+        super(OscWid, self).__init__(*args)
 
         self.settings = dict()
         try:
@@ -81,6 +94,7 @@ class OscWid(QtGui.QWidget):
         self.settings["window_trans"] = kwargs.get("window_trans", 1.0)
         self.settings["eff_field"] = kwargs.get("eff_field", 1.0)
         self.settings["fel_pol"] = kwargs.get("fel_pol", 'H')
+        self.settings["pulseCountRatio"] = kwargs.get('pulseCountRatio', 0.05)
         self.settings["exposing"] = False
 
         # lists for holding the boundaries of the linear regions
@@ -92,7 +106,7 @@ class OscWid(QtGui.QWidget):
         self.settings["pyBG"] = 0
         self.settings["pyFP"] = 0
         self.settings["pyCD"] = 0
-        self.settings["CDtoFPRatio"] = 0
+
 
         self.initUI()
 
@@ -105,6 +119,8 @@ class OscWid(QtGui.QWidget):
         self.poppedPlotWindow = None
 
         self.openAgilent()
+        self.ui.cPyroMode.currentIndexChanged.connect(lambda x: self.Agilent.setIntegrating(x))
+        self.ui.cFELCoupler.currentIndexChanged.connect(lambda x: self.Agilent.setCD(1-x))
 
     def initUI(self):
         self.ui = Ui_Oscilloscope()
@@ -145,13 +161,17 @@ class OscWid(QtGui.QWidget):
         lrtb = [[self.ui.tBgSt, self.ui.tBgEn],
                 [self.ui.tFpSt, self.ui.tFpEn],
                 [self.ui.tCdSt, self.ui.tCdEn]]
+
+        self.linearRegionTextBoxes = lrtb
+        self.initLinearRegions()
+
+        for bc in self.boxcarRegions:
+            self.updateLinearRegionValues(bc)
+
         # Connect the changes to update the Linear Regions
         for i in lrtb:
             for j in i:
                 j.textAccepted.connect(self.updateLinearRegionsFromText)
-
-        self.linearRegionTextBoxes = lrtb
-        self.initLinearRegions()
 
         self.ui.cFELCoupler.currentIndexChanged.connect(self.updateFELCoupler)
 
@@ -162,8 +182,50 @@ class OscWid(QtGui.QWidget):
         self.ui.tWindowTransmission.setText(str(self.settings["window_trans"]))
         self.ui.tEffectiveField.setText(str(self.settings["eff_field"]))
         self.ui.tFELPol.setText(self.settings["fel_pol"])
+        self.ui.tOscCDRatio.setText(str(self.settings["pulseCountRatio"]))
+
+
+
+        self.DEBUGLINE1 = self.ui.gOsc.plot(pen='r')
+        self.DEBUGLINE2 = self.ui.gOsc.plot(pen='r')
+
+
+        # keep track of all of the changes to it
 
         self.show()
+
+    def setParentScope(self, scope):
+        """
+        Call this when this widget is being inserted into
+        another widget which maintains control over the
+        oscilloscope
+        :param scope:
+        :return:
+        """
+        # Pretty much just need to close the data collection thread
+        # as this widget will default to a fake instrument,
+        # don't need to worry about closing it.
+        self.settings['shouldScopeLoop'] = False
+        try:
+            self.scopeCollectionThread.wait(1000)
+        except:
+            pass
+
+        # hide the controls since they should be handled externally
+        self.ui.oscControlsWidget.hide()
+
+    def setData(self, data):
+        """
+        Need to be able to set the oscilloscope data
+        when another wdiget is controlling it
+        :param data:
+        :return:
+        """
+        self.settings['pyData'] = data
+        self.sigOscDataCollected.emit()
+
+    def getData(self):
+        return self.settings.get('pyData', np.array([[],[]]).reshape(0, 2) )
 
     @staticmethod
     def __ALL_THINGS_LINEARREGIONS(): pass
@@ -211,8 +273,9 @@ class OscWid(QtGui.QWidget):
             self.boxcarRegions[i].setRegion(tuple((point, point)))
             self.settings[d[i]] = list((point, point))
 
-    def updateLinearRegionValues(self):
-        sender = self.sender()
+    def updateLinearRegionValues(self, sender=None):
+        if sender is None:
+            sender = self.sender()
         sendidx = -1
         for (i, v) in enumerate(self.boxcarRegions):
             #I was debugging something. I tried to use id(), which is effectively the memory
@@ -273,6 +336,7 @@ class OscWid(QtGui.QWidget):
             self.boxcarRegions[1].hide()
         self.ui.tFpSt.setEnabled(nowFP)
         self.ui.tFpEn.setEnabled(nowFP)
+
 
     @staticmethod
     def __POPPING_OUT_CONTROLS(): pass
@@ -379,8 +443,7 @@ class OscWid(QtGui.QWidget):
 
             if not self.settings['isScopePaused']:
                 # self.pyDataSig.emit(pyData)
-                self.settings['pyData'] = pyData
-                self.sigOscDataCollected.emit()
+                self.setData(pyData)
 
     def processPulse(self):
         """
@@ -395,40 +458,42 @@ class OscWid(QtGui.QWidget):
         self.settings["pyFP"] = pyFP
         self.settings["pyCD"] = pyCD
 
-        self.doFieldCalculation()
+        intensity, field = self.doFieldCalculation(ratio, time)
+        if str(self.ui.cFELCoupler.currentText()) != "Hole":
+            self.updatePkText(pkpk, time, ratio)
+        else:
+            self.updatePkText(pkpk, time)
 
-        if True:
-            self.sigPulseCounted.emit()
+        self.ui.tEField.setText(str(field))
+        self.ui.tIntensity.setText(str(intensity))
 
-    def doPhotonCountingLoop(self):
-        while self.settings["doPhotonCounting"]:
-            self.photonWaitingLoop = QtCore.QEventLoop()
-            self.sigOscDataCollected.connect(self.photonWaitingLoop.exit)
-            self.photonWaitingLoop.exec_()
-            # if self.papa.curExp.runSettings["exposing"]:
+        # count pulse if CD signal - BG signal is greater than
+        # some user-specified value.
+        if (
+            (pyCD-pyBG > self.ui.tOscCDRatio.value())
+        ) and self.settings["exposing"]:
+            self.settings["FELPulses"] += 1
+
+            self.ui.tOscPulses.setText(str(self.settings["FELPulses"]))
+            self.settings["fieldStrength"].append(field)
+            self.settings["fieldInt"].append(intensity)
+            self.settings["felTime"].append(time)
+            self.settings["pyroVoltage"].append(pkpk)
+            self.settings["cdRatios"].append(ratio)
+
+
+            self.sigPulseCounted.emit(self.settings["FELPulses"])
+        else:
             if self.settings["exposing"]:
-                pyBG = self.settings["pyBG"]
-                pyFP = self.settings["pyFP"]
-                pyCD = self.settings["pyCD"]
-
-                # count pulse if CD signal - BG signal is greater than
-                # some user-specified value.
-                if (
-                    (pyCD-pyBG > self.ui.tOscCDRatio.value())
-                ):
-                    self.settings["FELPulses"] += 1
-                    # self.papa.updateElementSig.emit(self.ui.tOscPulses, self.settings["FELPulses"])
-                    # self.papa.updateElementSig.emit(self.papa.curExp.ui.tCCDFELPulses, self.settings["FELPulses"])
-                    # self.doFieldCalcuation(pyBG, pyFP, pyCD)
-                    self.sigDoneCounting.emit()
-                else:
-                    print "PULSE NOT COUNTED!"
+                print "pulse not counted", pyCD, pyBG
+            self.sigPulseCounted.emit(-1)
 
     def startExposure(self):
         self.settings["exposing"] = True
 
         # reset all pulse counting metrics
         self.settings["FELPulses"] = 0
+        self.ui.tOscPulses.setText('0')
         # list of the field intensities for each pulse in a scan
         self.settings["fieldStrength"] = []
         self.settings["fieldInt"] = []
@@ -440,7 +505,106 @@ class OscWid(QtGui.QWidget):
         # CD ratio when necessary
         self.settings["cdRatios"] = []
 
+    def stopExposure(self):
+        self.settings["exposing"] = False
 
+    def getExposureResults(self):
+        """
+        :return: a dict of statistical valeus
+         of the duration of an exposure
+        """
+        s = {}
+
+        s["fel_power"] = str(self.ui.tFELP.text())
+        s["fel_reprate"] = str(self.ui.tFELRR.text())
+        s["fel_lambda"] = str(self.ui.tFELFreq.text())
+        s["fel_pol"] = str(self.ui.tFELPol.text())
+        s["fel_pulses"] = int(self.ui.tOscPulses.text()) if \
+            str(self.ui.tOscPulses.text()).strip() else 0
+
+        # We've started to do really long exposures
+        # ( 10 min ~ 300-400 FEL pulses)
+        # which gets annoying when we used to print every pulse
+        # Now we just print some statistics and hope it's
+        # useful enough for us
+        fs = np.array(self.settings["fieldStrength"])
+        # prevent warnings/errors when no pulses counted
+        if len(fs)==0:
+            fs = [0]
+        s["fieldStrength"] = {
+            "mean":np.mean(fs),
+            "std": np.std(fs),
+            "skew": spt.skew(fs),
+            "kurtosis": spt.kurtosis(fs)
+        }
+
+        fs = np.array(self.settings["fieldInt"])
+        if len(fs)==0:
+            fs = [0]
+        s["fieldInt"] = {
+            "mean":np.mean(fs),
+            "std": np.std(fs),
+            "skew": spt.skew(fs),
+            "kurtosis": spt.kurtosis(fs)
+        }
+        fs = np.array(self.settings["felTime"])
+        if len(fs)==0:
+            fs = [0]
+        k = "pulseDuration"
+        if str(self.ui.cFELCoupler.currentText())!="Hole":
+            k = "fpTime"
+        s[k] = {
+            "mean":np.mean(fs),
+            "std": np.std(fs),
+            "skew": spt.skew(fs),
+            "kurtosis": spt.kurtosis(fs)
+        }
+
+        fs = np.array(self.settings["pyroVoltage"])
+        if len(fs)==0:
+            fs = [0]
+
+        s["pyroVoltage"] = {
+            "mean":np.mean(fs),
+            "std": np.std(fs),
+            "skew": spt.skew(fs),
+            "kurtosis": spt.kurtosis(fs)
+        }
+
+        if str(self.ui.cFELCoupler.currentText()) != "Hole":
+            fs = np.array(self.settings["cdRatios"])
+            if len(fs)==0:
+                fs = [0]
+
+            s["cdRatios"] = {
+                "mean":np.mean(fs),
+                "std": np.std(fs),
+                "skew": spt.skew(fs),
+                "kurtosis": spt.kurtosis(fs)
+            }
+
+        return s
+
+    def getSaveSettings(self):
+        """
+        returns a dict of the settings used for repopulating
+        when restarting software
+        :return:
+        """
+        s = {
+            "fel_power": str(self.ui.tFELP.text()),
+            "fel_lambda": str(self.ui.tFELFreq.text()),
+            "fel_reprate": str(self.ui.tFELRR.text()),
+            "sample_spot_size": str(self.ui.tSpotSize.text()),
+            "window_trans": str(self.ui.tWindowTransmission.text()),
+            "eff_field": str(self.ui.tEffectiveField.text()),
+            "fel_pol": str(self.ui.tFELPol.text()),
+            "pulseCountRatio": str(self.ui.tOscCDRatio.text()),
+            'bcpyBG': self.boxcarRegions[0].getRegion(),
+            'bcpyFP': self.boxcarRegions[1].getRegion(),
+            'bcpyCD': self.boxcarRegions[2].getRegion()
+        }
+        return s
 
     @staticmethod
     def __INTEGRATING(): pass
@@ -460,20 +624,27 @@ class OscWid(QtGui.QWidget):
         pyCDbounds = self.boxcarRegions[2].getRegion()
         pyCDidx = self.findIndices(pyCDbounds, pyD[:,0])
 
-        pyBG = spi.simps(pyD[pyBGidx[0]:pyBGidx[1],1], pyD[pyBGidx[0]:pyBGidx[1], 0])
-        pyBG /= np.diff(pyBGidx)[0]
-
         pyBG = np.mean(pyD[pyBGidx[0]:pyBGidx[1], 1])
 
         if str(self.ui.cFELCoupler.currentText()) == "Cavity Dump":
+            dt = np.diff(pyD[:,0])[0]
             if str(self.ui.cPyroMode.currentText()) == "Instant":
                 # if the pyro is in instantaneous ("fast" mode), integrate the data
                 # ourselves
-                pyFP = spi.simps(pyD[pyFPidx[0]:pyFPidx[1],1], pyD[pyFPidx[0]:pyFPidx[1], 0])
-                pyFP /= np.diff(pyFPidx)[0]
-                pyCD = spi.simps(pyD[pyCDidx[0]:pyCDidx[1],1], pyD[pyCDidx[0]:pyCDidx[1], 0])
-                pyCD /= np.diff(pyCDidx)[0]
-                ratio = (pyCD-pyBG)/(pyCD + pyFP - 2*pyBG)
+
+
+                # pyFP = spi.simps(pyD[pyFPidx[0]:pyFPidx[1],1], pyD[pyFPidx[0]:pyFPidx[1], 0])
+                # pyCD = spi.simps(pyD[pyCDidx[0]:pyCDidx[1],1], pyD[pyCDidx[0]:pyCDidx[1], 0])
+                pyFP = (pyD[pyFPidx[0]:pyFPidx[1],1]-pyBG).sum() * dt
+                pyCD = (pyD[pyCDidx[0]:pyCDidx[1],1]-pyBG).sum() * dt
+
+                ratio = (pyCD)/(pyCD + pyFP)
+
+                # The ratio needs o compare the integrals under each
+                # (which is the total energy)
+                # if we normalize first, then things get bad
+                pyFP /= np.diff(pyFPbounds)[0]
+                pyCD /= np.diff(pyCDbounds)[0]
                 # set the FP time by the region of the boxcar
                 tau = pyFPbounds[1] - pyFPbounds[0]
                 pkpk = np.max(pyD[pyCDidx[0]:pyCDidx[1],1]) - pyBG
@@ -484,8 +655,14 @@ class OscWid(QtGui.QWidget):
 
                 # fit the FP to a line in the region selected by the user
                 #
-                linearCoeff = np.polyfit(*pyD[pyFPidx,:].T, deg=1)
+                try:
+                    linearCoeff = np.polyfit(*pyD[pyFPidx[0]:pyFPidx[1],:].T, deg=1)
+                except np.RankWarning:
+                    print "caught rankwarning"
                 pyFP = np.polyval(x = pyD[pyFPidx[-1], 0], p = linearCoeff)
+
+                self.DEBUGLINE1.setData(x=pyD[pyFPidx, 0],
+                            y = np.polyval(x = pyD[pyFPidx, 0], p = linearCoeff))
 
                 # for the CD, grab the average
                 pyCD = np.mean(pyD[pyCDidx[0]:pyCDidx[1], 1])
@@ -493,7 +670,7 @@ class OscWid(QtGui.QWidget):
 
                 # for the FP time, grab the end of the linear region, and the point where the line
                 # fitting it would intersect with the background
-                t2 = pyFPbounds[1]
+                t2 = pyFPbounds[-1]
                 t1 = (pyBG - linearCoeff[1])/linearCoeff[0]
                 tau = t2-t1
 
@@ -522,13 +699,40 @@ class OscWid(QtGui.QWidget):
                 # We've found the FWHM of an instant signal
                 # corresponds to rouhgly the 10-90 values
                 # on an integrated value. use that for the time
-                tau = self.calcPulseWidth(pyD, lowHeight=pyBG, highHeight=pyCD)
+                tau = self.calcPulseWidth(pyD, lowHeight=pyBG, highHeight=pyCD,
+                                          t1 = pyFPbounds[1] - pyFPbounds[0],
+                                          t2 = pyCDbounds[1] - pyCDbounds[0])
 
 
         return pyBG, pyFP, pyCD, tau, pkpk, ratio
 
-    @staticmethod
-    def calcPulseWidth(data, lowRange = (.095, .105), highRange=(.895, .905), lowHeight=None, highHeight=None, debug=False):
+    def calcPulseWidth(self, data, lowHeight = None, highHeight = None, t1 = None, t2 = None):
+        t = data[:,0]
+        y = data[:,1]
+        if None in [lowHeight, highHeight]:
+            lowHeight = y.min()
+            highHeight = y.max()
+        if None in [t1, t2]:
+            t1 = t[0]
+            t2 = t[-1]
+        a = highHeight - lowHeight
+        c = lowHeight
+        mu = (t1 + t2)/2
+        # Looking at some random data, this is roughly
+        # how the slope parameter depends on the
+        # times.
+        b = 20./(t2-t1)
+
+        p, _ = spo.curve_fit(sig, t, y, p0=[a, mu, b, c])
+        # self.DEBUGLINE1.setData(t, sig(t, *p))
+
+        pp = np.array([0.1, 0.9])
+        a, mu, b, c = p
+        tau = 1./b * np.log(1./pp - 1) + mu
+        print "tau values:", tau
+        return tau[1]-tau[0]
+
+    def calcPulseWidthOld(self, data, lowRange = (.095, .105), highRange=(.895, .905), lowHeight=None, highHeight=None, debug=False):
         # low/highRange are either an interable of boudns of min/max
         # for the start/end heights of pulse,
         # or a single value with bounds taken +-0.5%
@@ -558,8 +762,8 @@ class OscWid(QtGui.QWidget):
             raise
 
         if data.ndim == 2:
-            time = data[:,0]
-            data = data[:,1]
+            time = data[:,0].copy()
+            data = data[:,1].copy()
         else:
             raise ValueError("Need a 2d array to calculate widths")
 
@@ -604,10 +808,12 @@ class OscWid(QtGui.QWidget):
         #     print "hightimes:", time[highIdx].mean()
         #     plt.plot(time, data)
             # plt.show()
+        self.DEBUGLINE1.setData(time[lowIdx], data[lowIdx]+lowHeight)
+        self.DEBUGLINE2.setData(time[highIdx], data[highIdx]+lowHeight)
         ret = time[highIdx].mean() - time[lowIdx].mean()
         if np.isnan(ret) and debug is not None:
             # print "Error, couldn't find values. Poor digitization?"
-            ret = OscWid.calcPulseWidth(np.column_stack((time, data)),
+            ret = self.calcPulseWidth(np.column_stack((time, data)),
                                  lowRange=(lowRange[0]+0.05, lowRange[1]+0.15),
                                  highRange=(highRange[0]-0.15, highRange[1]-0.05),
                                  highHeight = highHeight, lowHeight = lowHeight,
@@ -632,7 +838,7 @@ class OscWid(QtGui.QWidget):
 
     @staticmethod
     def __FIELD_CALCULATIONS():pass
-    def doFieldCalculation(self):
+    def doFieldCalculation(self, ratio, time):
         """
         :param BG: integrated background value
         :param FP: integrated front porch value
@@ -644,25 +850,18 @@ class OscWid(QtGui.QWidget):
             windowTrans = self.ui.tWindowTransmission.value()
             effField = self.ui.tEffectiveField.value()
             radius = self.ui.tSpotSize.value()
-            # if str(self.papa.oscWidget.ui.cPyroMode.currentText()) == "Instant":
-            #     ratio = CD/(FP + CD)
-            # else:
-            #     ratio = CD/FP
-            ratio = self.settings['CDtoFPRatio']
+
+            if str(self.ui.cFELCoupler.currentText()) != "Hole":
+                time = 37e-3
             intensity = calc_THz_intensity(energy, windowTrans, effField, radius=radius,
-                                           ratio = ratio)
+                                           ratio = ratio,
+                                           pulse_width = time*1e3)
             field = calc_THz_field(intensity)
 
             intensity = round(intensity/1000., 3)
             field = round(field/1000., 3)
 
-            self.papa.updateElementSig.emit(
-                self.ui.tIntensity, "{:.3f}".format(intensity))
-            self.papa.updateElementSig.emit(
-                self.ui.tEField, "{:.3f}".format(field))
-
-            self.settings["fieldInt"].append(intensity)
-            self.settings["fieldStrength"].append(field)
+            return intensity, field
 
         except Exception as e:
             log.warning("Could not calculate electric field, {}".format(e))
@@ -676,9 +875,12 @@ class OscWid(QtGui.QWidget):
     def updatePkTextPos(self, null, range):
         self.pkText.setPos(range[0][0], range[1][1])
 
-    def updatePkText(self, *args):
-        pass
-
+    def updatePkText(self, pkpk = 0, time = 0, ratio = None):
+        st = "pkpk: {:.1f}".format(pkpk*1e3)
+        if ratio is not None:
+            st += ", ratio: {:.1f}".format(ratio*100.)
+        st += ", width: {:.2f}".format(time)
+        self.pkText.setText(st, color=(0,0,0))
 
     def close(self):
         self.settings['shouldScopeLoop'] = False

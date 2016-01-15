@@ -5,6 +5,7 @@ Created on Tue Jan 27 16:38:33 2015
 @author: dvalovcin
 """
 
+from __future__ import division
 import numpy as np
 import visa
 import pyvisa.errors
@@ -35,6 +36,8 @@ def setPrintOutput(enabled = True):
 class FakeInstr(object):
     timeout = 3000
     curStep = 70000 #Making life interesting for SPEX instrument
+    integrating = True # for simulating pyro behavior for oscopes
+    CD = False
     def __init__(self):
         self._locked = False
     def lock(self):
@@ -50,6 +53,13 @@ class FakeInstr(object):
             self._locked = False
     def lock_excl(self):
         self.lock()
+
+
+    def setIntegrating(self, val):
+        self.integrating = val
+
+    def setCD(self, val):
+        self.CD = val
 
     def write(self, string):
         if PRINT_OUTPUT:
@@ -76,10 +86,10 @@ class FakeInstr(object):
              #Forcing some numbers for reasonable consistancy
             a[4] = 5e-9 # x inc
             a[5] = 1.659e-2 # x origin
-            a[6] = 0 # x reference?
+            a[6] = 0. # x reference?
             a[7] = 1.5625e-3 # y increment
             a[8] = -4e-2 # y origin
-            a[9] = 0 # y ref?
+            a[9] = 0. # y ref?
             st = ''
             for i in a:
                 st+=str(i)+','
@@ -87,7 +97,10 @@ class FakeInstr(object):
         elif ':WAV:DATA?' == string: #agilent querying data
             a = 10.*np.random.random((1000,)) + 100
             b = 10.*np.random.random((1000,)) + 200
-            return np.concatenate((a,b))
+            arr = np.concatenate((a,b))
+            if self.integrating:
+                arr = np.cumsum(arr) * 1e-3
+            return arr
         elif '*OPC?'==string:
             time.sleep(0.5)
             return u'1\r'
@@ -133,16 +146,42 @@ class FakeInstr(object):
     def query_binary_values(self, string, datatype):
         np.random.seed()
         if ':WAV:DATA?' == string: #agilent querying data
-            # Simulate a missed pulse 1/10
-            if np.random.randint(0,10)==0:
-                return np.random.normal(scale=0.5, size=(2500,))
-            a = 10.*np.random.normal(scale=0.5, size=(1000,))
-            b = 10.*np.random.normal(scale=0.5, size=(1000,)) + np.random.randint(50,70)
-            c = 10.*np.random.normal(scale=0.5, size=(20,)) + np.random.randint(1200,1300)
-            d = 10.*np.random.normal(scale=0.5, size=(480,))
-            # a = np.random.normal(scale=0.5, size=(2500,))
-            return np.concatenate((a,b, c, d))
-            # return a
+            if self.CD:
+                # Simulate a missed pulse 1/10
+                noise = np.random.normal(scale=0.5, size=(2500,))
+                if np.random.randint(0,10)==0:
+                    return noise
+                a = np.zeros((1000,)) # start
+                b = np.random.randint(50,70) * np.ones((1000,)) # FP
+                c = np.random.randint(1200,1300) * np.ones((20,)) #CD
+                d = np.zeros((480,))
+                arr = np.concatenate((a,b, c, d))
+                if self.integrating:
+                    arr = np.cumsum(arr) *1e-3
+                else:
+                    arr *= 5e-2
+                arr += noise
+                arr += np.random.randint(-40, 40)
+                return arr
+            else:
+                # Simulate a missed pulse 1/10
+                noise = np.random.normal(scale=0.5, size=(2500,))
+                if np.random.randint(0,10)==0:
+                    return noise
+                a = np.zeros((1000,)) # start
+                x = np.arange(750)
+                b = np.random.randint(150,175) * (1. - np.exp(-x/400))
+                x = np.arange(250)
+                c = b[-1]*(np.exp(-x/55))
+                d = np.zeros((500,))
+                arr = np.concatenate((a, b, c, d))
+                if self.integrating:
+                    arr = np.cumsum(arr) *1e-3
+                else:
+                    arr *= 5e-2
+                arr += noise
+                arr += np.random.randint(-10, 10)
+                return arr
 
     def query_ascii_values(self, str=''):
         """
@@ -320,6 +359,20 @@ class Agilent6000(BaseInstr):
         #Keep in memory which channel it is        
         self.channel = 1
         self.setSource(self.channel)
+
+    def setIntegrating(self, val):
+        try:
+            self.instrument.setIntegrating(val)
+        except:
+            #for debugging things with fake instruments. I'm sorry
+            pass
+
+    def setCD(self, val):
+        try:
+            self.instrument.setCD(val)
+        except:
+            #for debugging things with fake instruments. I'm sorry
+            pass
         
     def setSource(self, channel):
     #Specify the source channel for reading information
@@ -337,7 +390,7 @@ class Agilent6000(BaseInstr):
         self.write(':WAV:UNS OFF')
         
     def readChannel(self, channel = None):
-        if channel == None:
+        if channel is None:
             channel = self.channel
         elif channel != self.channel:
             self.setSource(channel)
@@ -350,6 +403,13 @@ class Agilent6000(BaseInstr):
         #get the preamble
         # Assumes you're scaling the data that is
         # currently active
+
+        time = np.arange(len(data))
+        volt = data
+
+        return np.vstack((time, volt)).T
+
+
         pre = self.ask(':WAV:PRE?').split(',')
         xinc = float(pre[4])
         xori = float(pre[5])
@@ -364,6 +424,9 @@ class Agilent6000(BaseInstr):
         time = (x - xref) * xinc + xori
         time -= self.EXTERNAL_OFFSET
         time *= self.TIME_BASE
+
+        time = np.arange(len(data))
+        volt = data
         
         return np.vstack((time, volt)).T
 

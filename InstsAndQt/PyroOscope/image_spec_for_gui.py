@@ -19,7 +19,7 @@ import numpy as np
 import cosmics_hsg as cosmics
 import scipy.ndimage as ndimage
 import pyqtgraph as pg
-from UIs.ImageViewWithPlotItemContainer import ImageViewWithPlotItemContainer
+# from UIs.ImageViewWithPlotItemContainer import ImageViewWithPlotItemContainer
 
 import logging
 log = logging.getLogger("EMCCD")
@@ -113,93 +113,93 @@ class ConsecutiveImageAnalyzer(object):
         signoise = np.std(d[:,:,:100], axis=2).mean()
         cutoff = med * ratio + noisecoeff * signoise
 
-        if debug:
-            try:
-                if d.shape[1]>10:
-                    debug = False
-                    raise RuntimeError("Sorry, can't debug with this large"
-                                       "an image, it causes things to break")
-                print "median shape", med.shape
-                cutoff = med * ratio + noisecoeff * np.std(med[:,:100])
-                print "cutoff shape", cutoff.shape
-
-                winlist = []
-
-                vw = ImageViewWithPlotItemContainer(view=pg.PlotItem())
-                vw.view.setAspectLocked(False)
-                vw.setImage(d.copy())
-                vw.setWindowTitle("Raw Image")
-                vw.roi.setSize((d.shape[2], d.shape[1]))
-                vw.roi.translatable = False
-                vw.ui.roiPlot.plotItem.addLegend()
-                for ii in range(0, d.shape[0]):
-                    for kk in range(0, d.shape[1]):
-                        vw.ui.roiPlot.plot(d[ii,kk], pen=pg.mkPen((ii, d.shape[0]), style=kk+1), name=ii)
-                # vw.updateImage()
-
-                vw.show()
-                vw.ui.roiBtn.setChecked(True)
-                vw.ui.roiBtn.clicked.emit(True)
-                winlist.append(vw)
-                vw = ImageViewWithPlotItemContainer(view=pg.PlotItem())
-                vw.view.setAspectLocked(False)
-                # vw.setImage(d.reshape(d.shape[2], d.shape[1], d.shape[0]))
-                vw.setImage(med)
-                vw.setWindowTitle("Median Image")
-                vw.roi.setSize((med.shape[1], med.shape[0]))
-                vw.roi.translatable = False
-                vw.ui.roiPlot.plotItem.addLegend()
-                for ii in range(0, med.shape[0]):
-                        vw.ui.roiPlot.plot(med[ii], pen=pg.mkPen(style=ii+1), name=ii)
-                # vw.updateImage()
-
-                vw.show()
-                vw.ui.roiBtn.setChecked(True)
-                vw.ui.roiBtn.clicked.emit(True)
-                winlist.append(vw)
-
-
-                vw = ImageViewWithPlotItemContainer(view=pg.PlotItem())
-                vw.view.setAspectLocked(False)
-                # vw.setImage(d.reshape(d.shape[2], d.shape[1], d.shape[0]))
-                vw.setImage(d-med)
-                vw.setWindowTitle("d-m")
-                vw.roi.setSize((med.shape[1], med.shape[0]))
-                vw.roi.translatable = False
-                vw.ui.roiPlot.plotItem.addLegend()
-                for ii in range(0, d.shape[0]):
-                    for kk in range(0, d.shape[1]):
-                        vw.ui.roiPlot.plot(d[ii,kk]-med[kk], pen=pg.mkPen((ii, d.shape[0]), style=kk+1), name=ii)
-                for ii in range(0, med.shape[0]):
-                        vw.ui.roiPlot.plot(cutoff[ii], pen=pg.mkPen(style=ii+1), name=ii)
-                # vw.updateImage()
-
-                vw.show()
-                vw.ui.roiBtn.setChecked(True)
-                vw.ui.roiBtn.clicked.emit(True)
-                winlist.append(vw)
-
-
-                vw = ImageViewWithPlotItemContainer(view=pg.PlotItem())
-                vw.view.setAspectLocked(False)
-                # vw.setImage(d.reshape(d.shape[2], d.shape[1], d.shape[0]))
-                vw.setImage((d-med)>cutoff[None,:,:])
-                vw.setWindowTitle("Cosmics?")
-                vw.roi.setSize((d.shape[2], d.shape[1]))
-                vw.roi.translatable = False
-                vw.ui.roiPlot.plotItem.addLegend()
-                for ii in range(0, d.shape[0]):
-                    for kk in range(0, d.shape[1]):
-                        vw.ui.roiPlot.plot(((d-med)>cutoff[None,:,:])[ii,kk], pen=pg.mkPen((ii, d.shape[0]), style=kk+1), name=ii)
-                # vw.updateImage()
-
-                vw.show()
-                vw.ui.roiBtn.setChecked(True)
-                vw.ui.roiBtn.clicked.emit(True)
-                winlist.append(vw)
-
-            except:
-                log.exception("this failed")
+        # if debug:
+        #     try:
+        #         if d.shape[1]>10:
+        #             debug = False
+        #             raise RuntimeError("Sorry, can't debug with this large"
+        #                                "an image, it causes things to break")
+        #         print "median shape", med.shape
+        #         cutoff = med * ratio + noisecoeff * np.std(med[:,:100])
+        #         print "cutoff shape", cutoff.shape
+        #
+        #         winlist = []
+        #
+        #         vw = ImageViewWithPlotItemContainer(view=pg.PlotItem())
+        #         vw.view.setAspectLocked(False)
+        #         vw.setImage(d.copy())
+        #         vw.setWindowTitle("Raw Image")
+        #         vw.roi.setSize((d.shape[2], d.shape[1]))
+        #         vw.roi.translatable = False
+        #         vw.ui.roiPlot.plotItem.addLegend()
+        #         for ii in range(0, d.shape[0]):
+        #             for kk in range(0, d.shape[1]):
+        #                 vw.ui.roiPlot.plot(d[ii,kk], pen=pg.mkPen((ii, d.shape[0]), style=kk+1), name=ii)
+        #         # vw.updateImage()
+        #
+        #         vw.show()
+        #         vw.ui.roiBtn.setChecked(True)
+        #         vw.ui.roiBtn.clicked.emit(True)
+        #         winlist.append(vw)
+        #         vw = ImageViewWithPlotItemContainer(view=pg.PlotItem())
+        #         vw.view.setAspectLocked(False)
+        #         # vw.setImage(d.reshape(d.shape[2], d.shape[1], d.shape[0]))
+        #         vw.setImage(med)
+        #         vw.setWindowTitle("Median Image")
+        #         vw.roi.setSize((med.shape[1], med.shape[0]))
+        #         vw.roi.translatable = False
+        #         vw.ui.roiPlot.plotItem.addLegend()
+        #         for ii in range(0, med.shape[0]):
+        #                 vw.ui.roiPlot.plot(med[ii], pen=pg.mkPen(style=ii+1), name=ii)
+        #         # vw.updateImage()
+        #
+        #         vw.show()
+        #         vw.ui.roiBtn.setChecked(True)
+        #         vw.ui.roiBtn.clicked.emit(True)
+        #         winlist.append(vw)
+        #
+        #
+        #         vw = ImageViewWithPlotItemContainer(view=pg.PlotItem())
+        #         vw.view.setAspectLocked(False)
+        #         # vw.setImage(d.reshape(d.shape[2], d.shape[1], d.shape[0]))
+        #         vw.setImage(d-med)
+        #         vw.setWindowTitle("d-m")
+        #         vw.roi.setSize((med.shape[1], med.shape[0]))
+        #         vw.roi.translatable = False
+        #         vw.ui.roiPlot.plotItem.addLegend()
+        #         for ii in range(0, d.shape[0]):
+        #             for kk in range(0, d.shape[1]):
+        #                 vw.ui.roiPlot.plot(d[ii,kk]-med[kk], pen=pg.mkPen((ii, d.shape[0]), style=kk+1), name=ii)
+        #         for ii in range(0, med.shape[0]):
+        #                 vw.ui.roiPlot.plot(cutoff[ii], pen=pg.mkPen(style=ii+1), name=ii)
+        #         # vw.updateImage()
+        #
+        #         vw.show()
+        #         vw.ui.roiBtn.setChecked(True)
+        #         vw.ui.roiBtn.clicked.emit(True)
+        #         winlist.append(vw)
+        #
+        #
+        #         vw = ImageViewWithPlotItemContainer(view=pg.PlotItem())
+        #         vw.view.setAspectLocked(False)
+        #         # vw.setImage(d.reshape(d.shape[2], d.shape[1], d.shape[0]))
+        #         vw.setImage((d-med)>cutoff[None,:,:])
+        #         vw.setWindowTitle("Cosmics?")
+        #         vw.roi.setSize((d.shape[2], d.shape[1]))
+        #         vw.roi.translatable = False
+        #         vw.ui.roiPlot.plotItem.addLegend()
+        #         for ii in range(0, d.shape[0]):
+        #             for kk in range(0, d.shape[1]):
+        #                 vw.ui.roiPlot.plot(((d-med)>cutoff[None,:,:])[ii,kk], pen=pg.mkPen((ii, d.shape[0]), style=kk+1), name=ii)
+        #         # vw.updateImage()
+        #
+        #         vw.show()
+        #         vw.ui.roiBtn.setChecked(True)
+        #         vw.ui.roiBtn.clicked.emit(True)
+        #         winlist.append(vw)
+        #
+        #     except:
+        #         log.exception("this failed")
 
 
 
