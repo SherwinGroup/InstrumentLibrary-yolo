@@ -554,8 +554,8 @@ class SPEX(BaseInstr):
         self.maxWavenumber = 31000
         self.stepsPerWavenumber = 400
         self.backlash = 8000
-        self.currentPositionWN = 13160
-        self.currentPositionSteps = self.wavenumberToSteps(self.currentPositionWN)
+        self.currentPositionSteps = self.curStep()
+        self.currentPositionWN = self.stepsToWN(self.currentPositionSteps)
     def ask(self, command, timeout=None):
         #Call the parent asking function, but only encode
         return super(SPEX, self).ask(command, strip=0, timeout=timeout)
@@ -647,7 +647,6 @@ class SPEX(BaseInstr):
         elif not ret[0]=='o':
             print 'I dunno', ret
         print 'Set to', str(currentStep), '  Reads',str(ret)
-        
         
     def gotoWN(self, wn):
         #Will move the SPEX to the specified wavenumber
