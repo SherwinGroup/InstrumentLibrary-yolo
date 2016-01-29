@@ -484,8 +484,8 @@ class OscWid(QtGui.QWidget):
 
             self.sigPulseCounted.emit(self.settings["FELPulses"])
         else:
-            if self.settings["exposing"]:
-                print "pulse not counted", pyCD, pyBG
+            # if self.settings["exposing"]:
+            #     print "pulse not counted", pyCD, pyBG
             self.sigPulseCounted.emit(-1)
 
     def startExposure(self):
@@ -724,13 +724,13 @@ class OscWid(QtGui.QWidget):
         b = 20./(t2-t1)
 
         p, _ = spo.curve_fit(sig, t, y, p0=[a, mu, b, c])
-        # self.DEBUGLINE1.setData(t, sig(t, *p))
+        self.DEBUGLINE1.setData(t, sig(t, *p))
 
         pp = np.array([0.1, 0.9])
         a, mu, b, c = p
         tau = 1./b * np.log(1./pp - 1) + mu
-        print "tau values:", tau
-        return tau[1]-tau[0]
+        # print "tau values:", tau
+        return np.abs(tau[1]-tau[0])
 
     def calcPulseWidthOld(self, data, lowRange = (.095, .105), highRange=(.895, .905), lowHeight=None, highHeight=None, debug=False):
         # low/highRange are either an interable of boudns of min/max

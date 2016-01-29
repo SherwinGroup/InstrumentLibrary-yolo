@@ -407,9 +407,6 @@ class Agilent6000(BaseInstr):
         time = np.arange(len(data))
         volt = data
 
-        return np.vstack((time, volt)).T
-
-
         pre = self.ask(':WAV:PRE?').split(',')
         xinc = float(pre[4])
         xori = float(pre[5])
@@ -425,8 +422,6 @@ class Agilent6000(BaseInstr):
         time -= self.EXTERNAL_OFFSET
         time *= self.TIME_BASE
 
-        time = np.arange(len(data))
-        volt = data
         
         return np.vstack((time, volt)).T
 
@@ -1029,7 +1024,9 @@ class ActonSP(BaseInstr):
     def getWavelength(self):
         ret = self.ask('?nm')
         # return is "?nm <wavelength> nm  ok\r\n. base class removes \n
-        
+        if not ret:
+            print "ERROR GETTING SPECTROMETER WAVELENGTH"
+            return
         return float(ret[3:-8])
         
     def setGrating(self, grating):
@@ -1042,7 +1039,7 @@ class ActonSP(BaseInstr):
         ret = self.ask('?grating')
         if not ret:
             print "ERROR GETTING SPECTROMETER GRATING\nENSURE COMMUNICATION"
-            return 2
+            return
         return int(ret[8:-5])
         
     def goAndAsk(self, wl, doCal = True):
