@@ -408,7 +408,7 @@
             <item>
              <widget class="QFNumberEdit" name="tOscCDRatio">
               <property name="text">
-               <string>5</string>
+               <string>0.007</string>
               </property>
              </widget>
             </item>
@@ -714,7 +714,7 @@
             <item row="0" column="0">
              <widget class="QLineEdit" name="tFELRR">
               <property name="text">
-               <string>0.75</string>
+               <string>1.07</string>
               </property>
              </widget>
             </item>
@@ -858,6 +858,34 @@
    <header>pyqtgraph</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>tBgSt</tabstop>
+  <tabstop>tFpSt</tabstop>
+  <tabstop>tCdSt</tabstop>
+  <tabstop>tBgEn</tabstop>
+  <tabstop>tFpEn</tabstop>
+  <tabstop>tCdEn</tabstop>
+  <tabstop>tOscCDRatio</tabstop>
+  <tabstop>cPyroMode</tabstop>
+  <tabstop>cFELCoupler</tabstop>
+  <tabstop>tFELP</tabstop>
+  <tabstop>tEField</tabstop>
+  <tabstop>tIntensity</tabstop>
+  <tabstop>tFELPol</tabstop>
+  <tabstop>tFELRR</tabstop>
+  <tabstop>tFELFreq</tabstop>
+  <tabstop>tSpotSize</tabstop>
+  <tabstop>tWindowTransmission</tabstop>
+  <tabstop>tEffectiveField</tabstop>
+  <tabstop>bOPause</tabstop>
+  <tabstop>cOGPIB</tabstop>
+  <tabstop>cOChannel</tabstop>
+  <tabstop>gOsc</tabstop>
+  <tabstop>bOscInit</tabstop>
+  <tabstop>bOPop</tabstop>
+  <tabstop>tabWidget</tabstop>
+  <tabstop>tOscPulses</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'C:\Users\FELLab\Documents\GitHub\InstrumentLibrary-yolo\InstsAndQt\PyroOscope\Oscilloscope.ui'
+# Form implementation generated from reading ui file 'C:\Users\dvalovcin\Documents\GitHub\InstrumentLibrary-yolo\InstsAndQt\PyroOscope\Oscilloscope.ui'
 #
-# Created: Wed Jan 13 17:22:09 2016
-#      by: PyQt4 UI code generator 4.11.3
+# Created by: PyQt4 UI code generator 4.11.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -183,8 +182,8 @@ class Ui_Oscilloscope(object):
         self.groupBox_40.setCheckable(False)
         self.groupBox_40.setObjectName(_fromUtf8("groupBox_40"))
         self.gridLayout_10 = QtGui.QGridLayout(self.groupBox_40)
-        self.gridLayout_10.setSpacing(0)
         self.gridLayout_10.setContentsMargins(0, 10, 0, 0)
+        self.gridLayout_10.setSpacing(0)
         self.gridLayout_10.setObjectName(_fromUtf8("gridLayout_10"))
         self.tFELP = QFNumberEdit(self.groupBox_40)
         self.tFELP.setObjectName(_fromUtf8("tFELP"))
@@ -227,8 +226,8 @@ class Ui_Oscilloscope(object):
         self.groupBox_39.setCheckable(False)
         self.groupBox_39.setObjectName(_fromUtf8("groupBox_39"))
         self.gridLayout_9 = QtGui.QGridLayout(self.groupBox_39)
-        self.gridLayout_9.setSpacing(0)
         self.gridLayout_9.setContentsMargins(0, 10, 0, 0)
+        self.gridLayout_9.setSpacing(0)
         self.gridLayout_9.setObjectName(_fromUtf8("gridLayout_9"))
         self.tFELFreq = QFNumberEdit(self.groupBox_39)
         self.tFELFreq.setObjectName(_fromUtf8("tFELFreq"))
@@ -269,8 +268,8 @@ class Ui_Oscilloscope(object):
         self.groupBox_41.setCheckable(False)
         self.groupBox_41.setObjectName(_fromUtf8("groupBox_41"))
         self.gridLayout_11 = QtGui.QGridLayout(self.groupBox_41)
-        self.gridLayout_11.setSpacing(0)
         self.gridLayout_11.setContentsMargins(0, 10, 0, 0)
+        self.gridLayout_11.setSpacing(0)
         self.gridLayout_11.setObjectName(_fromUtf8("gridLayout_11"))
         self.tFELRR = QtGui.QLineEdit(self.groupBox_41)
         self.tFELRR.setObjectName(_fromUtf8("tFELRR"))
@@ -322,6 +321,31 @@ class Ui_Oscilloscope(object):
         self.cPyroMode.setCurrentIndex(1)
         self.cOChannel.setCurrentIndex(2)
         QtCore.QMetaObject.connectSlotsByName(Oscilloscope)
+        Oscilloscope.setTabOrder(self.tBgSt, self.tFpSt)
+        Oscilloscope.setTabOrder(self.tFpSt, self.tCdSt)
+        Oscilloscope.setTabOrder(self.tCdSt, self.tBgEn)
+        Oscilloscope.setTabOrder(self.tBgEn, self.tFpEn)
+        Oscilloscope.setTabOrder(self.tFpEn, self.tCdEn)
+        Oscilloscope.setTabOrder(self.tCdEn, self.tOscCDRatio)
+        Oscilloscope.setTabOrder(self.tOscCDRatio, self.cPyroMode)
+        Oscilloscope.setTabOrder(self.cPyroMode, self.cFELCoupler)
+        Oscilloscope.setTabOrder(self.cFELCoupler, self.tFELP)
+        Oscilloscope.setTabOrder(self.tFELP, self.tEField)
+        Oscilloscope.setTabOrder(self.tEField, self.tIntensity)
+        Oscilloscope.setTabOrder(self.tIntensity, self.tFELPol)
+        Oscilloscope.setTabOrder(self.tFELPol, self.tFELRR)
+        Oscilloscope.setTabOrder(self.tFELRR, self.tFELFreq)
+        Oscilloscope.setTabOrder(self.tFELFreq, self.tSpotSize)
+        Oscilloscope.setTabOrder(self.tSpotSize, self.tWindowTransmission)
+        Oscilloscope.setTabOrder(self.tWindowTransmission, self.tEffectiveField)
+        Oscilloscope.setTabOrder(self.tEffectiveField, self.bOPause)
+        Oscilloscope.setTabOrder(self.bOPause, self.cOGPIB)
+        Oscilloscope.setTabOrder(self.cOGPIB, self.cOChannel)
+        Oscilloscope.setTabOrder(self.cOChannel, self.gOsc)
+        Oscilloscope.setTabOrder(self.gOsc, self.bOscInit)
+        Oscilloscope.setTabOrder(self.bOscInit, self.bOPop)
+        Oscilloscope.setTabOrder(self.bOPop, self.tabWidget)
+        Oscilloscope.setTabOrder(self.tabWidget, self.tOscPulses)
 
     def retranslateUi(self, Oscilloscope):
         Oscilloscope.setWindowTitle(_translate("Oscilloscope", "Form", None))
@@ -342,7 +366,7 @@ class Ui_Oscilloscope(object):
         self.cFELCoupler.setItemText(0, _translate("Oscilloscope", "Cavity Dump", None))
         self.cFELCoupler.setItemText(1, _translate("Oscilloscope", "Hole", None))
         self.groupBox_53.setTitle(_translate("Oscilloscope", "CD Ratio", None))
-        self.tOscCDRatio.setText(_translate("Oscilloscope", "5", None))
+        self.tOscCDRatio.setText(_translate("Oscilloscope", "0.007", None))
         self.groupBox_40.setTitle(_translate("Oscilloscope", "FEL Energy (mJ)", None))
         self.tFELP.setText(_translate("Oscilloscope", "0", None))
         self.groupBox_55.setTitle(_translate("Oscilloscope", "Spot Size(cm)", None))
@@ -360,7 +384,7 @@ class Ui_Oscilloscope(object):
         self.tWindowTransmission.setText(_translate("Oscilloscope", "1.0", None))
         self.groupBox_3.setTitle(_translate("Oscilloscope", "FEL Pol", None))
         self.groupBox_41.setTitle(_translate("Oscilloscope", "Rep Rate (Hz)", None))
-        self.tFELRR.setText(_translate("Oscilloscope", "0.75", None))
+        self.tFELRR.setText(_translate("Oscilloscope", "1.07", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_5), _translate("Oscilloscope", "Misc Settings", None))
         self.bOPause.setText(_translate("Oscilloscope", "Pause", None))
         self.groupBox_31.setTitle(_translate("Oscilloscope", "GPIB", None))
@@ -371,5 +395,5 @@ class Ui_Oscilloscope(object):
         self.cOChannel.setItemText(2, _translate("Oscilloscope", "3", None))
         self.cOChannel.setItemText(3, _translate("Oscilloscope", "4", None))
 
-from pyqtgraph import PlotWidget
 from InstsAndQt.customQt import QFNumberEdit
+from pyqtgraph import PlotWidget
