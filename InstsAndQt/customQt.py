@@ -375,6 +375,11 @@ class DoubleYPlot(pg.PlotWidget):
             self.plotTwo.setData(data)
         self.p2.setGeometry(self.plotItem1.vb.sceneBoundingRect())
 
+    def setY2Pen(self, *args, **kwargs):
+        self.y2Pen = pg.mkPen(*args, **kwargs)
+        self.plotItem1.getAxis("right").setPen(self.y2Pen)
+        self.plotTwo.setPen(self.y2Pen)
+
     def setY1Color(self, color='k'):
         self.y1Pen = pg.mkPen(color)
         self.plotItem1.getAxis("left").setPen(self.y1Pen)
