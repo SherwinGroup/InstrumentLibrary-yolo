@@ -94,7 +94,7 @@ class OscWid(QtGui.QWidget):
         self.settings["window_trans"] = kwargs.get("window_trans", 1.0)
         self.settings["eff_field"] = kwargs.get("eff_field", 1.0)
         self.settings["fel_pol"] = kwargs.get("fel_pol", 'H')
-        self.settings["pulseCountRatio"] = kwargs.get('pulseCountRatio', 0.05)
+        self.settings["pulseCountRatio"] = kwargs.get('pulseCountRatio', 0.007)
         self.settings["exposing"] = False
 
         # lists for holding the boundaries of the linear regions
@@ -408,7 +408,7 @@ class OscWid(QtGui.QWidget):
             )
             self.ui.cOGPIB.currentIndexChanged.connect(self.openAgilent)
 
-        self.Agilent.setTrigger()
+        self.Agilent.setTrigger(level=1.5)
         self.settings['shouldScopeLoop'] = True
         if isPaused:
             self.toggleScopePause(True)
