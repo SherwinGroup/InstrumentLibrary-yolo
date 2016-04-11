@@ -59,7 +59,7 @@ class ESP300(object):
         }
 
     def __init__(self, address, current_axis=1,\
-        always_wait_for_stop=True,delay=0,**kwargs):
+        always_wait_for_stop=True,delay=500,**kwargs):
         '''
         takes:
             address:    Gpib address, int [1]
@@ -71,6 +71,7 @@ class ESP300(object):
 
         # GpibInstrument.__init__(self,address,**kwargs)
         self.instrument = rm().open_resource(address)
+        self.instrument.timeout = 10000L
         self.current_axis = current_axis
         self.always_wait_for_stop = always_wait_for_stop
         self.delay=delay
