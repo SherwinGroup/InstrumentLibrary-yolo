@@ -50,3 +50,5 @@ build/
 dist/
 InstsAndQt.egg-info/
 .idea/
+
+*.pyc
