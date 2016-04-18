@@ -1,6 +1,7 @@
 from PyQt4 import QtCore, QtGui
 from UIs.axisPanel_ui import Ui_ESPAxisPanel
-from esp300 import ESP300
+# from esp300 import ESP300
+from ..Instruments import ESP300
 from InstsAndQt.customQt import *
 import numpy as np
 import pyqtgraph
