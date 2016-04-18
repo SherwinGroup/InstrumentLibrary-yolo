@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'C:\Users\FELLab\Documents\GitHub\InstrumentLibrary-yolo\InstsAndQt\NewportMotorDriver\UIs\axisPanel.ui'
 #
-# Created: Wed Feb 24 11:27:32 2016
+# Created: Wed Apr 13 10:35:41 2016
 #      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -26,7 +26,7 @@ except AttributeError:
 class Ui_ESPAxisPanel(object):
     def setupUi(self, ESPAxisPanel):
         ESPAxisPanel.setObjectName(_fromUtf8("ESPAxisPanel"))
-        ESPAxisPanel.resize(409, 88)
+        ESPAxisPanel.resize(409, 77)
         self.verticalLayout = QtGui.QVBoxLayout(ESPAxisPanel)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.horizontalLayout = QtGui.QHBoxLayout()
@@ -62,9 +62,15 @@ class Ui_ESPAxisPanel(object):
         self.cbOn.setText(_fromUtf8(""))
         self.cbOn.setObjectName(_fromUtf8("cbOn"))
         self.horizontalLayout_2.addWidget(self.cbOn)
-        self.bSetHome = QtGui.QPushButton(ESPAxisPanel)
-        self.bSetHome.setObjectName(_fromUtf8("bSetHome"))
-        self.horizontalLayout_2.addWidget(self.bSetHome)
+        self.bSetPosition = QtGui.QPushButton(ESPAxisPanel)
+        self.bSetPosition.setObjectName(_fromUtf8("bSetPosition"))
+        self.horizontalLayout_2.addWidget(self.bSetPosition)
+        self.bGoHome = QtGui.QPushButton(ESPAxisPanel)
+        self.bGoHome.setObjectName(_fromUtf8("bGoHome"))
+        self.horizontalLayout_2.addWidget(self.bGoHome)
+        self.bSettings = QtGui.QPushButton(ESPAxisPanel)
+        self.bSettings.setObjectName(_fromUtf8("bSettings"))
+        self.horizontalLayout_2.addWidget(self.bSettings)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
         spacerItem2 = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem2)
@@ -78,6 +84,8 @@ class Ui_ESPAxisPanel(object):
         self.labelMoving.setText(_translate("ESPAxisPanel", "Ready", None))
         self.lAxis.setText(_translate("ESPAxisPanel", "Motor Axis", None))
         self.lOn.setText(_translate("ESPAxisPanel", "Motor On", None))
-        self.bSetHome.setText(_translate("ESPAxisPanel", "Set Home", None))
+        self.bSetPosition.setText(_translate("ESPAxisPanel", "Set Position", None))
+        self.bGoHome.setText(_translate("ESPAxisPanel", "Goto Home", None))
+        self.bSettings.setText(_translate("ESPAxisPanel", "Settings...", None))
 
 from pyqtgraph import SpinBox

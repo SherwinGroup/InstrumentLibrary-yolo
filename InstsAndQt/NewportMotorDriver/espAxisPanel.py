@@ -12,7 +12,7 @@ class ESPAxisPanel(QtGui.QWidget):
 
     def __init__(self, parent = None, GPIB="Fake", axis=1):
         super(ESPAxisPanel, self).__init__(parent)
-
+        self.ESPAxis = None
         self.initUI()
         # self.ESPAxis = ESP300()
         self.GPIB = GPIB
@@ -28,6 +28,24 @@ class ESPAxisPanel(QtGui.QWidget):
         # self.ui.sbPosition.valueChanged.connect(self.startChangePosition)
         self.ui.sbPosition.sigValueChanged.connect(self.startChangePosition)
         self.ui.cbOn.toggled.connect(self.toggleMotor)
+        self.ui.bSetPosition.clicked.connect(self.setCurrentPosition)
+        self.ui.bGoHome.clicked.connect(self.goHome)
+
+    def setCurrentPosition(self):
+        val, ok = QtGui.QInputDialog.getDouble(self,"Current Position", "Current Angle:", 0)
+        if ok:
+            self.ui.sbPosition.blockSignals(True)
+            self.ESPAxis.home = val
+            self.ui.sbPosition.setValue(self.ESPAxis.position)
+            self.ui.sbPosition.blockSignals(False)
+
+    def goHome(self):
+        self.ESPAxis.instrument.write("{}OR".format(self.ESPAxis.current_axis))
+        self.ui.sbPosition.blockSignals(True)
+        self.ui.sbPosition.setValue(self.ESPAxis.position)
+        self.ui.sbPosition.blockSignals(False)
+
+
 
     def toggleMotor(self):
         try:
@@ -58,10 +76,10 @@ class ESPAxisPanel(QtGui.QWidget):
 
 
         # force minimum of 10s
-        expectedTime = max(expectedTime, 10000)
+        expectedTime = max(expectedTime, 10)
         # Update the timeout time so it won't break when you want long moves
         # Have about ~10% more than expected, just for safety.
-        self.ESPAxis.instrument.timeout = expectedTime * 1.1 * 1000
+        self.ESPAxis.instrument.timeout = expectedTime * 1.1 * 1000 + self.ESPAxis.delay
 
         try:
             self.ESPAxis.position = float(self.ui.sbPosition.value())

@@ -50,3 +50,6 @@ build/
 dist/
 InstsAndQt.egg-info/
 .idea/
+
+InstsAndQt/TheInstrumentLog.log
+*.pyc
