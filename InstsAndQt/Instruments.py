@@ -13,6 +13,9 @@ import time
 import logging
 
 from customQt import *
+# import fakeInstruments.setPrintOutput
+
+
 
 log = logging.getLogger("Instruments")
 log.setLevel(logging.DEBUG)
@@ -26,184 +29,14 @@ handler1.setFormatter(formatter)
 log.addHandler(handler)
 log.addHandler(handler1)
 
-PRINT_OUTPUT = True
-
-
-def setPrintOutput(enabled = True):
-    global PRINT_OUTPUT
-    PRINT_OUTPUT = enabled
-
-class FakeInstr(object):
-    timeout = 3000
-    curStep = 70000 #Making life interesting for SPEX instrument
-    integrating = True # for simulating pyro behavior for oscopes
-    CD = False
-    def __init__(self):
-        self._locked = False
-    def lock(self):
-        if self._locked:
-            raise IOError("instrument locked")
-        else:
-            self._locked = True
-
-    def unlock(self):
-        if not self._locked:
-            raise IOError("Instrument isn't locked")
-        else:
-            self._locked = False
-    def lock_excl(self):
-        self.lock()
-
-
-    def setIntegrating(self, val):
-        self.integrating = val
-
-    def setCD(self, val):
-        self.CD = val
-
-    def write(self, string):
-        if PRINT_OUTPUT:
-            print ' '*15 + string
-        if 'F0' in string: #SPEX Relative move
-            self.curStep += int(string[3:])
-        if ':DIG' in string: #Agilent telling it to start data collection
-            time.sleep(0.75)
-    def ask(self, string):
-        if PRINT_OUTPUT:
-            print ' '*12 + string
-        #Test for some basic instrument questions and output the expected output
-        if 'SLVL' in string or 'OUTP' in string:
-            return str(np.random.random())
-        elif 'SNAP?' in string:
-            return str(np.random.random())+','+str(np.random.random())
-        elif 'H0' in string: #SPEX Relative move
-            return str(self.curStep) + '\r'
-        elif string == 'E': #SPEX, is it moving
-            return 'oz'
-        elif ':WAV:PRE?' == string:#agilent oscilloscope, waveform preamble
-            # a = np.random.random((10,))
-            a = np.ones((10,))
-             #Forcing some numbers for reasonable consistancy
-            a[4] = 5e-9 # x inc
-            a[5] = 1.659e-2 # x origin
-            a[6] = 0. # x reference?
-            a[7] = 1.5625e-3 # y increment
-            a[8] = -4e-2 # y origin
-            a[9] = 0. # y ref?
-            st = ''
-            for i in a:
-                st+=str(i)+','
-            return st
-        elif ':WAV:DATA?' == string: #agilent querying data
-            a = 10.*np.random.random((1000,)) + 100
-            b = 10.*np.random.random((1000,)) + 200
-            arr = np.concatenate((a,b))
-            if self.integrating:
-                arr = np.cumsum(arr) * 1e-3
-            return arr
-        elif '*OPC?'==string:
-            time.sleep(0.5)
-            return u'1\r'
-        ###
-        # spectrometer commands
-        ####
-        elif '?nm'==string:
-            val = np.random.randint(600, 700) + np.random.randint(1, 1000)/1000.
-            return "?nm {} nm  ok\r".format(val)
-            
-        elif '?grating' == string:
-            val = np.random.randint(1, 3)
-            return "?grating {}  ok\r\n".format(val)
-        elif 'GOTO' in string:
-            return string[:4]
-        elif 'grating' in string:
-            return string[0]
-        else:
-            # arduino wavemeter
-            try:
-                t = float(string)
-                time.sleep(t/1000)
-                return 'd{}'.format(int(t))
-            except Exception as e:
-                print "it's not you", string, type(string), e
-            
- 
-        b = [str(i) for i in np.random.random((5,))]
-        st = ''
-        for i in b:
-            st = st+i+','
-            
-        return st
-
-    def read(self):
-        # so far, only the arduino calls the reads
-        # directly
-        if hasattr(self, 'parent'):
-            if isinstance(self.parent, ArduinoWavemeter):
-                return ";".join([str(ii) for ii in np.random.randint(300, 3000, (401,))])
-        
-        
-    def query_binary_values(self, string, datatype):
-        np.random.seed()
-        if ':WAV:DATA?' == string: #agilent querying data
-            if self.CD:
-                # Simulate a missed pulse 1/10
-                noise = np.random.normal(scale=0.5, size=(2500,))
-                if np.random.randint(0,10)==0:
-                    return noise
-                a = np.zeros((1000,)) # start
-                b = np.random.randint(50,70) * np.ones((1000,)) # FP
-                c = np.random.randint(1200,1300) * np.ones((20,)) #CD
-                d = np.zeros((480,))
-                arr = np.concatenate((a,b, c, d))
-                if self.integrating:
-                    arr = np.cumsum(arr) *1e-3
-                else:
-                    arr *= 5e-2
-                arr += noise
-                arr += np.random.randint(-40, 40)
-                return arr
-            else:
-                # Simulate a missed pulse 1/10
-                noise = np.random.normal(scale=0.5, size=(2500,))
-                if np.random.randint(0,10)==0:
-                    return noise
-                a = np.zeros((1000,)) # start
-                x = np.arange(750)
-                b = np.random.randint(150,175) * (1. - np.exp(-x/400))
-                x = np.arange(250)
-                c = b[-1]*(np.exp(-x/55))
-                d = np.zeros((500,))
-                arr = np.concatenate((a, b, c, d))
-                if self.integrating:
-                    arr = np.cumsum(arr) *1e-3
-                else:
-                    arr *= 5e-2
-                arr += noise
-                arr += np.random.randint(-10, 10)
-                return arr
-
-    def query_ascii_values(self, str=''):
-        """
-        ArduinoWavemeter calls this
-        :param str:
-        :return:
-        """
-        return ";".join(np.random.randint(300, 3000, (401,)))
-        
-    def close(self):
-        print self.__class__.__name__ + 'closed'
-
-    def open(self):
-        print self.__class__.__name__ + 'opened'
-
 
 class BaseInstr(object):
     """Base class which handles opening the GPIB and safely reading/writing to the instrument"""
     def __init__(self, GPIB_Number = None, timeout = 3000):
-        if GPIB_Number == None or GPIB_Number == 'Fake':
-            log.debug('Error. No GPIB assigned {}'.format(GPIB_Number))
-            self.instrument = FakeInstr()
+        if GPIB_Number is None or GPIB_Number == 'Fake':
+            log.debug('Error. No GPIB assigned {}'.format(self.__class__.__name__))
+            # self.instrument = FakeInstr()
+            self.instrument = getCls(self)()
         else:
             rm = visa.ResourceManager()
             try:
@@ -303,8 +136,6 @@ class BaseInstr(object):
     def open(self):
         self.instrument.open()
 
-
-
 class ArduinoWavemeter(BaseInstr):
     def __init__(self, GPIB_Number=None, timeout = 3000):
         super(ArduinoWavemeter, self).__init__(GPIB_Number, timeout)
@@ -341,8 +172,6 @@ class ArduinoWavemeter(BaseInstr):
             # \n, which map tries to parse to an int, which throws
             # the value error. Just remove the problem non-numbert
             return map(int, values.split(';')[:-1])
-
-
 
 class Agilent6000(BaseInstr):
     # We need a static 16.6ms offset for instrument triggering purposes,
@@ -539,7 +368,6 @@ class Agilent6000(BaseInstr):
         # Normalize by total width
         tot /= (en-st)
         return tot
-            
 
 class SPEX(BaseInstr):
     
@@ -775,7 +603,6 @@ class SR830Instr(BaseInstr):
         toRead = toRead[:-1]
         ret = self.ask('SNAP?'+toRead)
         return [float(i) for i in ret.split(',')]
-            
 
 class Keithley236Instr(BaseInstr):
     def __init__(self, GPIB_Number=None, timeout = 3000):
@@ -984,8 +811,7 @@ class Keithley2400Instr(BaseInstr):
         self.rampVoltage(voltages, sleep = sleep)
         self.breakLoop.unlock()
         self.breakLoop = True
-        
-        
+
 class ActonSP(BaseInstr):
     backlashCorr = -6
     doCal = None
@@ -1053,17 +879,195 @@ class ActonSP(BaseInstr):
     def gotoSpeed(self, wl):
         wl = "{:.3f} nm".format(float(wl))
         self.ask(wl, timeout=None)
-        
-            
+
+class ESP300(BaseInstr):
+    '''
+    Newport Universal Motion Controller/Driver Model ESP300
+
+    all axis control commands are sent to the number axis given by the
+    local variable self.current_axis. so here is an example usage
+
+    esp= ESP300()
+    esp.current_axis=1
+    esp.units= 'millimeter'
+    esp.position = 10
+    print esp.position
+    '''
+    UNIT_DICT = {\
+        'enoder count':0,\
+        'motor step':1,\
+        'millimeter':2,\
+        'micrometer':3,\
+        'inches':4,\
+        'milli inches':5,\
+        'micro inches':6,\
+        'degree':7,\
+        'gradient':8,\
+        'radian':9,\
+        'milliradian':10,\
+        'microradian':11,\
+        }
+
+    def __init__(self, address, current_axis=1,\
+        always_wait_for_stop=True,delay=500,**kwargs):
+        '''
+        takes:
+            address:    Gpib address, int [1]
+            current_axis:   number of current axis, int [1]
+            always_wait_for_stop:   wait for stage to stop before
+                returning control to calling program, boolean [True]
+            **kwargs:   passed to GpibInstrument initializer
+        '''
+
+        # GpibInstrument.__init__(self,address,**kwargs)
+        super(ESP300, self).__init__(address)
+        # self.instrument = rm().open_resource(address)
+        self.instrument.timeout = 10000L
+        self.current_axis = current_axis
+        self.always_wait_for_stop = always_wait_for_stop
+        self.delay=delay
+    @property
+    def current_axis(self):
+        '''
+        current axis used in all subsequent commands
+        '''
+        return self._current_axis
+    @current_axis.setter
+    def current_axis(self, input):
+        '''
+        takes:
+            input:  desired current axis number, int []
+        '''
+        self._current_axis = input
+
+
+    @property
+    def velocity(self):
+        '''
+        the velocity of current axis
+        '''
+        command_string = 'VA'
+        return (float(self.instrument.ask('%i%s?'%(self.current_axis,command_string))))
+    @velocity.setter
+    def velocity(self,input):
+        command_string = 'VA'
+        self.instrument.write('%i%s%f'%(self.current_axis,command_string,input))
+
+    @property
+    def acceleration(self):
+        command_string = 'AC'
+        return (self.instrument.ask('%i%s?'%(self.current_axis,command_string)))
+    @acceleration.setter
+    def acceleration(self,input):
+        command_string = 'AC'
+        self.instrument.write('%i%s%f'%(self.current_axis,command_string,input))
+
+    @property
+    def deceleration(self):
+        command_string = 'AG'
+        return (self.instrument.ask('%i%s?'%(self.current_axis,command_string)))
+    @deceleration.setter
+    def deceleration(self,input):
+        command_string = 'AG'
+        self.instrument.write('%i%s%f'%(self.current_axis,command_string,input))
+
+    @property
+    def position_relative(self):
+        raise NotImplementedError('See position property for reading position')
+    @position_relative.setter
+    def position_relative(self,input):
+        command_string = 'PR'
+        self.instrument.write('%i%s%f'%(self.current_axis,command_string,input))
+        if self.always_wait_for_stop:
+            self.wait_for_stop()
+
+    @property
+    def position(self):
+        command_string = 'TP'
+        return float(self.instrument.ask('%i%s'%(self.current_axis,command_string)))
+    @position.setter
+    def position(self,input):
+        '''
+        set the position of current axis to input
+        '''
+        command_string = 'PA'
+        self.instrument.write('%i%s%f'%(self.current_axis,command_string,input))
+        if self.always_wait_for_stop:
+            self.wait_for_stop()
+    @property
+    def home(self):
+        raise NotImplementedError
+    @home.setter
+    def home(self, input):
+        command_string = 'DH'
+        self.instrument.write('%i%s%f'%(self.current_axis,command_string,input))
+
+
+    @property
+    def units(self):
+        raise NotImplementedError('I dont know how to read units')
+    @units.setter
+    def units(self, input):
+        '''
+         set axis units for all commands.
+         takes:
+            input: a string, describing the units here are a list of
+                possibilities.
+                 'enoder count'
+                'motor step'
+                'millimeter'
+                'micrometer'
+                'inches'
+                'milli inches'
+                'micro inches'
+                'degree'
+                'gradient'
+                'radian'
+                'milliradian'
+                'microradian'
+        '''
+        command_string = 'SN'
+        self.instrument.write('%i%s%i'%(self.current_axis,command_string, self.UNIT_DICT[input]))
+
+    @property
+    def error_message(self):
+        return (self.instrument.ask('TB?'))
+
+    @property
+    def motor_on(self):
+        command_string = 'MO'
+        return (self.instrument.ask('%i%s?'%(self.current_axis,command_string)))
+    @motor_on.setter
+    def motor_on(self,input):
+        if input:
+            command_string = 'MO'
+            self.instrument.write('%i%s'%(self.current_axis,command_string))
+        if not input:
+            command_string = 'MF'
+            self.instrument.write('%i%s'%(self.current_axis,command_string))
+
+    def send_stop(self):
+        command_string = 'ST'
+        self.instrument.write('%i%s'%(self.current_axis,command_string))
+
+    def wait_for_stop(self):
+        command_string = 'WS'
+        self.instrument.write('%i%s%i'%(self.current_axis,command_string, self.delay))
+        tmp = self.position
+
+
+# Needs to be at the bottom to prevent
+# cyclical definitions. This makes me think
+# I'm doing things wrong, but I dunno what else.
+from fakeInstruments import setPrintOutput, getCls
+
+
+
 if __name__ == '__main__':
 
-    a = ArduinoWavemeter('ASRL4::INSTR')
-    try:
-        # print a.read_values()
-        print a.instrument.baud_rate
-        print a.instrument.ask('50')
-    finally:
-        a.close()
+    a = Agilent6000("Fake")
+    print a.__class__
+
 
         
 

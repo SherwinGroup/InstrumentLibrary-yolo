@@ -52,3 +52,5 @@ InstsAndQt.egg-info/
 .idea/
 
 *.pyc
+*.pyc
+InstsAndQt/TheInstrumentLog.log

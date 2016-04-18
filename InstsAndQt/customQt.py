@@ -143,11 +143,19 @@ class QINumberEdit(QtGui.QLineEdit):
 
 class QTimedText(QtGui.QLabel):
     showTime = 3000
+    clearTimer = QtCore.QTimer()
+    def __init__(self, *args, **kwargs):
+        super(QTimedText, self).__init__(*args, **kwargs)
+        self.clearTimer.timeout.connect(self.clearText)
+        self.clearTimer.setSingleShot(True)
     def setMessage(self, message, showTime = None):
         if showTime is None:
             showTime = self.showTime
         self.setText(str(message))
-        QtCore.QTimer.singleShot(showTime, self.clearText)
+        if self.clearTimer.isActive():
+            self.clearTimer.stop()
+        self.clearTimer.setInterval(showTime)
+        self.clearTimer.start()
 
     def clearText(self):
         self.setText("")
