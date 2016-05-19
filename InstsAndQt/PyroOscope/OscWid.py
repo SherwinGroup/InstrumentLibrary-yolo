@@ -458,20 +458,20 @@ class OscWid(QtGui.QWidget):
         self.settings["pyFP"] = pyFP
         self.settings["pyCD"] = pyCD
 
-        intensity, field = self.doFieldCalculation(ratio, time)
         if str(self.ui.cFELCoupler.currentText()) != "Hole":
             self.updatePkText(pkpk, time, ratio)
         else:
             self.updatePkText(pkpk, time)
 
-        self.ui.tEField.setText(str(field))
-        self.ui.tIntensity.setText(str(intensity))
-
         # count pulse if CD signal - BG signal is greater than
         # some user-specified value.
         if (
             (pyCD-pyBG > self.ui.tOscCDRatio.value())
-        ) and self.settings["exposing"]:
+        ) and self.settings["exposing"] and time>0:
+
+            intensity, field = self.doFieldCalculation(ratio, time)
+            self.ui.tEField.setText(str(field))
+            self.ui.tIntensity.setText(str(intensity))
             self.settings["FELPulses"] += 1
 
             self.ui.tOscPulses.setText(str(self.settings["FELPulses"]))
@@ -521,6 +521,8 @@ class OscWid(QtGui.QWidget):
         s["fel_pol"] = str(self.ui.tFELPol.text())
         s["fel_pulses"] = int(self.ui.tOscPulses.text()) if \
             str(self.ui.tOscPulses.text()).strip() else 0
+        s["window_trans"] = self.ui.tWindowTransmission.value()
+        s["eff_field"] = self.ui.tEffectiveField.value()
 
         # We've started to do really long exposures
         # ( 10 min ~ 300-400 FEL pulses)
@@ -712,20 +714,27 @@ class OscWid(QtGui.QWidget):
         if None in [lowHeight, highHeight]:
             lowHeight = y.min()
             highHeight = y.max()
-        if None in [t1, t2]:
+        if None in [t1, t2] or t2-t1==0:
             t1 = t[0]
             t2 = t[-1]
         a = highHeight - lowHeight
+        # leave if the pulse hight isn't tall enough
+        # and avoid wasting time.
+        if a < self.ui.tOscCDRatio.value():
+            return -1
         c = lowHeight
         mu = (t1 + t2)/2
         # Looking at some random data, this is roughly
         # how the slope parameter depends on the
         # times.
         b = 20./(t2-t1)
-
-        p, _ = spo.curve_fit(sig, t, y, p0=[a, mu, b, c])
+        try:
+            p, _ = spo.curve_fit(sig, t, y, p0=[a, mu, b, c])
+        except RuntimeError:
+            return -1
         self.DEBUGLINE1.setData(t, sig(t, *p))
 
+        # calc the 10%/90% time.
         pp = np.array([0.1, 0.9])
         a, mu, b, c = p
         tau = 1./b * np.log(1./pp - 1) + mu

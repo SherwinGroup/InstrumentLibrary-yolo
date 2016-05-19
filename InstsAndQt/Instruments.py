@@ -1055,6 +1055,28 @@ class ESP300(BaseInstr):
         self.instrument.write('%i%s%i'%(self.current_axis,command_string, self.delay))
         tmp = self.position
 
+class LakeShore325(BaseInstr):
+    ''' 
+    Temperature Controller for LED
+    '''
+    def __init__(self, GPIB_Number=None, timeout=3000):
+        super(LakeShore325, self).__init__(GPIB_Number,timeout)
+    
+    def askTemp(self, channel="A"):
+        #returns temp in C from input A/B in float
+        temp=self.ask("CRDG? "+channel)
+        return float(temp)  
+
+
+    def askSetpoint(self, loop="1"):
+        #returns set point in loop 1/2 in float
+        sp=self.ask("SETP? "+loop)
+        return float(sp) 
+
+    def askOutput(self, loop="1"):
+        #returns heater output of loop 1 or 2 in float
+        output=self.ask("HTR? "+loop)
+        return float(output)
 
 # Needs to be at the bottom to prevent
 # cyclical definitions. This makes me think
