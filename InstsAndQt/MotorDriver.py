@@ -429,12 +429,11 @@ class TIMS0201(object):
         
         
     def registerFunctions(self):
-        # try:
-        self.dll = CDLL("FTD2XX.dll")
-        # except WindowsError:
-        #     log.critical("Error, dll file isn't opened!")
-        #     self.__getattribute__ = lambda x: -1
-        #     return
+        try:
+            self.dll = CDLL("FTD2XX.dll")
+        except:
+            from fakeMotorDriverDLL import FakeDLL
+            self.dll = FakeDLL()
         
         self.dllOpen = self.dll.FT_Open
         self.dllOpen.argtypes = [c_int, POINTER(c_ulong)]
@@ -539,6 +538,15 @@ if __name__ == '__main__':
         pass
 
     A = TIMS0201()
+    A.open_()
+    print
+
+    print A.getSteps()
+    print
+
+    print A.getCurrentLimit()
+    A.setCurrentLimit(10)
+    print A.getCurrentLimit()
     
     
 

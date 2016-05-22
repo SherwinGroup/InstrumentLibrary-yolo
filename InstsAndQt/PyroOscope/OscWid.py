@@ -86,27 +86,28 @@ class OscWid(QtGui.QWidget):
         self.settings["pyroVoltage"] = []
         # CD ratio when necessary
         self.settings["cdRatios"] = []
-
-        self.settings["fel_power"] = kwargs.get("fel_power", 0)
-        self.settings["fel_lambda"] = kwargs.get("fel_lambda", 0)
-        self.settings["fel_reprate"] = kwargs.get("fel_reprate", 1.07)
-        self.settings["sample_spot_size"] = kwargs.get("sample_spot_size", 0.05)
-        self.settings["window_trans"] = kwargs.get("window_trans", 1.0)
-        self.settings["eff_field"] = kwargs.get("eff_field", 1.0)
-        self.settings["fel_pol"] = kwargs.get("fel_pol", 'H')
-        self.settings["pulseCountRatio"] = kwargs.get('pulseCountRatio', 0.007)
-        self.settings["exposing"] = False
-
-        # lists for holding the boundaries of the linear regions
-        self.settings['bcpyBG'] = kwargs.get('bcpyBG', [0,0])
-        self.settings['bcpyFP'] = kwargs.get('bcpyFP', [0,0])
-        self.settings['bcpyCD'] = kwargs.get('bcpyCD', [0,0])
         self.settings['pyData'] = None
 
         self.settings["pyBG"] = 0
         self.settings["pyFP"] = 0
         self.settings["pyCD"] = 0
 
+        self.settings["fel_power"] =  0
+        self.settings["fel_lambda"] = 0
+        self.settings["fel_reprate"] = 1.07
+        self.settings["sample_spot_size"] = 0.05
+        self.settings["window_trans"] = 1.0
+        self.settings["eff_field"] = 1.0
+        self.settings["fel_pol"] = 'H'
+        self.settings["pulseCountRatio"] = 0.007
+        self.settings["exposing"] = False
+        self.settings["coupler"] = "Cavity Dump"
+        self.settings["integratingMode"] = "Integrating"
+
+        # lists for holding the boundaries of the linear regions
+        self.settings['bcpyBG'] = [0,0]
+        self.settings['bcpyFP'] = [0,0]
+        self.settings['bcpyCD'] = [0,0]
 
         self.initUI()
 
@@ -117,6 +118,8 @@ class OscWid(QtGui.QWidget):
         # self.photonCountingThread.start()
 
         self.poppedPlotWindow = None
+
+        self.loadSettings(**kwargs)
 
         self.openAgilent()
         self.ui.cPyroMode.currentIndexChanged.connect(lambda x: self.Agilent.setIntegrating(x))
@@ -175,6 +178,18 @@ class OscWid(QtGui.QWidget):
 
         self.ui.cFELCoupler.currentIndexChanged.connect(self.updateFELCoupler)
 
+        self.DEBUGLINE1 = self.ui.gOsc.plot(pen='r')
+        self.DEBUGLINE2 = self.ui.gOsc.plot(pen='r')
+
+
+        # keep track of all of the changes to it
+
+        self.show()
+
+    def loadSettings(self, **settings):
+
+        self.settings.update(settings)
+
         self.ui.tFELP.setText(str(self.settings["fel_power"]))
         self.ui.tFELFreq.setText(str(self.settings["fel_lambda"]))
         self.ui.tFELRR.setText(str(self.settings["fel_reprate"]))
@@ -184,15 +199,20 @@ class OscWid(QtGui.QWidget):
         self.ui.tFELPol.setText(self.settings["fel_pol"])
         self.ui.tOscCDRatio.setText(str(self.settings["pulseCountRatio"]))
 
+        self.ui.cPyroMode.setCurrentIndex(
+            self.ui.cPyroMode.findData(
+                self.settings["integratingMode"]
+            )
+        )
+        self.ui.cFELCoupler.setCurrentIndex(
+            self.ui.cFELCoupler.findData(
+                self.settings["coupler"]
+            )
+        )
 
-
-        self.DEBUGLINE1 = self.ui.gOsc.plot(pen='r')
-        self.DEBUGLINE2 = self.ui.gOsc.plot(pen='r')
-
-
-        # keep track of all of the changes to it
-
-        self.show()
+        self.boxcarRegions[0].setRegion(tuple(self.settings['bcpyBG']))
+        self.boxcarRegions[1].setRegion(tuple(self.settings['bcpyFP']))
+        self.boxcarRegions[2].setRegion(tuple(self.settings['bcpyCD']))
 
     def setParentScope(self, scope):
         """
@@ -602,6 +622,8 @@ class OscWid(QtGui.QWidget):
             "eff_field": str(self.ui.tEffectiveField.text()),
             "fel_pol": str(self.ui.tFELPol.text()),
             "pulseCountRatio": str(self.ui.tOscCDRatio.text()),
+            "coupler": str(self.ui.cFELCoupler.currentText()),
+            "integratingMode": str(self.ui.cPyroMode.currentText()),
             'bcpyBG': self.boxcarRegions[0].getRegion(),
             'bcpyFP': self.boxcarRegions[1].getRegion(),
             'bcpyCD': self.boxcarRegions[2].getRegion()
