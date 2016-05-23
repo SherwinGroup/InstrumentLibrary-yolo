@@ -200,12 +200,12 @@ class OscWid(QtGui.QWidget):
         self.ui.tOscCDRatio.setText(str(self.settings["pulseCountRatio"]))
 
         self.ui.cPyroMode.setCurrentIndex(
-            self.ui.cPyroMode.findData(
+            self.ui.cPyroMode.findText(
                 self.settings["integratingMode"]
             )
         )
         self.ui.cFELCoupler.setCurrentIndex(
-            self.ui.cFELCoupler.findData(
+            self.ui.cFELCoupler.findText(
                 self.settings["coupler"]
             )
         )
@@ -482,6 +482,16 @@ class OscWid(QtGui.QWidget):
             self.updatePkText(pkpk, time, ratio)
         else:
             self.updatePkText(pkpk, time)
+
+        try:
+            intensity, field = self.doFieldCalculation(ratio, time)
+            self.ui.tEField.setText(str(field))
+            self.ui.tIntensity.setText(str(intensity))
+        except TypeError:
+            print "\n\n"
+            print ratio
+            print time
+            print "\n\n"
 
         # count pulse if CD signal - BG signal is greater than
         # some user-specified value.
@@ -894,6 +904,10 @@ class OscWid(QtGui.QWidget):
 
             return intensity, field
 
+        except ValueError:
+            # happens when fed a bad (-1) time when a pulse wasn't calculated.
+            # there wasn't a pulse, so return 0's
+            return 0, 0
         except Exception as e:
             log.warning("Could not calculate electric field, {}".format(e))
 
