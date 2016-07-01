@@ -224,7 +224,6 @@ class Agilent6000(BaseInstr):
         elif channel != self.channel:
             self.setSource(channel)
         values = self.query_binary_values(':WAV:DATA?')
-#        self.write(':DIG CHAN'+str(channel))
         return values
         
     def scaleData(self, data=None):
@@ -316,7 +315,6 @@ class Agilent6000(BaseInstr):
             ch = source
             if source in (1, 2, 3, 4):
                 ch = 'CHAN'+str(source)
-#                print ch
             self.write(':TRIG:EDGE:SOUR ' + ch)
 
     def setMode(self, mode):
@@ -377,8 +375,11 @@ class SPEX(BaseInstr):
         self.maxWavenumber = 31000
         self.stepsPerWavenumber = 400
         self.backlash = 8000
-        self.currentPositionSteps = self.curStep()
-        self.currentPositionWN = self.stepsToWN(self.currentPositionSteps)
+        try:
+            self.currentPositionSteps = self.curStep()
+            self.currentPositionWN = self.stepsToWN(self.currentPositionSteps)
+        except Exception as e:
+            log.warning("Error! Could not initialize settings.\n Instrument not initialized after boot? {}".format(e))
     def ask(self, command, timeout=None):
         #Call the parent asking function, but only encode
         return super(SPEX, self).ask(command, strip=0, timeout=timeout)
@@ -728,8 +729,6 @@ class Keithley2400Instr(BaseInstr):
         if sleep is None:
             sleep = self.sleepTime
         for voltage in vrange:
-#            if PRINT_OUTPUT:
-#                print "at {}V".format(voltage)
             if self.breakLoop:
                 return voltage # Let caller know where we were stopped
             self.setVoltage(voltage)
@@ -823,7 +822,6 @@ class ActonSP(BaseInstr):
             self.wavelength = self.getWavelength()
         except Exception, e:
             print "ERROR INIT:", e
-#            raise
     def gotoWavelength(self, wl, doCal=True):
         """ Will go to the sepcified wavelength, given in nm, up to 3 decimal places """
         """
@@ -1078,17 +1076,124 @@ class LakeShore325(BaseInstr):
         output=self.ask("HTR? "+loop)
         return float(output)
 
+class LakeShore330(BaseInstr):
+    ''' 
+    Temperature Controller for Sample
+    There's some distinction between "sample" and control
+    channels. I'm not quite sure the difference. At thee
+    time of writing, we operate with both being the same
+    (channel b)
+    '''
+    def __init__(self, GPIB_Number=None, timeout=3000):
+        super(LakeShore330, self).__init__(GPIB_Number,timeout)
+
+    def setControlChannel(self, channel='B'):
+        # set the control channel to the specified one
+        # Default to 'A' if input is not 'B'
+        channel = channel if channel=='B' else 'A'
+        self.write("CCHN {}".format(channel))
+
+    def getControlChannel(self):
+        return self.ask("CCHN?")
+
+    def setControlUnits(self, units = 'K'):
+        self.write("CUNI {}".format(units))
+
+    def getControlUnits(self):
+        return self.ask("CUNI?")
+
+    def getControlTemp(self, channel="A"):
+        #returns temp in C from input A/B in float
+        temp=self.ask("CDATA?")
+        return float(temp)
+
+    def setSampleChannel(self, channel='B'):
+        # set the control channel to the specified one
+        # Default to 'A' if input is not 'B'
+        channel = channel if channel=='B' else 'A'
+        self.write("SCHN {}".format(channel))
+
+    def getSampleChannel(self):
+        return self.ask("SCHN?")
+
+    def setSampleUnits(self, units = 'K'):
+        self.write("SUNI {}".format(units))
+
+    def getSampleUnits(self):
+        return self.ask("SUNI?")
+
+    def getSampleTemp(self, channel="A"):
+        #returns temp in C from input A/B in float
+        temp=self.ask("SDATA?")
+        return float(temp)
+
+    def getSetpoint(self):
+        #returns set point in loop 1/2 in float
+        sp=self.ask("SETP?")
+        return float(sp)
+
+    def setSetpoint(self, sp=280):
+        #returns set point in loop 1/2 in float
+        self.write("SETP {:.2f}".format(sp))
+
+    def getHeater(self):
+        #returns heater output of loop 1 or 2 in float
+        output=self.ask("HEAT?")
+        return float(output)
+
+    def setHeaterRange(self, range=0):
+        self.write("RANG {}".format(range))
+
+    def getHeaterRange(self):
+        return int(self.ask("RANG?"))
+
+    def getP(self):
+        return int(self.ask("GAIN?"))
+
+    def setP(self, P):
+        self.write("GAIN {:d}".format(P))
+
+    def getI(self):
+        return int(self.ask("RSET?"))
+
+    def setI(self, I):
+        self.write("RSET {:d}".format(I))
+
+    def getD(self):
+        return int(self.ask("RATE?"))
+
+    def setD(self, D):
+        self.write("RATE {:d}".format(D))
+
+    def getPID(self):
+        return self.getP(), self.getI(), self.getD()
+
+    def setPID(self, P=None, I=None, D=None):
+        if P is None:
+            P = self.getP()
+        if I is None:
+            I = self.getI()
+        if D is None:
+            D = self.getD()
+        self.setP(P)
+        self.setI(I)
+        self.setD(D)
+
+
+
 # Needs to be at the bottom to prevent
 # cyclical definitions. This makes me think
 # I'm doing things wrong, but I dunno what else.
-from fakeInstruments import setPrintOutput, getCls
+try:
+    from fakeInstruments import setPrintOutput, getCls
+except ImportError:
+    print "got the import error"
 
 
 
 if __name__ == '__main__':
-
-    a = Agilent6000("Fake")
-    print a.__class__
+    a = LakeShore325("GPIB0::12::INSTR")
+    print a.askOutput()
 
 
         

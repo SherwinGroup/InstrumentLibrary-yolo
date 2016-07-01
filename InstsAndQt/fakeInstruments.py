@@ -256,6 +256,13 @@ class ESP300(FakeInstr):
         elif "MO" in string:
             return self._on
 
+class LakeShore330(FakeInstr):
+    def write(self, string):
+        pass
+
+    def ask(self, string):
+        pass
+
 clsDict = {
     Instruments.BaseInstr: FakeInstr,
     Instruments.ArduinoWavemeter: ArduinoWavemeter,
@@ -265,7 +272,8 @@ clsDict = {
     Instruments.Keithley236Instr: Keithley236Instr,
     Instruments.Keithley2400Instr: Keithley2400Instr,
     Instruments.ActonSP: ActonSP,
-    Instruments.ESP300: ESP300
+    Instruments.ESP300: ESP300,
+    Instruments.LakeShore330: LakeShore330
 }
 
 

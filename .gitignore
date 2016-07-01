@@ -53,3 +53,4 @@ InstsAndQt.egg-info/
 
 *.pyc
 InstsAndQt/TheInstrumentLog.log
+InstsAndQt/Lakeshore330Monitor/TheInstrumentLog.log
