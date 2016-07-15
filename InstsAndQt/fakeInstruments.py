@@ -92,7 +92,7 @@ class ArduinoWavemeter(FakeInstr):
 
 class Agilent6000(FakeInstr):
     integrating = True # for simulating pyro behavior for oscopes
-    CD = False
+    CD = True
     def setIntegrating(self, val):
         self.integrating = val
     def setCD(self, val):
@@ -100,7 +100,7 @@ class Agilent6000(FakeInstr):
     def write(self, string):
         super(Agilent6000, self).write(string)
         if ':DIG' in string: #Agilent telling it to start data collection
-            time.sleep(1/1.07)
+            time.sleep(1/25)
     def ask(self, string):
         ret = super(Agilent6000, self).ask(string)
         if ret is not None:

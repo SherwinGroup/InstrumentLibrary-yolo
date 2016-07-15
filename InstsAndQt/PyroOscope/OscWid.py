@@ -20,7 +20,19 @@ def sig(x, *p):
     a, mu, b, offset = p
     return a*sps.expit(b*(x-mu)) + offset
 
+"""
+Calibration Note:
 
+To calibrate the pyro, use the calibration software, setting
+things up like normal. It calibrates the TK measured energy
+to the total energy measured by the pyro (full peak, not
+only the CD). This number is what's needed in the pyro software.
+
+What is quoted in the "FEL energy", and saved as "pulseEnergies"
+is only what's measured in the CD alone, not the front porch.
+
+
+"""
 class OscWid(QtGui.QWidget):
 
     scopeCollectionThread = None # Thread which polls the scope
@@ -46,6 +58,21 @@ class OscWid(QtGui.QWidget):
 
     def __init__(self, *args, **kwargs):
         super(OscWid, self).__init__(*args)
+        # if the widget is a subwidget from the EMCCD software,
+        # I want to keep a reference so I can know the attenuation
+        # from the wire grid so the field and power and all are
+        # up to date.
+        try:
+            # These are different packages, I don't want to have
+            # to import the CCD stuff, so cheat and get the parent name.
+            parent = args[0].__class__.__name__
+            if parent == "CCDWindow":
+                self.FELTrans = args[0].motorDriverWid.ui.tCosCalc.value
+            else:
+                raise AttributeError
+        except:
+            log.exception("This is the error you're looking for")
+            self.FELTrans = lambda: 1
 
         self.settings = dict()
         try:
@@ -84,6 +111,9 @@ class OscWid(QtGui.QWidget):
         self.settings["felTime"] = []
         # max voltage (pk-pk)
         self.settings["pyroVoltage"] = []
+        # Energy in the pulse. Only what is in
+        # the CD, when necessary
+        self.settings["pulseEnergies"] = []
         # CD ratio when necessary
         self.settings["cdRatios"] = []
         self.settings['pyData'] = None
@@ -91,6 +121,7 @@ class OscWid(QtGui.QWidget):
         self.settings["pyBG"] = 0
         self.settings["pyFP"] = 0
         self.settings["pyCD"] = 0
+        self.settings["CDHeight"] = 0
 
         self.settings["fel_power"] =  0
         self.settings["fel_lambda"] = 0
@@ -100,6 +131,7 @@ class OscWid(QtGui.QWidget):
         self.settings["eff_field"] = 1.0
         self.settings["fel_pol"] = 'H'
         self.settings["pulseCountRatio"] = 0.007
+        self.settings["pyroCalFactor"] = 0 # mJ/mV
         self.settings["exposing"] = False
         self.settings["coupler"] = "Cavity Dump"
         self.settings["integratingMode"] = "Integrating"
@@ -198,6 +230,7 @@ class OscWid(QtGui.QWidget):
         self.ui.tEffectiveField.setText(str(self.settings["eff_field"]))
         self.ui.tFELPol.setText(self.settings["fel_pol"])
         self.ui.tOscCDRatio.setText(str(self.settings["pulseCountRatio"]))
+        self.ui.tCalFactor.setText(str(self.settings["pyroCalFactor"]))
 
         self.ui.cPyroMode.setCurrentIndex(
             self.ui.cPyroMode.findText(
@@ -357,7 +390,6 @@ class OscWid(QtGui.QWidget):
         self.ui.tFpSt.setEnabled(nowFP)
         self.ui.tFpEn.setEnabled(nowFP)
 
-
     @staticmethod
     def __POPPING_OUT_CONTROLS(): pass
 
@@ -436,7 +468,6 @@ class OscWid(QtGui.QWidget):
         self.scopeCollectionThread = TempThread(target = self.collectScopeLoop)
         self.scopeCollectionThread.start()
 
-
     @staticmethod
     def __CONTROLLING_LOOPING(): pass
     def toggleScopePause(self, val):
@@ -479,11 +510,20 @@ class OscWid(QtGui.QWidget):
         self.settings["pyCD"] = pyCD
 
         if str(self.ui.cFELCoupler.currentText()) != "Hole":
-            self.updatePkText(pkpk, time, ratio)
+            self.settings["CDHeight"] = pyCD - pyFP
+            energy = self.settings["CDHeight"] * self.ui.tCalFactor.value()*1e6
+            energy = round(energy / 1000., 3)
+            self.updatePkText(pkpk, time, energy, pyCD - pyFP, ratio)
         else:
-            self.updatePkText(pkpk, time)
+            self.settings["CDHeight"] = pyCD - pyBG
+            energy = self.settings["CDHeight"] * self.ui.tCalFactor.value()*1e3
+            energy = round(energy / 1000., 3)*1000
+            self.updatePkText(pkpk, time, energy)
+
+
 
         try:
+            self.ui.tFELP.setText(str(energy))
             intensity, field = self.doFieldCalculation(ratio, time)
             self.ui.tEField.setText(str(field))
             self.ui.tIntensity.setText(str(intensity))
@@ -510,6 +550,7 @@ class OscWid(QtGui.QWidget):
             self.settings["felTime"].append(time)
             self.settings["pyroVoltage"].append(pkpk)
             self.settings["cdRatios"].append(ratio)
+            self.settings["pulseEnergies"].append(energy)
 
 
             self.sigPulseCounted.emit(self.settings["FELPulses"])
@@ -532,6 +573,8 @@ class OscWid(QtGui.QWidget):
         self.settings["felTime"] = []
         # max voltage (pk-pk)
         self.settings["pyroVoltage"] = []
+        # energy in cavity dump (or pulse, for HC)
+        self.settings["pulseEnergies"] = []
         # CD ratio when necessary
         self.settings["cdRatios"] = []
 
@@ -545,7 +588,8 @@ class OscWid(QtGui.QWidget):
         """
         s = {}
 
-        s["fel_power"] = str(self.ui.tFELP.text())
+        # s["fel_power"] = str(self.ui.tFELP.text())
+        s["fel_pyro_cal"] = str(self.ui.tCalFactor.text())
         s["fel_reprate"] = str(self.ui.tFELRR.text())
         s["fel_lambda"] = str(self.ui.tFELFreq.text())
         s["fel_pol"] = str(self.ui.tFELPol.text())
@@ -595,9 +639,18 @@ class OscWid(QtGui.QWidget):
         fs = np.array(self.settings["pyroVoltage"])
         if len(fs)==0:
             fs = [0]
-
         s["pyroVoltage"] = {
             "mean":np.mean(fs),
+            "std": np.std(fs),
+            "skew": spt.skew(fs),
+            "kurtosis": spt.kurtosis(fs)
+        }
+
+        fs = np.array(self.settings["pulseEnergies"])
+        if len(fs) == 0:
+            fs = [0]
+        s["pulseEnergies"] = {
+            "mean": np.mean(fs),
             "std": np.std(fs),
             "skew": spt.skew(fs),
             "kurtosis": spt.kurtosis(fs)
@@ -626,6 +679,7 @@ class OscWid(QtGui.QWidget):
         s = {
             "fel_power": str(self.ui.tFELP.text()),
             "fel_lambda": str(self.ui.tFELFreq.text()),
+            "pyroCalFactor": str(self.ui.tCalFactor.text()),
             "fel_reprate": str(self.ui.tFELRR.text()),
             "sample_spot_size": str(self.ui.tSpotSize.text()),
             "window_trans": str(self.ui.tWindowTransmission.text()),
@@ -657,6 +711,12 @@ class OscWid(QtGui.QWidget):
 
         pyCDbounds = self.boxcarRegions[2].getRegion()
         pyCDidx = self.findIndices(pyCDbounds, pyD[:,0])
+
+        if not np.diff(pyFPbounds)[0] and not self.ui.cFELCoupler.currentIndex():
+            # don't bother trying if you haven't set
+            # the bounds (prevents flooding the console
+            # with fitting errors
+            return [-1]*6
 
         pyBG = np.mean(pyD[pyBGidx[0]:pyBGidx[1], 1])
 
@@ -693,6 +753,7 @@ class OscWid(QtGui.QWidget):
                     linearCoeff = np.polyfit(*pyD[pyFPidx[0]:pyFPidx[1],:].T, deg=1)
                 except np.RankWarning:
                     print "caught rankwarning"
+                    return
                 pyFP = np.polyval(x = pyD[pyFPidx[-1], 0], p = linearCoeff)
 
                 self.DEBUGLINE1.setData(x=pyD[pyFPidx, 0],
@@ -785,6 +846,7 @@ class OscWid(QtGui.QWidget):
         #         calls when recalling for larger bounds)
 
         # parse inputs
+        raise RuntimeError("You called old calculator")
         try:
             lowRange[0]
             lowRange[1]
@@ -887,7 +949,7 @@ class OscWid(QtGui.QWidget):
         :return:
         """
         try:
-            energy = self.ui.tFELP.value()
+            energy = self.ui.tFELP.value()*self.FELTrans()
             windowTrans = self.ui.tWindowTransmission.value()
             effField = self.ui.tEffectiveField.value()
             radius = self.ui.tSpotSize.value()
@@ -920,12 +982,14 @@ class OscWid(QtGui.QWidget):
     def updatePkTextPos(self, null, range):
         self.pkText.setPos(range[0][0], range[1][1])
 
-    def updatePkText(self, pkpk = 0, time = 0, ratio = None):
+    def updatePkText(self, pkpk = 0, time = 0, energy=0, CD = None, ratio = None):
         st = "pkpk: {:.1f}".format(pkpk*1e3)
         if ratio is not None:
-            st += ", ratio: {:.1f}".format(ratio*100.)
-        st += ", width: {:.2f}".format(time)
-        self.pkText.setText(st, color=(0,0,0))
+            st += ", CD: {:.1f}, ratio: {:.1f}".format(CD*1e3, ratio*100.)
+        st += "\n  width: {:.2f}".format(time)
+        if energy != 0:
+            st += ", CD energy: {:.2f}".format(energy)
+        self.pkText.setText(st, color=(128,128,255))
 
     def close(self):
         self.settings['shouldScopeLoop'] = False
