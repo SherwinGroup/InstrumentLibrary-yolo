@@ -86,8 +86,8 @@ class OscWid(QtGui.QWidget):
             self.settings['GPIBlist'] = ar
         try:
             # Pretty sure we can safely say it's
-            # GPIB5
-            idx = self.settings['GPIBlist'].index('GPIB0::5::INSTR')
+            # this USB value
+            idx = self.settings['GPIBlist'].index('USB0::0x0957::0x1734::MY44007041::INSTR')
             self.settings["agilGPIBidx"] = idx
         except ValueError:
             # otherwise, just set it to the fake index
