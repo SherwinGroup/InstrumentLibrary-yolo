@@ -15,6 +15,9 @@ log = logging.getLogger("EMCCD")
 
 setPrintOutput(False)
 
+__basepath__ = os.path.dirname(os.path.realpath(__file__))
+__settingsfile__ = os.path.join(__basepath__, "ScopeSettings.txt")
+
 def sig(x, *p):
     # For fitting the hole-coupler integrated waveform
     a, mu, b, offset = p
@@ -55,6 +58,7 @@ class OscWid(QtGui.QWidget):
     # otherwise, emits -1
     sigPulseCounted = QtCore.pyqtSignal(object)
 
+    saveTimer = QtCore.QTimer()
 
     def __init__(self, *args, **kwargs):
         super(OscWid, self).__init__(*args)
@@ -64,7 +68,8 @@ class OscWid(QtGui.QWidget):
         # up to date.
         try:
             # These are different packages, I don't want to have
-            # to import the CCD stuff, so cheat and get the parent name.
+            # to import the CCD stuff, so cheat and get the parent name
+            # to see if that's where the OscWidget is being instantiated
             parent = args[0].__class__.__name__
             if parent == "CCDWindow":
                 self.FELTrans = args[0].motorDriverWid.ui.tCosCalc.value
@@ -135,6 +140,8 @@ class OscWid(QtGui.QWidget):
         self.settings["exposing"] = False
         self.settings["coupler"] = "Cavity Dump"
         self.settings["integratingMode"] = "Integrating"
+        self.settings["logFile"] = r'Z:\Hunter Banks\Data\2016'
+        self.loggingHandle = None
 
         # lists for holding the boundaries of the linear regions
         self.settings['bcpyBG'] = [0,0]
@@ -157,6 +164,11 @@ class OscWid(QtGui.QWidget):
         self.ui.cPyroMode.currentIndexChanged.connect(lambda x: self.Agilent.setIntegrating(x))
         self.ui.cFELCoupler.currentIndexChanged.connect(lambda x: self.Agilent.setCD(1-x))
 
+        # Save the settings every 10 minutes
+        self.saveTimer.timeout.connect(self.saveSettings)
+        self.saveTimer.setInterval(10*60)
+        self.saveTimer.start()
+
     def initUI(self):
         self.ui = Ui_Oscilloscope()
         self.ui.setupUi(self)
@@ -170,6 +182,9 @@ class OscWid(QtGui.QWidget):
         self.ui.cOGPIB.currentIndexChanged.connect(self.openAgilent)
         self.ui.bOscInit.clicked.connect(self.initOscRegions)
         self.ui.bOPop.clicked.connect(self.popoutOscilloscope)
+
+        self.ui.bLogDir.clicked.connect(self.pickLoggingDir)
+        self.ui.bLogData.clicked.connect(self.toggleLogging)
 
         ###################
         # Setting plot labels
@@ -217,35 +232,6 @@ class OscWid(QtGui.QWidget):
         # keep track of all of the changes to it
 
         self.show()
-
-    def loadSettings(self, **settings):
-
-        self.settings.update(settings)
-
-        self.ui.tFELP.setText(str(self.settings["fel_power"]))
-        self.ui.tFELFreq.setText(str(self.settings["fel_lambda"]))
-        self.ui.tFELRR.setText(str(self.settings["fel_reprate"]))
-        self.ui.tSpotSize.setText(str(self.settings["sample_spot_size"]))
-        self.ui.tWindowTransmission.setText(str(self.settings["window_trans"]))
-        self.ui.tEffectiveField.setText(str(self.settings["eff_field"]))
-        self.ui.tFELPol.setText(self.settings["fel_pol"])
-        self.ui.tOscCDRatio.setText(str(self.settings["pulseCountRatio"]))
-        self.ui.tCalFactor.setText(str(self.settings["pyroCalFactor"]))
-
-        self.ui.cPyroMode.setCurrentIndex(
-            self.ui.cPyroMode.findText(
-                self.settings["integratingMode"]
-            )
-        )
-        self.ui.cFELCoupler.setCurrentIndex(
-            self.ui.cFELCoupler.findText(
-                self.settings["coupler"]
-            )
-        )
-
-        self.boxcarRegions[0].setRegion(tuple(self.settings['bcpyBG']))
-        self.boxcarRegions[1].setRegion(tuple(self.settings['bcpyFP']))
-        self.boxcarRegions[2].setRegion(tuple(self.settings['bcpyCD']))
 
     def setParentScope(self, scope):
         """
@@ -468,6 +454,36 @@ class OscWid(QtGui.QWidget):
         self.scopeCollectionThread = TempThread(target = self.collectScopeLoop)
         self.scopeCollectionThread.start()
 
+    def toggleLogging(self, val):
+        if val:
+            if self.settings["logFile"] is None:
+                self.pickLoggingDir()
+
+
+    def pickLoggingDir(self):
+        loc = QtGui.QFileDialog.getSaveFileName(self, "Pick logging file",
+                                                self.settings["logFile"],
+                                                "Text File (*.txt)")
+        loc = str(loc)
+        if not loc: return
+        self.settings["logFile"] = loc
+        if not os.path.isfile(loc):
+            self.loggingHandle = open(loc, 'a+')
+            oh = 'Time,Pulse Energy,Peak Height,Ratio\n'
+            oh += 's,mJ,mV,\n'
+            oh += ',,,\n'
+            self.loggingHandle.write(oh)
+
+    def writeToLog(self, st=''):
+        if self.settings["logFile"] is None: return
+        try:
+            with open(self.settings["logFile"], 'a') as fh:
+                fh.write(st)
+                if st[-1] != '\n': fh.write('\n')
+        except Exception:
+            log.exception("Could not write to log file?")
+
+
     @staticmethod
     def __CONTROLLING_LOOPING(): pass
     def toggleScopePause(self, val):
@@ -504,7 +520,7 @@ class OscWid(QtGui.QWidget):
         :return:
         """
 
-        pyBG, pyFP, pyCD, time, pkpk, ratio = self.integrateData()
+        pyBG, pyFP, pyCD, pulseTime, pkpk, ratio = self.integrateData()
         self.settings["pyBG"] = pyBG
         self.settings["pyFP"] = pyFP
         self.settings["pyCD"] = pyCD
@@ -513,15 +529,12 @@ class OscWid(QtGui.QWidget):
             self.settings["CDHeight"] = pyCD - pyFP
             energy = self.settings["CDHeight"] * self.ui.tCalFactor.value()*1e6
             energy = round(energy / 1000., 3)
-            self.updatePkText(pkpk, time, energy, pyCD - pyFP, ratio)
+            self.updatePkText(pkpk, pulseTime, energy, pyCD - pyFP, ratio)
         else:
             self.settings["CDHeight"] = pyCD - pyBG
             energy = self.settings["CDHeight"] * self.ui.tCalFactor.value()*1e3
             energy = round(energy / 1000., 3)*1000
-            self.updatePkText(pkpk, time, energy)
-
-
-
+            self.updatePkText(pkpk, pulseTime, energy)
         try:
             self.ui.tFELP.setText(str(energy))
             intensity, field = self.doFieldCalculation(ratio, time)
@@ -530,16 +543,16 @@ class OscWid(QtGui.QWidget):
         except TypeError:
             print "\n\n"
             print ratio
-            print time
+            print pulseTime
             print "\n\n"
 
         # count pulse if CD signal - BG signal is greater than
         # some user-specified value.
         if (
             (pyCD-pyBG > self.ui.tOscCDRatio.value())
-        ) and self.settings["exposing"] and time>0:
+        ) and self.settings["exposing"] and pulseTime>0:
 
-            intensity, field = self.doFieldCalculation(ratio, time)
+            intensity, field = self.doFieldCalculation(ratio, pulseTime)
             self.ui.tEField.setText(str(field))
             self.ui.tIntensity.setText(str(intensity))
             self.settings["FELPulses"] += 1
@@ -547,10 +560,16 @@ class OscWid(QtGui.QWidget):
             self.ui.tOscPulses.setText(str(self.settings["FELPulses"]))
             self.settings["fieldStrength"].append(field)
             self.settings["fieldInt"].append(intensity)
-            self.settings["felTime"].append(time)
+            self.settings["felTime"].append(pulseTime)
             self.settings["pyroVoltage"].append(pkpk)
             self.settings["cdRatios"].append(ratio)
             self.settings["pulseEnergies"].append(energy)
+
+            if self.ui.bLogData.isChecked():
+                print "Saved a pulse"
+                st = "{:.1f},{:.3f},{:.2f},{:.3f}\n"
+                st = st.format(time.time(), energy, pkpk*1e3, ratio)
+                self.writeToLog(st)
 
 
             self.sigPulseCounted.emit(self.settings["FELPulses"])
@@ -670,29 +689,6 @@ class OscWid(QtGui.QWidget):
 
         return s
 
-    def getSaveSettings(self):
-        """
-        returns a dict of the settings used for repopulating
-        when restarting software
-        :return:
-        """
-        s = {
-            "fel_power": str(self.ui.tFELP.text()),
-            "fel_lambda": str(self.ui.tFELFreq.text()),
-            "pyroCalFactor": str(self.ui.tCalFactor.text()),
-            "fel_reprate": str(self.ui.tFELRR.text()),
-            "sample_spot_size": str(self.ui.tSpotSize.text()),
-            "window_trans": str(self.ui.tWindowTransmission.text()),
-            "eff_field": str(self.ui.tEffectiveField.text()),
-            "fel_pol": str(self.ui.tFELPol.text()),
-            "pulseCountRatio": str(self.ui.tOscCDRatio.text()),
-            "coupler": str(self.ui.cFELCoupler.currentText()),
-            "integratingMode": str(self.ui.cPyroMode.currentText()),
-            'bcpyBG': self.boxcarRegions[0].getRegion(),
-            'bcpyFP': self.boxcarRegions[1].getRegion(),
-            'bcpyCD': self.boxcarRegions[2].getRegion()
-        }
-        return s
 
     @staticmethod
     def __INTEGRATING(): pass
@@ -991,6 +987,90 @@ class OscWid(QtGui.QWidget):
             st += ", CD energy: {:.2f}".format(energy)
         self.pkText.setText(st, color=(128,128,255))
 
+    @staticmethod
+    def __SAVING_SETTINGS():pass
+
+    @staticmethod
+    def checkSaveFile():
+        """
+        This will check to see wheteher there's a previous settings file,
+        and if it's recent enough that it should be loaded
+        :return:
+        """
+        if not os.path.isfile(__settingsfile__):
+            # File doesn't exist
+            return False
+        if (time.time() - os.path.getmtime(__settingsfile__)) > 30 * 60:
+            # It's been longer than 30 minutes and likely isn't worth
+            # keeping open
+            return False
+        return True
+
+    def saveSettings(self):
+        """
+        returns a dict of the settings used for repopulating
+        when restarting software
+        :return:
+        """
+        saveDict = {
+            "fel_power": str(self.ui.tFELP.text()),
+            "fel_lambda": str(self.ui.tFELFreq.text()),
+            "pyroCalFactor": str(self.ui.tCalFactor.text()),
+            "fel_reprate": str(self.ui.tFELRR.text()),
+            "sample_spot_size": str(self.ui.tSpotSize.text()),
+            "window_trans": str(self.ui.tWindowTransmission.text()),
+            "eff_field": str(self.ui.tEffectiveField.text()),
+            "fel_pol": str(self.ui.tFELPol.text()),
+            "pulseCountRatio": str(self.ui.tOscCDRatio.text()),
+            "coupler": str(self.ui.cFELCoupler.currentText()),
+            "integratingMode": str(self.ui.cPyroMode.currentText()),
+            "logFile": self.settings["logFile"],
+            'bcpyBG': self.boxcarRegions[0].getRegion(),
+            'bcpyFP': self.boxcarRegions[1].getRegion(),
+            'bcpyCD': self.boxcarRegions[2].getRegion()
+        }
+
+        with open(__settingsfile__, 'w') as fh:
+            json.dump(saveDict, fh, separators=(',', ': '),
+                      sort_keys=True, indent=4, default=lambda x: 'NotSerial')
+
+    def loadSettings(self):
+        if not self.checkSaveFile(): return
+
+        with open(__settingsfile__, 'r') as fh:
+            savedDict = json.load(fh)
+        self.settings.update(savedDict)
+
+        self.ui.tFELP.setText(str(self.settings["fel_power"]))
+        self.ui.tFELFreq.setText(str(self.settings["fel_lambda"]))
+        self.ui.tFELRR.setText(str(self.settings["fel_reprate"]))
+        self.ui.tSpotSize.setText(str(self.settings["sample_spot_size"]))
+        self.ui.tWindowTransmission.setText(str(self.settings["window_trans"]))
+        self.ui.tEffectiveField.setText(str(self.settings["eff_field"]))
+        self.ui.tFELPol.setText(self.settings["fel_pol"])
+        self.ui.tOscCDRatio.setText(str(self.settings["pulseCountRatio"]))
+        self.ui.tCalFactor.setText(str(self.settings["pyroCalFactor"]))
+
+        self.ui.cPyroMode.setCurrentIndex(
+            self.ui.cPyroMode.findText(
+                self.settings["integratingMode"]
+            )
+        )
+        self.ui.cFELCoupler.setCurrentIndex(
+            self.ui.cFELCoupler.findText(
+                self.settings["coupler"]
+            )
+        )
+
+        self.boxcarRegions[0].setRegion(tuple(self.settings['bcpyBG']))
+        self.boxcarRegions[1].setRegion(tuple(self.settings['bcpyFP']))
+        self.boxcarRegions[2].setRegion(tuple(self.settings['bcpyCD']))
+
+    def closeEvent(self, QCloseEvent):
+        self.close()
+        super(OscWid, self).closeEvent(QCloseEvent)
+
+
     def close(self):
         self.settings['shouldScopeLoop'] = False
         self.settings["doPhotonCounting"] = False
@@ -1021,7 +1101,7 @@ class OscWid(QtGui.QWidget):
         except:
             pass
 
-
+        self.saveSettings()
         #Restart the scope to trigger as normal.
         try:
             self.Agilent.write(':RUN')

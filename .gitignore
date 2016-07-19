@@ -54,3 +54,4 @@ InstsAndQt.egg-info/
 *.pyc
 InstsAndQt/TheInstrumentLog.log
 InstsAndQt/Lakeshore330Monitor/TheInstrumentLog.log
+InstsAndQt/PyroOscope/ScopeSettings.txt

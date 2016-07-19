@@ -152,6 +152,10 @@ class PyroCalibrator(QtGui.QMainWindow):
         self.calText.setText("{:.3f} mJ/mV".format(self.calFactor*1e-3), color=(0,0,0))
         self.pCalLine.setData(pts, pts*self.calFactor)
 
+    def closeEvent(self, *args, **kwargs):
+        self.ui.pyroWid.close()
+        self.ui.TKWid.close()
+        super(PyroCalibrator, self).closeEvent(*args, **kwargs)
 
 
 

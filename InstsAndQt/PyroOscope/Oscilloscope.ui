@@ -648,7 +648,11 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QLineEdit" name="tFELPol"/>
+             <widget class="QLineEdit" name="tFELPol">
+              <property name="text">
+               <string>H</string>
+              </property>
+             </widget>
             </item>
            </layout>
           </widget>
@@ -939,26 +943,29 @@
   <tabstop>tBgEn</tabstop>
   <tabstop>tFpEn</tabstop>
   <tabstop>tCdEn</tabstop>
+  <tabstop>tOscPulses</tabstop>
   <tabstop>tOscCDRatio</tabstop>
   <tabstop>cPyroMode</tabstop>
   <tabstop>cFELCoupler</tabstop>
+  <tabstop>tCalFactor</tabstop>
   <tabstop>tFELP</tabstop>
   <tabstop>tEField</tabstop>
   <tabstop>tIntensity</tabstop>
   <tabstop>tFELPol</tabstop>
-  <tabstop>tFELRR</tabstop>
   <tabstop>tFELFreq</tabstop>
   <tabstop>tSpotSize</tabstop>
   <tabstop>tWindowTransmission</tabstop>
   <tabstop>tEffectiveField</tabstop>
+  <tabstop>tFELRR</tabstop>
   <tabstop>bOPause</tabstop>
   <tabstop>cOGPIB</tabstop>
   <tabstop>cOChannel</tabstop>
-  <tabstop>gOsc</tabstop>
-  <tabstop>bOscInit</tabstop>
-  <tabstop>bOPop</tabstop>
+  <tabstop>bLogDir</tabstop>
+  <tabstop>bLogData</tabstop>
   <tabstop>tabWidget</tabstop>
-  <tabstop>tOscPulses</tabstop>
+  <tabstop>gOsc</tabstop>
+  <tabstop>bOPop</tabstop>
+  <tabstop>bOscInit</tabstop>
  </tabstops>
  <resources/>
  <connections/>
