@@ -173,7 +173,7 @@ class TKWid(QtGui.QWidget):
         try:
             # Pretty sure we can safely say it's
             # GPIB5
-            idx = self.settings['GPIBlist'].index('GPIB0::5::INSTR')
+            idx = self.settings['GPIBlist'].index('USB0::0x0957::0x1798::MY54410143::INSTR')
             self.settings["agilGPIBidx"] = idx
         except ValueError:
             # otherwise, just set it to the fake index
@@ -294,9 +294,10 @@ class TKWid(QtGui.QWidget):
         :return:
         """
         self.settings['pyData'] = data
+        print '\n'*2, "Data shape", data.shape, "\n"*2
 
-        ii = np.random.randint(len(debugdata))
-        self.settings['pyData'] = debugdata[ii]
+        # ii = np.random.randint(len(debugdata))
+        # self.settings['pyData'] = debugdata[ii]
 
 
         self.sigOscDataCollected.emit()
@@ -349,7 +350,8 @@ class TKWid(QtGui.QWidget):
                 self.settings["GPIBlist"].index("Fake")
             )
             self.ui.cOGPIB.currentIndexChanged.connect(self.openAgilent)
-
+        # THE SCOPE IS TRIGGERED BY THE BP, NOT THE AT
+        self.Agilent.EXTERNAL_OFFSET=0
         # self.Agilent.setTrigger(level=1.5)
         self.settings['shouldScopeLoop'] = True
         if isPaused:

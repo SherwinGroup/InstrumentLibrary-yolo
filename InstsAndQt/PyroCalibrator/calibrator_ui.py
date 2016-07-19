@@ -98,6 +98,6 @@ class Ui_PyroCalibration(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("PyroCalibration", "Calibration", None))
         self.bDoublePause.setText(_translate("PyroCalibration", "Pause Both", None))
 
-from ..PyroOscope.OscWid import OscWid
-from ..TKOscope.TKWid import TKWid
+from InstsAndQt.PyroOscope.OscWid import OscWid
+from InstsAndQt.TKOscope.TKWid import TKWid
 from pyqtgraph import PlotWidget

@@ -159,3 +159,9 @@ class PyroCalibrator(QtGui.QMainWindow):
 
 
 
+if __name__ == '__main__':
+	import sys
+	ap = QtGui.QApplication(sys.argv)
+	wid = PyroCalibrator()
+	wid.show()
+	sys.exit(ap.exec_())
