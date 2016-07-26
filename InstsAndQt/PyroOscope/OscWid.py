@@ -73,9 +73,12 @@ class OscWid(QtGui.QWidget):
             parent = args[0].__class__.__name__
             if parent == "CCDWindow":
                 self.FELTrans = args[0].motorDriverWid.ui.tCosCalc.value
+            elif parent == "SPEXScanWin":
+                self.FELTrans = args[0].motorDriver.ui.tCosCalc.value
             else:
-                raise AttributeError
-        except:
+                raise AttributeError("Why doesn't the CCD Class have a THz attenuator?")
+        except Exception as e:
+            raise
             log.exception("This is the error you're looking for")
             self.FELTrans = lambda: 1
 
@@ -550,33 +553,34 @@ class OscWid(QtGui.QWidget):
         # some user-specified value.
         if (
             (pyCD-pyBG > self.ui.tOscCDRatio.value())
-        ) and self.settings["exposing"] and pulseTime>0:
+        ) and pulseTime>0:
 
             intensity, field = self.doFieldCalculation(ratio, pulseTime)
             self.ui.tEField.setText(str(field))
             self.ui.tIntensity.setText(str(intensity))
-            self.settings["FELPulses"] += 1
 
             self.ui.tOscPulses.setText(str(self.settings["FELPulses"]))
-            self.settings["fieldStrength"].append(field)
-            self.settings["fieldInt"].append(intensity)
-            self.settings["felTime"].append(pulseTime)
-            self.settings["pyroVoltage"].append(pkpk)
-            self.settings["cdRatios"].append(ratio)
-            self.settings["pulseEnergies"].append(energy)
 
             if self.ui.bLogData.isChecked():
-                print "Saved a pulse"
+                # print "Saved a pulse"
                 st = "{:.1f},{:.3f},{:.2f},{:.3f}\n"
                 st = st.format(time.time(), energy, pkpk*1e3, ratio)
                 self.writeToLog(st)
 
-
-            self.sigPulseCounted.emit(self.settings["FELPulses"])
+            if self.settings["exposing"]:
+                self.settings["FELPulses"] += 1
+                self.settings["fieldStrength"].append(field)
+                self.settings["fieldInt"].append(intensity)
+                self.settings["felTime"].append(pulseTime)
+                self.settings["pyroVoltage"].append(pkpk)
+                self.settings["cdRatios"].append(ratio)
+                self.settings["pulseEnergies"].append(energy)
+                self.sigPulseCounted.emit(self.settings["FELPulses"])
         else:
             # if self.settings["exposing"]:
             #     print "pulse not counted", pyCD, pyBG
-            self.sigPulseCounted.emit(-1)
+            if self.settings["exposing"]:
+                self.sigPulseCounted.emit(-1)
 
     def startExposure(self):
         self.settings["exposing"] = True

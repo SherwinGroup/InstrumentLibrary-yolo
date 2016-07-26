@@ -379,7 +379,10 @@ class SPEX(BaseInstr):
             self.currentPositionSteps = self.curStep()
             self.currentPositionWN = self.stepsToWN(self.currentPositionSteps)
         except Exception as e:
-            log.warning("Error! Could not initialize settings.\n Instrument not initialized after boot? {}".format(e))
+            if self.whereAmI()=="B":
+                log.warning("Error! SPEX not initialized!")
+            else:
+                log.warning("Error! Could not initialize settings.\n Instrument not initialized after boot? {}".format(e))
     def ask(self, command, timeout=None):
         #Call the parent asking function, but only encode
         return super(SPEX, self).ask(command, strip=0, timeout=timeout)
@@ -388,19 +391,24 @@ class SPEX(BaseInstr):
         ret = super(SPEX, self).query(command, strip=-1)
         return ret.encode('ascii')
 
-    
     def whereAmI(self):
         """ Should return 'B' if in boot sequence or 'F' in main sequence"""
         val = self.ask(' ')
-        print val
         return val
         
     def initBoot(self, wavenumber = None):
         """This function should be called if the SPEX isn't in the proper boot mode
-        (e.g. if after being power cycled)"""
+        (e.g. if after being power cycled)
+
+        Pass the wavenumber that is currently read on the SPEX
+        __DO NOT__ add 4 wavenumber. That's done internally
+        since I always forget whether it's + or -.
+        """
         
         if wavenumber is not None:
             self.currentPositionWN = wavenumber
+        # correct for SPEX offset.
+        self.currentPositionWN-=4
         print 'Checking position'
         pos = self.whereAmI()
         #First make sure the query didn't return FALSE if it timed out
