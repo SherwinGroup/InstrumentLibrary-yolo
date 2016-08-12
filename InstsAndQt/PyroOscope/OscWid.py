@@ -76,7 +76,8 @@ class OscWid(QtGui.QWidget):
             elif parent == "SPEXScanWin":
                 self.FELTrans = args[0].motorDriver.ui.tCosCalc.value
             else:
-                raise AttributeError("Why doesn't the CCD Class have a THz attenuator?")
+                # raise AttributeError("Why doesn't the CCD Class have a THz attenuator?")
+                self.FELTrans = lambda: 1
         except Exception as e:
             raise
             log.exception("This is the error you're looking for")
@@ -971,6 +972,7 @@ class OscWid(QtGui.QWidget):
             # there wasn't a pulse, so return 0's
             return 0, 0
         except Exception as e:
+            print "Could not calculate electric field, {}".format(e)
             log.warning("Could not calculate electric field, {}".format(e))
 
     def updateOscilloscopeGraph(self):
