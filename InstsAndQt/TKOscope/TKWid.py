@@ -1,9 +1,12 @@
+from PyQt4 import QtCore, QtGui
 import scipy.integrate as spi
 import scipy.stats as spt # for calculating FEL pulse information
 import scipy.special as sps
 import scipy.optimize as spo
 import warnings
 from ..Instruments import *
+from ..customQt import *
+import pyqtgraph as pg
 import visa
 from scipy.interpolate import interp1d as i1d
 from TK_ui import Ui_Oscilloscope
@@ -191,6 +194,7 @@ class TKWid(QtGui.QWidget):
 
         # can we always assume 10k points? I don't know.
         self.settings["aveData"] = np.ones((10000, 4))*np.nan
+        # self.settings["aveData"] = np.ones((9999, 4))*np.nan # WHY IS THIS 9999??
 
         self.settings["fel_lambda"] = 0
 
@@ -309,6 +313,7 @@ class TKWid(QtGui.QWidget):
         newAveSize = int(self.ui.sbAveNum.value())
         if str(self.ui.cbAveMode.currentText()) == "Waveform":
             self.settings["aveData"] = np.ones((10000, newAveSize))*np.nan
+            # self.settings["aveData"] = np.ones((9999,  newAveSize))*np.nan
         else:
             self.settings["aveData"] = np.ones(newAveSize) * np.nan
 
@@ -352,6 +357,8 @@ class TKWid(QtGui.QWidget):
             self.ui.cOGPIB.currentIndexChanged.connect(self.openAgilent)
         # THE SCOPE IS TRIGGERED BY THE BP, NOT THE AT
         self.Agilent.EXTERNAL_OFFSET=0
+        self.Agilent.write(":WAV:POIN:MODE MAX")
+        self.Agilent.write(":WAV:POIN 10000")
         # self.Agilent.setTrigger(level=1.5)
         self.settings['shouldScopeLoop'] = True
         if isPaused:

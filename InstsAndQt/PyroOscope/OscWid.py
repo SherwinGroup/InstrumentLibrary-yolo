@@ -1,9 +1,17 @@
+from PyQt4 import QtCore, QtGui
 import scipy.integrate as spi
 import scipy.stats as spt # for calculating FEL pulse information
 import scipy.special as sps
 import scipy.optimize as spo
 import warnings
-from ..Instruments import *
+try:
+    from ..Instruments import *
+    from ..customQt import *
+    from ..DelayGenerator.DG535Window import DG535Monitor
+except ValueError:
+    from InstsAndQt.Instruments import *
+    from InstsAndQt.customQt import *
+    from InstsAndQt.DelayGenerator.DG535Window import DG535Monitor
 import visa
 from Oscilloscope_ui import Ui_Oscilloscope
 from image_spec_for_gui import *
@@ -70,7 +78,11 @@ class OscWid(QtGui.QWidget):
             # These are different packages, I don't want to have
             # to import the CCD stuff, so cheat and get the parent name
             # to see if that's where the OscWidget is being instantiated
-            parent = args[0].__class__.__name__
+            try:
+                parent = args[0].__class__.__name__
+            except IndexError:
+                # Gets thrown when widget is run by itself (i.e. no parent)
+                parent = None
             if parent == "CCDWindow":
                 self.FELTrans = args[0].motorDriverWid.ui.tCosCalc.value
             elif parent == "SPEXScanWin":
@@ -152,6 +164,9 @@ class OscWid(QtGui.QWidget):
         self.settings['bcpyFP'] = [0,0]
         self.settings['bcpyCD'] = [0,0]
 
+        # Reference to delay generator widget
+        self.delayGeneratorWid = None
+
         self.initUI()
 
         # self.pyDataSig.connect(self.updateOscilloscopeGraph)
@@ -203,6 +218,10 @@ class OscWid(QtGui.QWidget):
         plotitem.setTitle('Reference Detector')
         plotitem.setLabel('bottom',text='time scale',units='us')
         plotitem.setLabel('left',text='Voltage', units='V')
+
+        delays = plotitem.vb.menu.addAction("Change Delays...")
+        delays.triggered.connect(self.loadDelayGenerator)
+
         # add a textbox for pk-pk value
         self.pkText = pg.TextItem('', color=(0,0,0))
         self.pkText.setPos(0,0)
@@ -364,6 +383,28 @@ class OscWid(QtGui.QWidget):
         }
         self.settings[d[i]] = list(curVals)
 
+    def updateLinearRegionFromDelay(self, ch, refs, times):
+        # Only worry about if A is changed since that's how
+        # we currently move the CD
+        print "update args", ch, refs, times
+        if ch != "A": return
+        if refs[0] != refs[1]:
+            log.warning("You changed references, does this still work?")
+
+        dt = (float(times[1])-float(times[0]))*1e6 #convert to us
+
+        # Move the end of the FP by the correct amount
+        curFP = list(self.boxcarRegions[1].getRegion())
+        # print "current FP:", curFP
+        # print "Requested dt:", dt
+        curFP[1] += dt
+        self.boxcarRegions[1].setRegion(curFP)
+
+        curCD = list(self.boxcarRegions[2].getRegion())
+        curCD[0] += dt
+        curCD[1] += dt
+        self.boxcarRegions[2].setRegion(curCD)
+
     def updateFELCoupler(self):
         """
         Called when felcoupler combobox changes so the
@@ -450,6 +491,9 @@ class OscWid(QtGui.QWidget):
             )
             self.ui.cOGPIB.currentIndexChanged.connect(self.openAgilent)
 
+        self.Agilent.write(":WAV:POIN:MODE MAX")
+        self.Agilent.write(":WAV:POIN 10000")
+
         self.Agilent.setTrigger(level=1.5)
         self.settings['shouldScopeLoop'] = True
         if isPaused:
@@ -486,6 +530,15 @@ class OscWid(QtGui.QWidget):
                 if st[-1] != '\n': fh.write('\n')
         except Exception:
             log.exception("Could not write to log file?")
+
+    def loadDelayGenerator(self):
+        if self.delayGeneratorWid is not None:
+            return
+        self.delayGeneratorWid = DG535Monitor()
+        self.delayGeneratorWid.sigDelayChanged.connect(self.updateLinearRegionFromDelay)
+        self.delayGeneratorWid.sigClosed.connect(
+            lambda: setattr(self, "delayGeneratorWid", None)
+        )
 
 
     @staticmethod
@@ -536,12 +589,12 @@ class OscWid(QtGui.QWidget):
             self.updatePkText(pkpk, pulseTime, energy, pyCD - pyFP, ratio)
         else:
             self.settings["CDHeight"] = pyCD - pyBG
-            energy = self.settings["CDHeight"] * self.ui.tCalFactor.value()*1e3
-            energy = round(energy / 1000., 3)*1000
+            energy = self.settings["CDHeight"] * self.ui.tCalFactor.value()*1e6
+            energy = round(energy / 1e3, 6)
             self.updatePkText(pkpk, pulseTime, energy)
         try:
             self.ui.tFELP.setText(str(energy))
-            intensity, field = self.doFieldCalculation(ratio, time)
+            intensity, field = self.doFieldCalculation(ratio, pulseTime)
             self.ui.tEField.setText(str(field))
             self.ui.tIntensity.setText(str(intensity))
         except TypeError:

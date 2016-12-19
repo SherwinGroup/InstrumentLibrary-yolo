@@ -27,6 +27,8 @@ class InstrumentGPIB(QtGui.QComboBox):
 
         self.refreshGPIBList()
 
+    def __contains__(self, item):
+        return item in self._GPIBList
 
     def refreshGPIBList(self):
         self.blockSignals(True)
@@ -60,14 +62,22 @@ class InstrumentGPIB(QtGui.QComboBox):
                 inst = self._instrumentCls(str(self.currentText()), *self._instrumentArgs)
 
         except Exception as e:
-            print "Warning, unable to open desired instrument"
+            print "Warning, unable to open desired instrument at addr. {}".format(self.currentText())
             print "\t",e
             print "cls/args:", self._instrumentCls, self._instrumentArgs
-            self.setCurrentIndex(self.findData("Fake"))
+            self.blockSignals(True)
+            self.setCurrentIndex(self.findText("Fake"))
+            self.blockSignals(False)
             return
 
         self._instrument = weakref.ref(inst)
         self.sigInstrumentOpened.emit(inst)
+
+    def setAddress(self, address):
+        if address not in self:
+            raise RuntimeError("Not a valid hardware address: {}".format(address))
+        self.setCurrentIndex(self.findText(address))
+
 
     def closeInstrument(self):
         if self.closeOnChange and self._instrument is not None:
@@ -76,7 +86,6 @@ class InstrumentGPIB(QtGui.QComboBox):
                 self.sigInstrumentClosed.emit()
             except Exception as e:
                 print "Error closing instrument", e
-
 
     def setHoverText(self, text=""):
         self.setToolTip(str(text))
@@ -95,7 +104,6 @@ if __name__ == '__main__':
 
     wid = InstrumentGPIB()
     wid.setHoverText("This is text")
-    from NewportMotorDriver import esp300 as e
     from Instruments import Agilent6000 as a
 
     wid.setInstrumentClass(a)

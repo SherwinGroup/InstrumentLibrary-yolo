@@ -63,6 +63,23 @@ class FakeInstr(object):
     def open(self):
         print self.__class__.__name__ + 'opened'
 
+class ActonSP(FakeInstr):
+    def ask(self, string):
+        ret = super(ActonSP, self).ask(string)
+        if ret is not None:
+            return ret
+        if '?nm'==string:
+            val = np.random.randint(600, 700) + np.random.randint(1, 1000)/1000.
+            return "?nm {} nm  ok\r".format(val)
+
+        elif '?grating' == string:
+            val = np.random.randint(1, 3)
+            return "?grating {}  ok\r\n".format(val)
+        elif 'GOTO' in string:
+            return string[:4]
+        elif 'grating' in string:
+            return string[0]
+
 class ArduinoWavemeter(FakeInstr):
     def ask(self, string):
         ret = super(ArduinoWavemeter, self).ask(string)
@@ -167,57 +184,46 @@ class Agilent6000(FakeInstr):
                 arr += np.random.randint(-10, 10)
                 return arr
 
-class SPEX(FakeInstr):
-    curStep = 70000 #Making life interesting for SPEX instrument
+class DG535(FakeInstr):
+    _delA = (1, 0)
+    _delB = (1, 0)
+    _delC = (1, 0)
+    _delD = (1, 0)
+
     def write(self, string):
-        super(SPEX, self).write(string)
-        if 'F0' in string: #SPEX Relative move
-            self.curStep += int(string[3:])
-    def ask(self, string):
-        ret = super(SPEX, self).ask(string)
-        if ret is not None:
-            return ret
-        if 'H0' in string: #SPEX Relative move
-            return str(self.curStep) + '\r'
-        elif string == 'E': #SPEX, is it moving
-            return 'oz'
+        if string[:2]=="DS":
+            s, r, t = string[2:].split(',')
+            s, r = int(s), int(r)
+            if s==2:
+                self._delA = (r, t)
+            elif s==3:
+                self._delB = (r, t)
+            elif s==5:
+                self._delC = (r, t)
+            elif s==6:
+                self._delD = (r, t)
 
-class SR830Instr(FakeInstr):
-    def ask(self, string):
-        ret = super(SR830Instr, self).ask(string)
-        if ret is not None:
-            return ret
-        #Test for some basic instrument questions and output the expected output
-        if 'SLVL' in string or 'OUTP' in string:
-            return str(np.random.random())
-        elif 'SNAP?' in string:
-            return str(np.random.random())+','+str(np.random.random())
+    def ask(self, string=""):
+        if string=="ES": return 0
+        elif string=="IS": return 0
+        elif string[:2]=="DS": return self.parseTimeRequest(string)
+        else: raise RuntimeError("I can't parse your input {}".format(string))
 
-class Keithley236Instr(FakeInstr):
-    def __init__(self):
-        raise NotImplementedError
+    def parseTimeRequest(self, string):
+        s = int(string[2:])
+        r, t = -1, -1
+        if s==2:
+            (r, t) = self._delA
+        elif s==3:
+            (r, t) = self._delB
+        elif s==5:
+            (r, t) = self._delC
+        elif s==6:
+            (r, t) = self._delD
 
-class Keithley2400Instr(FakeInstr):
-    def __init__(self):
-        raise NotImplementedError
+        return "{},{:+017.12f}".format(r, t)
 
-class ActonSP(FakeInstr):
-    def ask(self, string):
-        ret = super(ActonSP, self).ask(string)
-        if ret is not None:
-            return ret
-        if '?nm'==string:
-            val = np.random.randint(600, 700) + np.random.randint(1, 1000)/1000.
-            return "?nm {} nm  ok\r".format(val)
 
-        elif '?grating' == string:
-            val = np.random.randint(1, 3)
-            return "?grating {}  ok\r\n".format(val)
-        elif 'GOTO' in string:
-            return string[:4]
-        elif 'grating' in string:
-            return string[0]
-        
 class ESP300(FakeInstr):
     _vel = 10
     _acc = 10
@@ -256,12 +262,45 @@ class ESP300(FakeInstr):
         elif "MO" in string:
             return self._on
 
+class Keithley236Instr(FakeInstr):
+    def __init__(self):
+        raise NotImplementedError
+
+class Keithley2400Instr(FakeInstr):
+    def __init__(self):
+        raise NotImplementedError
+
 class LakeShore330(FakeInstr):
     def write(self, string):
         pass
-
     def ask(self, string):
         pass
+
+class SPEX(FakeInstr):
+    curStep = 70000 #Making life interesting for SPEX instrument
+    def write(self, string):
+        super(SPEX, self).write(string)
+        if 'F0' in string: #SPEX Relative move
+            self.curStep += int(string[3:])
+    def ask(self, string):
+        ret = super(SPEX, self).ask(string)
+        if ret is not None:
+            return ret
+        if 'H0' in string: #SPEX Relative move
+            return str(self.curStep) + '\r'
+        elif string == 'E': #SPEX, is it moving
+            return 'oz'
+
+class SR830Instr(FakeInstr):
+    def ask(self, string):
+        ret = super(SR830Instr, self).ask(string)
+        if ret is not None:
+            return ret
+        #Test for some basic instrument questions and output the expected output
+        if 'SLVL' in string or 'OUTP' in string:
+            return str(np.random.random())
+        elif 'SNAP?' in string:
+            return str(np.random.random())+','+str(np.random.random())
 
 clsDict = {
     Instruments.BaseInstr: FakeInstr,
