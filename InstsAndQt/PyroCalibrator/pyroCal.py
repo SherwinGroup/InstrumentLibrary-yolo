@@ -32,7 +32,7 @@ class PyroCalibrator(QtGui.QMainWindow):
         # pulses
         self.ui.pyroWid.settings["exposing"] = True
 
-        self.saveDir = r'Z:\Hunter Banks\Data\2016'
+        self.saveDir = r'Z:\~Hunter Banks\Data\2017'
 
     def initUI(self):
         self.ui = Ui_PyroCalibration()
@@ -119,7 +119,7 @@ class PyroCalibrator(QtGui.QMainWindow):
 
     def saveData(self):
         loc = QtGui.QFileDialog.getSaveFileName(
-            self, "Choose save file", self.saveDir
+            self, "Choose save file", self.saveDir, "Text files (*.txt)"
         )
         loc = str(loc)
         if not loc: return
