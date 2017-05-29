@@ -6,6 +6,7 @@ import pyqtgraph.examples
 #     import examples
 #     __package__ = "examples"
 
+
 from PyQt4 import QtCore, QtGui
 import pyqtgraph as pg
 
@@ -27,27 +28,41 @@ except AttributeError:
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName(_fromUtf8("MainWindow"))
-        MainWindow.resize(601, 571)
+        MainWindow.resize(559, 360)
+        MainWindow.setTabShape(QtGui.QTabWidget.Triangular)
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
-        self.gridLayout = QtGui.QGridLayout(self.centralwidget)
+        self.horizontalLayout = QtGui.QHBoxLayout(self.centralwidget)
+        self.horizontalLayout.setMargin(0)
+        self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
+        self.tabWidget = QtGui.QTabWidget(self.centralwidget)
+        self.tabWidget.setTabShape(QtGui.QTabWidget.Rounded)
+        self.tabWidget.setObjectName(_fromUtf8("tabWidget"))
+        self.tab = QtGui.QWidget()
+        self.tab.setObjectName(_fromUtf8("tab"))
+        self.horizontalLayout_2 = QtGui.QHBoxLayout(self.tab)
+        self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
+        self.gridLayout = QtGui.QGridLayout()
         self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
-        self.bRun = QtGui.QPushButton(self.centralwidget)
+        self.bRun = QtGui.QPushButton(self.tab)
         self.bRun.setObjectName(_fromUtf8("bRun"))
-        self.gridLayout.addWidget(self.bRun, 1, 1, 1, 1)
+        self.gridLayout.addWidget(self.bRun, 1, 0, 1, 1)
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.gridLayout.addItem(spacerItem, 1, 2, 1, 1)
-        self.splitter = QtGui.QSplitter(self.centralwidget)
+        self.gridLayout.addItem(spacerItem, 1, 1, 1, 1)
+        self.splitter = QtGui.QSplitter(self.tab)
         self.splitter.setOrientation(QtCore.Qt.Horizontal)
         self.splitter.setObjectName(_fromUtf8("splitter"))
         self.lwNames = QtGui.QListWidget(self.splitter)
         self.lwNames.setObjectName(_fromUtf8("lwNames"))
         self.wRenderer = QtGui.QWidget(self.splitter)
         self.wRenderer.setObjectName(_fromUtf8("wRenderer"))
-        self.gridLayout.addWidget(self.splitter, 0, 1, 1, 2)
+        self.gridLayout.addWidget(self.splitter, 0, 0, 1, 2)
+        self.horizontalLayout_2.addLayout(self.gridLayout)
+        self.tabWidget.addTab(self.tab, _fromUtf8(""))
+        self.horizontalLayout.addWidget(self.tabWidget)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 601, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 559, 22))
         self.menubar.setObjectName(_fromUtf8("menubar"))
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtGui.QStatusBar(MainWindow)
@@ -55,11 +70,14 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow", None))
         self.bRun.setText(_translate("MainWindow", "Run", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("MainWindow", "File List", None))
+
 
 class WidgetInfo(object):
     def __init__(self, ui_file='', ui_cls_name='',
@@ -71,11 +89,52 @@ class WidgetInfo(object):
 
         self.ui = object
 
+
+outputStreams = []
+
+
+class AppOutputStream(object):
+    def __init__(self, qtextedit=None):
+        self.qText = qtextedit
+        global outputStreams
+        outputStreams.append(self)
+        self.proc = None
+
+    def connectProcess(self, proc):
+        self.proc = proc
+        proc.readyReadStandardError.connect(self.readErr)
+        proc.readyReadStandardOutput.connect(self.readOut)
+        proc.finished.connect(self.finish)
+
+    def readErr(self):
+        self.proc.setReadChannel(QtCore.QProcess.StandardError)
+        text = str(self.proc.readAll())
+        print "want to print error", text
+        self.qText.setTextColor(QtGui.QColor("red"))
+        self.qText.append(text)
+        # self.qText = QtGui.QTextEdit()
+        self.qText.setTextColor(QtGui.QColor("black"))
+
+    def readOut(self):
+        self.proc.setReadChannel(QtCore.QProcess.StandardOutput)
+        text = str(self.proc.readAll())
+
+        self.qText.append(text)
+
+    def finish(self):
+        self.qText.setTextColor(QtGui.QColor("green"))
+        self.qText.append("<application closed>")
+        # self.qText = QtGui.QTextEdit()
+        self.qText.setTextColor(QtGui.QColor("black"))
+
+
+
+
 applications = {
     "Delay Generator": WidgetInfo(r"DelayGenerator.delayGenerator_ui", "Ui_MainWindow",
-                        QtGui.QMainWindow, r"DelayGenerator\DG535Window.py"),
+                        QtGui.QMainWindow,os.path.join("DelayGenerator", "DG535Window.py")),
     "Temperature Monitor": WidgetInfo(r"Lakeshore330Monitor.lakeshore330Panel_ui", "Ui_Form",
-                        QtGui.QWidget, r"Lakeshore330Monitor\lakeshoreMonitor.py")
+                        QtGui.QWidget, os.path.join("Lakeshore330Monitor","lakeshoreMonitor.py"))
 }
 
 path = os.path.abspath(os.path.dirname(__file__))
@@ -105,7 +164,6 @@ class ExampleLoader(QtGui.QMainWindow):
         for name in sorted(applications):
             self.ui.lwNames.addItem(name)
 
-
     def updateDisplayWidget(self, current, previous):
         global applications
         widInf = applications[str(current.text())]
@@ -127,13 +185,13 @@ class ExampleLoader(QtGui.QMainWindow):
         item = str(self.ui.lwNames.currentItem().text())
 
         return os.path.join(path, applications[item].fname)
-        return None
-
-        item = self.ui.exampleTree.currentItem()
-        if hasattr(item, 'file'):
-            global path
-            return os.path.join(path, item.file)
-        return None
+        # return None
+        #
+        # item = self.ui.exampleTree.currentItem()
+        # if hasattr(item, 'file'):
+        #     global path
+        #     return os.path.join(path, item.file)
+        # return None
     
     def loadFile(self, edited=False):
         
@@ -171,15 +229,39 @@ class ExampleLoader(QtGui.QMainWindow):
         fn = self.currentFile()
         if fn is None:
             return
+        newText = QtGui.QTextEdit()
+        newText.setReadOnly(True)
+        self.ui.tabWidget.addTab(newText, self.ui.lwNames.currentItem().text())
+
+        stream = AppOutputStream(qtextedit=newText)
+
+
         if sys.platform.startswith('win'):
-            os.spawnl(os.P_NOWAIT, sys.executable, '"' + sys.executable + '"',
+            raise
+            self.a = os.spawnl(os.P_NOWAIT, sys.executable, '"' + sys.executable + '"',
                       '"' + fn + '"')
         else:
-            os.spawnl(os.P_NOWAIT, sys.executable, sys.executable, fn)
+            # self.a = os.spawnl(os.P_NOWAIT, sys.executable, sys.executable, fn)
+            # a = subprocess.Popen([sys.executable, fn],
+            #                      stdout=subprocess.PIPE,
+            #                      stderr=subprocess.PIPE)
+            # print a.stderr, a.stdout
+            a = QtCore.QProcess()
+            stream.connectProcess(a)
+            print sys.executable + fn
+            a.startDetached("{} {}".format(sys.executable, fn))
 
+
+cons = None
 def run():
     app = QtGui.QApplication([])
     loader = ExampleLoader()
+
+    import pyqtgraph.console as pgc
+
+    global cons
+    cons = pgc.ConsoleWidget(namespace={"load":loader})
+    cons.show()
     
     app.exec_()
 

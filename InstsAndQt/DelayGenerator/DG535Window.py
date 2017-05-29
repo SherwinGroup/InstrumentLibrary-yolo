@@ -169,6 +169,7 @@ class DG535Monitor(QtGui.QMainWindow):
         #Todo implement burst stuff
 
     def updateDelay(self, ch):
+        print "updating trigger", tim.editor.value()
         ref, tim = self.channelMap[ch]
         oldRef, oldTim = self.instrument.getDelay(ch)
         self.instrument.setDelay(ch, str(ref.currentText()), tim.editor.value())
@@ -189,5 +190,6 @@ if __name__ == '__main__':
     import sys
     ap = QtGui.QApplication([])
     win = DG535Monitor()
+    print "made a delay window"
     sys.exit(ap.exec_())
 
