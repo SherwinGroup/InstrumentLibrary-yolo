@@ -89,16 +89,20 @@ class WidgetInfo(object):
 
         self.ui = object
 
-
 outputStreams = []
 
 
 class AppOutputStream(object):
     def __init__(self, qtextedit=None):
+        """
+
+        :param qtextedit:
+         :type qtextedit: QtGui.QTextEdit
+        """
         self.qText = qtextedit
         global outputStreams
         outputStreams.append(self)
-        self.proc = None
+        self.proc = QtCore.QProcess()
 
     def connectProcess(self, proc):
         self.proc = proc
@@ -109,23 +113,31 @@ class AppOutputStream(object):
     def readErr(self):
         self.proc.setReadChannel(QtCore.QProcess.StandardError)
         text = str(self.proc.readAll())
-        print "want to print error", text
-        self.qText.setTextColor(QtGui.QColor("red"))
-        self.qText.append(text)
-        # self.qText = QtGui.QTextEdit()
-        self.qText.setTextColor(QtGui.QColor("black"))
+        # self.qText.setTextColor(QtGui.QColor("red"))
+        # self.qText.append(text)
+        # self.qText.setTextColor(QtGui.QColor("black"))
+        self.append(text, 'red')
 
     def readOut(self):
         self.proc.setReadChannel(QtCore.QProcess.StandardOutput)
         text = str(self.proc.readAll())
 
+        self.append(text)
+
+    def append(self, text='', col=None):
+        if col is not None:
+            oldCol = self.qText.textColor()
+            self.qText.setTextColor(QtGui.QColor(col))
         self.qText.append(text)
+        if col is not None:
+            self.qText.setTextColor(oldCol)
 
     def finish(self):
-        self.qText.setTextColor(QtGui.QColor("green"))
-        self.qText.append("<application closed>")
+        # self.qText.setTextColor(QtGui.QColor("green"))
+        # self.qText.append("<application closed>")
         # self.qText = QtGui.QTextEdit()
-        self.qText.setTextColor(QtGui.QColor("black"))
+        self.append("<application closed>", 'green')
+        # self.qText.setTextColor(QtGui.QColor("black"))
 
 
 
@@ -135,6 +147,8 @@ applications = {
                         QtGui.QMainWindow,os.path.join("DelayGenerator", "DG535Window.py")),
     "Temperature Monitor": WidgetInfo(r"Lakeshore330Monitor.lakeshore330Panel_ui", "Ui_Form",
                         QtGui.QWidget, os.path.join("Lakeshore330Monitor","lakeshoreMonitor.py"))
+    # "Temperature Monitor": WidgetInfo(r"Lakeshore330Monitor.lakeshore330Panel_ui", "Ui_Form",
+    #                     QtGui.QWidget, os.path.join("Lakeshore330Monitor","lakeshoreMonitor.py"))
 }
 
 path = os.path.abspath(os.path.dirname(__file__))
@@ -185,13 +199,6 @@ class ExampleLoader(QtGui.QMainWindow):
         item = str(self.ui.lwNames.currentItem().text())
 
         return os.path.join(path, applications[item].fname)
-        # return None
-        #
-        # item = self.ui.exampleTree.currentItem()
-        # if hasattr(item, 'file'):
-        #     global path
-        #     return os.path.join(path, item.file)
-        # return None
     
     def loadFile(self, edited=False):
         
@@ -229,27 +236,41 @@ class ExampleLoader(QtGui.QMainWindow):
         fn = self.currentFile()
         if fn is None:
             return
+        excStr = "{} {}".format(sys.executable, fn)
+        a = QtCore.QProcess()
+
         newText = QtGui.QTextEdit()
         newText.setReadOnly(True)
         self.ui.tabWidget.addTab(newText, self.ui.lwNames.currentItem().text())
 
         stream = AppOutputStream(qtextedit=newText)
+        stream.connectProcess(a)
 
 
+        if  QtGui.QApplication.keyboardModifiers() == QtCore.Qt.ShiftModifier:
+            a.startDetached("{} {}".format(sys.executable, fn))
+            stream.append("<Proccess Detached...>", "purple")
         if sys.platform.startswith('win'):
             raise
-            self.a = os.spawnl(os.P_NOWAIT, sys.executable, '"' + sys.executable + '"',
-                      '"' + fn + '"')
+            # self.a = os.spawnl(os.P_NOWAIT, sys.executable, '"' + sys.executable + '"',
+            #           '"' + fn + '"')
         else:
-            # self.a = os.spawnl(os.P_NOWAIT, sys.executable, sys.executable, fn)
-            # a = subprocess.Popen([sys.executable, fn],
-            #                      stdout=subprocess.PIPE,
-            #                      stderr=subprocess.PIPE)
-            # print a.stderr, a.stdout
-            a = QtCore.QProcess()
-            stream.connectProcess(a)
-            print sys.executable + fn
-            a.startDetached("{} {}".format(sys.executable, fn))
+            a.start(excStr)
+
+
+    def close(self):
+        print "Tried to close"
+
+    def closeEvent(self, QCloseEvent):
+        print "tried to closeEvent"
+
+        # QtCore.QProcess.state()
+        anyRunning = any([ii.proc.state()==QtCore.QProcess.Running for ii in outputStreams])
+        if anyRunning:
+            print "Process is running"
+        else:
+            print "No Processing running"
+        super(ExampleLoader, self).closeEvent(QCloseEvent)
 
 
 cons = None
@@ -260,8 +281,8 @@ def run():
     import pyqtgraph.console as pgc
 
     global cons
-    cons = pgc.ConsoleWidget(namespace={"load":loader})
-    cons.show()
+    # cons = pgc.ConsoleWidget(namespace={"load":loader})
+    # cons.show()
     
     app.exec_()
 
