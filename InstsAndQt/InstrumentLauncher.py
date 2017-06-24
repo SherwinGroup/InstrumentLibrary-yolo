@@ -145,8 +145,14 @@ class AppOutputStream(object):
 applications = {
     "Delay Generator": WidgetInfo(r"DelayGenerator.delayGenerator_ui", "Ui_MainWindow",
                         QtGui.QMainWindow,os.path.join("DelayGenerator", "DG535Window.py")),
-    "Temperature Monitor": WidgetInfo(r"Lakeshore330Monitor.lakeshore330Panel_ui", "Ui_Form",
-                        QtGui.QWidget, os.path.join("Lakeshore330Monitor","lakeshoreMonitor.py"))
+    "Temperature Monitor": WidgetInfo(r"Lakeshore330Monitor.lakeshore330Panel_ui", "Ui_MainWindow",
+                        QtGui.QMainWindow, os.path.join("Lakeshore330Monitor","lakeshoreMonitor.py")),
+    "Pyro Calibrator": WidgetInfo(r"PyroCalibrator.calibrator_ui", "Ui_PyroCalibration",
+                        QtGui.QMainWindow, os.path.join("PyroCalibrator","pyroCal.py")),
+    "FEL Pulse Monitor": WidgetInfo(r"Lakeshore330Monitor.lakeshore330Panel_ui", None,
+                        None, os.path.join("PyroOscope","FELMonitor.py")),
+    # "Wiregrid calibrator": WidgetInfo(r"Lakeshore330Monitor.lakeshore330Panel_ui", "Ui_MainWindow",
+    #                     QtGui.QMainWindow, os.path.join("Lakeshore330Monitor","lakeshoreMonitor.py"))
     # "Temperature Monitor": WidgetInfo(r"Lakeshore330Monitor.lakeshore330Panel_ui", "Ui_Form",
     #                     QtGui.QWidget, os.path.join("Lakeshore330Monitor","lakeshoreMonitor.py"))
 }
@@ -182,55 +188,38 @@ class ExampleLoader(QtGui.QMainWindow):
         global applications
         widInf = applications[str(current.text())]
         ui, wid = widInf.ui, widInf.cls
-        newWid = wid()
-        newWid.ui = ui()
-        newWid.ui.setupUi(newWid)
+
+        newWin = QtGui.QMainWindow()
+
+        if wid is QtGui.QWidget:
+            newWid = QtGui.QWidget()
+            newWid.ui = ui()
+            newWid.ui.setupUi(newWid)
+            newWin.setCentralWidget(newWid)
+            newWin.layout().setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+            # newWid.setFixedSize(newWid.size())
+        elif wid is None:
+            newWid = QtGui.QLabel("No UI file")
+            newWin.setCentralWidget(newWid)
+
+        else:
+            newWin.ui = ui()
+            newWin.ui.setupUi(newWin)
 
         # Remove parent of the render layout and let it be garbage
         # collected
         QtGui.QWidget().setLayout(self.renderLayout)
         self.renderLayout = QtGui.QVBoxLayout()
-        self.renderLayout.addWidget(newWid)
+        self.renderLayout.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+        self.renderLayout.addWidget(newWin)
 
         self.ui.wRenderer.setLayout(self.renderLayout)
-    
+
     def currentFile(self):
         global applications
         item = str(self.ui.lwNames.currentItem().text())
 
         return os.path.join(path, applications[item].fname)
-    
-    def loadFile(self, edited=False):
-        
-        extra = []
-        if self.ui.pyqtCheck.isChecked():
-            extra.append('pyqt')
-        elif self.ui.pysideCheck.isChecked():
-            extra.append('pyside')
-        
-        if self.ui.forceGraphicsCheck.isChecked():
-            extra.append(str(self.ui.forceGraphicsCombo.currentText()))
-
-        
-        #if sys.platform.startswith('win'):
-            #os.spawnl(os.P_NOWAIT, sys.executable, '"'+sys.executable+'"', '"' + fn + '"', *extra)
-        #else:
-            #os.spawnl(os.P_NOWAIT, sys.executable, sys.executable, fn, *extra)
-        
-        if edited:
-            path = os.path.abspath(os.path.dirname(__file__))
-            proc = subprocess.Popen([sys.executable, '-'] + extra, stdin=subprocess.PIPE, cwd=path)
-            code = str(self.ui.codeView.toPlainText()).encode('UTF-8')
-            proc.stdin.write(code)
-            proc.stdin.close()
-        else:
-            fn = self.currentFile()
-            if fn is None:
-                return
-            if sys.platform.startswith('win'):
-                os.spawnl(os.P_NOWAIT, sys.executable, '"'+sys.executable+'"', '"' + fn + '"', *extra)
-            else:
-                os.spawnl(os.P_NOWAIT, sys.executable, sys.executable, fn, *extra)
 
     def runApplication(self):
         fn = self.currentFile()
@@ -246,20 +235,10 @@ class ExampleLoader(QtGui.QMainWindow):
         stream = AppOutputStream(qtextedit=newText)
         stream.connectProcess(a)
 
-
         if  QtGui.QApplication.keyboardModifiers() == QtCore.Qt.ShiftModifier:
             a.startDetached("{} {}".format(sys.executable, fn))
             stream.append("<Proccess Detached...>", "purple")
-        if sys.platform.startswith('win'):
-            raise
-            # self.a = os.spawnl(os.P_NOWAIT, sys.executable, '"' + sys.executable + '"',
-            #           '"' + fn + '"')
-        else:
-            a.start(excStr)
-
-
-    def close(self):
-        print "Tried to close"
+        a.start(excStr)
 
     def closeEvent(self, QCloseEvent):
         print "tried to closeEvent"
@@ -283,7 +262,7 @@ def run():
     global cons
     # cons = pgc.ConsoleWidget(namespace={"load":loader})
     # cons.show()
-    
+
     app.exec_()
 
 def buildFileList(examples, files=None):
@@ -297,7 +276,7 @@ def buildFileList(examples, files=None):
         else:
             buildFileList(val, files)
     return files
-            
+
 def testFile(name, f, exe, lib, graphicsSystem=None):
     global path
     fn =  os.path.join(path,f)
@@ -305,7 +284,7 @@ def testFile(name, f, exe, lib, graphicsSystem=None):
     os.chdir(path)
     sys.stdout.write(name)
     sys.stdout.flush()
-    
+
     import1 = "import %s" % lib if lib != '' else ''
     import2 = os.path.splitext(os.path.split(fn)[1])[0]
     graphicsSystem = '' if graphicsSystem is None else "pg.QtGui.QApplication.setGraphicsSystem('%s')" % graphicsSystem
@@ -353,7 +332,7 @@ except:
     process.kill()
     #res = process.communicate()
     res = (process.stdout.read(), process.stderr.read())
-    
+
     if fail or 'exception' in res[1].decode().lower() or 'error' in res[1].decode().lower():
         print('.' * (50-len(name)) + 'FAILED')
         print(res[0].decode())
@@ -366,9 +345,13 @@ def loadUiFiles():
     for appName in applications:
         widInfo = applications[appName]
         localName, clsName, cls = widInfo.ui_fname, widInfo.ui_clsn, widInfo.cls
-        exec("from {} import {} as ui".format(localName, clsName))
-        # applications[appName] = (ui, cls)
-        applications[appName].ui = ui
+        try:
+            exec("from {} import {} as ui".format(localName, clsName))
+            # applications[appName] = (ui, cls)
+            applications[appName].ui = ui
+        except ImportError:
+            # happens when there isn't a ui file specified
+            pass
 
 
 if __name__ == '__main__':
@@ -383,10 +366,10 @@ if __name__ == '__main__':
             lib = 'PyQt4'
         else:
             lib = ''
-            
+
         exe = sys.executable
         print("Running tests:", lib, sys.executable)
         for f in files:
             testFile(f[0], f[1], exe, lib)
-    else: 
+    else:
         run()
