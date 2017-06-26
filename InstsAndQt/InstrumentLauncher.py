@@ -151,8 +151,8 @@ applications = {
                         QtGui.QMainWindow, os.path.join("PyroCalibrator","pyroCal.py")),
     "FEL Pulse Monitor": WidgetInfo(r"Lakeshore330Monitor.lakeshore330Panel_ui", None,
                         None, os.path.join("PyroOscope","FELMonitor.py")),
-    # "Wiregrid calibrator": WidgetInfo(r"Lakeshore330Monitor.lakeshore330Panel_ui", "Ui_MainWindow",
-    #                     QtGui.QMainWindow, os.path.join("Lakeshore330Monitor","lakeshoreMonitor.py"))
+    "Wiregrid calibrator": WidgetInfo(r"MotorDriver.mainWindow_ui", "Ui_MainWindow",
+                        QtGui.QMainWindow, os.path.join("MotorDriver","TKCalibrator.py"))
     # "Temperature Monitor": WidgetInfo(r"Lakeshore330Monitor.lakeshore330Panel_ui", "Ui_Form",
     #                     QtGui.QWidget, os.path.join("Lakeshore330Monitor","lakeshoreMonitor.py"))
 }
