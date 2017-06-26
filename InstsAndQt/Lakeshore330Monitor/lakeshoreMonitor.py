@@ -1,12 +1,13 @@
 from PyQt4 import QtGui, QtCore
 import time
 import numpy as np
-from InstsAndQt.Instruments import LakeShore330
+from ..Instruments import LakeShore330
+from ..Instruments import __displayonly__
 import pyqtgraph as pg
 pg.setConfigOption("background", "w")
 pg.setConfigOption("foreground", "k")
 
-from lakeshore330Panel_ui import Ui_Form
+from lakeshore330Panel_ui import Ui_MainWindow
 
 class DateAxis(pg.AxisItem):
     def tickStrings(self, values, scale, spacing):
@@ -120,7 +121,7 @@ class LakeshoreMonitor(QtGui.QWidget):
 
 
     def initUI(self):
-        self.ui = Ui_Form()
+        self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.setWindowTitle("Sample Temperature Monitor")
         self.ui.splitter.setStretchFactor(0, 100)

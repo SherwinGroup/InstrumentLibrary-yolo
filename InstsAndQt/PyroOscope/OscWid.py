@@ -6,9 +6,11 @@ import scipy.optimize as spo
 import warnings
 try:
     from ..Instruments import *
+    from ..Instruments import __displayonly__
     from ..customQt import *
     from ..DelayGenerator.DG535Window import DG535Monitor
 except ValueError:
+    raise
     from InstsAndQt.Instruments import *
     from InstsAndQt.customQt import *
     from InstsAndQt.DelayGenerator.DG535Window import DG535Monitor
@@ -168,6 +170,7 @@ class OscWid(QtGui.QWidget):
         self.delayGeneratorWid = None
 
         self.initUI()
+        if __displayonly__: return
 
         # self.pyDataSig.connect(self.updateOscilloscopeGraph)
         self.sigOscDataCollected.connect(self.updateOscilloscopeGraph)
@@ -191,6 +194,9 @@ class OscWid(QtGui.QWidget):
     def initUI(self):
         self.ui = Ui_Oscilloscope()
         self.ui.setupUi(self)
+        if __displayonly__:
+            self.show()
+            return
 
         ###################
         # Setting up oscilloscope values

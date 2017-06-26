@@ -190,6 +190,8 @@ class ExampleLoader(QtGui.QMainWindow):
         ui, wid = widInf.ui, widInf.cls
 
         newWin = QtGui.QMainWindow()
+        newWin.setEnabled(False)
+        newWin.blockSignals(True)
 
         if wid is QtGui.QWidget:
             newWid = QtGui.QWidget()
@@ -205,6 +207,7 @@ class ExampleLoader(QtGui.QMainWindow):
         else:
             newWin.ui = ui()
             newWin.ui.setupUi(newWin)
+
 
         # Remove parent of the render layout and let it be garbage
         # collected

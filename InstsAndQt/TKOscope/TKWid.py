@@ -5,6 +5,7 @@ import scipy.special as sps
 import scipy.optimize as spo
 import warnings
 from ..Instruments import *
+from ..Instruments import __displayonly__
 from ..customQt import *
 import pyqtgraph as pg
 import visa
@@ -133,7 +134,6 @@ debugfiles = glob.glob(os.path.join(r"Z:\Darren\Data\2016\01-14 Wire Calibration
 debugdata = [np.genfromtxt(ii, delimiter=',')[3:] for ii in debugfiles]
 
 
-
 def sig(x, *p):
     # For fitting the hole-coupler integrated waveform
     a, mu, b, offset = p
@@ -218,6 +218,9 @@ class TKWid(QtGui.QWidget):
     def initUI(self):
         self.ui = Ui_Oscilloscope()
         self.ui.setupUi(self)
+
+        if __displayonly__:
+            return
 
         ###################
         # Setting up oscilloscope values

@@ -30,6 +30,16 @@ log.addHandler(handler)
 log.addHandler(handler1)
 
 
+# The instrument launcher should only display the UIs, nothing more. If a widget is
+# called in the UI file of another, this causes it to instantiate the whole widget,
+# potentially opening devices and other issues that shouldn't arise. So widgets should
+# check to make sure they are only supposed to display, do no connections
+import sys
+try:
+    __displayonly__ = "Launcher" in sys.argv[0]
+except Exception as e:
+    __displayonly__ = False
+
 class BaseInstr(object):
     """Base class which handles opening the GPIB and safely reading/writing to the instrument"""
     def __init__(self, GPIB_Number = None, timeout = 3000):
