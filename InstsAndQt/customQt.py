@@ -14,7 +14,7 @@ import traceback
 
 
 class QFNumberEdit(QtGui.QLineEdit):
-    #a signal to emit the new, approved number. Will emit False if the 
+    #a signal to emit the new, approved number. Will emit False if the
     # inputted value is not accepted. Intended for float inputs
     textAccepted = QtCore.pyqtSignal(object)
     def __init__(self, parent = None, contents = ''):
@@ -23,9 +23,9 @@ class QFNumberEdit(QtGui.QLineEdit):
         self.textChanged.connect(lambda: self._handleEditingFinished())
         self.returnPressed.connect(lambda: self._handleEditingFinished(True))
         self._before = contents
-        
-    
-        
+
+
+
     def _handleEditingFinished(self, _return = False):
         before, after = self._before, str(self.text())
         if (not self.hasFocus() or _return) and before != after:
@@ -39,8 +39,8 @@ class QFNumberEdit(QtGui.QLineEdit):
                 self.setText(str(val))
                 self._before = str(val)
                 self.textAccepted.emit(val)
-                
-            
+
+
     def value(self):
         ret = -1
         if str(self.text()) == '':
@@ -51,7 +51,7 @@ class QFNumberEdit(QtGui.QLineEdit):
             self._handleEditingFinished()
             ret = float(self.text())
         return ret
-                
+
     def parseInp(self, inp):
         ret = None
         #see if we can just turn it into a number and leave if we can
@@ -69,7 +69,7 @@ class QFNumberEdit(QtGui.QLineEdit):
                 return ret
             except Exception as e:
                 print "Can't parse command", inp, e
-        #tests to see whether digit is whole number or decimal, and if it has 
+        #tests to see whether digit is whole number or decimal, and if it has
         #some modifier at the end
         toMatch = re.compile('-?(\d+\.?\d*|\d*\.\d+)(m|u|n|M|k)?\Z')
         if re.match(toMatch, inp):
@@ -87,7 +87,7 @@ class QFNumberEdit(QtGui.QLineEdit):
             return False
 
 class QINumberEdit(QtGui.QLineEdit):
-    #a signal to emit the new, approved number. Will emit False if the 
+    #a signal to emit the new, approved number. Will emit False if the
     # inputted value is not accepted. Intended for integer inputs
     textAccepted = QtCore.pyqtSignal(object)
     def __init__(self, parent = None, contents = ''):
@@ -106,7 +106,7 @@ class QINumberEdit(QtGui.QLineEdit):
         ret = copy.deepcopy(self)
         ret.setText(str(self.value()-other))
         return ret
-        
+
     def _handleEditingFinished(self, _return = False):
         before, after = self._before, str(self.text())
         if (not self.hasFocus() or _return) and before != after:
@@ -130,8 +130,8 @@ class QINumberEdit(QtGui.QLineEdit):
             self._handleEditingFinished()
             ret = int(self.text())
         return ret
-            
-        
+
+
     def parseInp(self, inp):
         ret = None
         #see if we can just turn it into a number and leave if we can
@@ -342,12 +342,13 @@ class DoubleYPlot(pg.PlotWidget):
         #http://bazaar.launchpad.net/~luke-campagnola/pyqtgraph/inp/view/head:/examples/MultiplePlotAxes.py
         #Need to do all this nonsense to make it plot on two different axes.
         #Also note the self.updatePhase plot which shows how to update the data.
+        self.p1 = self.plotItem1.vb
         self.p2 = pg.ViewBox()
         self.plotItem1.showAxis('right')
         self.plotItem1.scene().addItem(self.p2)
         self.plotItem1.getAxis('right').linkToView(self.p2)
         self.p2.setXLink(self.plotItem1)
-        self.plotTwo = pg.PlotCurveItem()
+        self.plotTwo = pg.PlotDataItem()
         self.p2.addItem(self.plotTwo)
 
         #need to set it up so that when the window (and thus main plotItem) is
@@ -355,6 +356,7 @@ class DoubleYPlot(pg.PlotWidget):
         self.plotItem1.vb.sigResized.connect(lambda: self.p2.setGeometry(self.plotItem1.vb.sceneBoundingRect()))
         self.setY1Color('k')
         self.setY2Color('r')
+        print type(self.plotOne), type(self.plotTwo)
 
     def setXLabel(self, label="X", units=""):
         self.plotItem1.setLabel('bottom',text=label, units=units)
@@ -376,11 +378,11 @@ class DoubleYPlot(pg.PlotWidget):
         else:
             raise ValueError("I don't know what you want me to plot {}".format(data))
 
-    def setY2Data(self, data):
-        if len(data.shape) == 2:
-            self.plotTwo.setData(data[:,0], data[:,1])
-        else:
-            self.plotTwo.setData(data)
+    def setY2Data(self, *data):
+        if len(data)==1:
+            self.plotTwo.setData(data[0])
+        elif len(data)==2:
+            self.plotTwo.setData(*data)
         self.p2.setGeometry(self.plotItem1.vb.sceneBoundingRect())
 
     def setY2Pen(self, *args, **kwargs):
@@ -392,6 +394,12 @@ class DoubleYPlot(pg.PlotWidget):
         self.y1Pen = pg.mkPen(color)
         self.plotItem1.getAxis("left").setPen(self.y1Pen)
         self.plotOne.setPen(self.y1Pen)
+
+    def setY1Pen(self, *args, **kwargs):
+        self.y1Pen = pg.mkPen(*args, **kwargs)
+        self.plotItem1.getAxis("left").setPen(self.y1Pen)
+        self.plotOne.setPen(self.y1Pen)
+
 
     def setY2Color(self, color='r'):
         self.y2Pen = pg.mkPen(color)
@@ -420,14 +428,3 @@ class LockableBool(object):
 
     def lock(self):
         self._changeable = False
-
-
-
-
-
-
-
-
-
-
-

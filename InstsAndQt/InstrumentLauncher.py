@@ -100,6 +100,7 @@ class AppOutputStream(object):
          :type qtextedit: QtGui.QTextEdit
         """
         self.qText = qtextedit
+        print "texteditparent", self.qText.parent()
         global outputStreams
         outputStreams.append(self)
         self.proc = QtCore.QProcess()
@@ -132,6 +133,8 @@ class AppOutputStream(object):
         if col is not None:
             self.qText.setTextColor(oldCol)
 
+        # load.ui.tabWidget.tabBar().setTabTextColor(1, QtGui.QColor("Red"))
+
     def finish(self):
         # self.qText.setTextColor(QtGui.QColor("green"))
         # self.qText.append("<application closed>")
@@ -149,9 +152,9 @@ applications = {
                         QtGui.QMainWindow, os.path.join("Lakeshore330Monitor","lakeshoreMonitor.py")),
     "Pyro Calibrator": WidgetInfo(r"PyroCalibrator.calibrator_ui", "Ui_PyroCalibration",
                         QtGui.QMainWindow, os.path.join("PyroCalibrator","pyroCal.py")),
-    "FEL Pulse Monitor": WidgetInfo(r"Lakeshore330Monitor.lakeshore330Panel_ui", None,
+    "FEL Pulse Monitor": WidgetInfo(None, None,
                         None, os.path.join("PyroOscope","FELMonitor.py")),
-    "Wiregrid calibrator": WidgetInfo(r"MotorDriver.mainWindow_ui", "Ui_MainWindow",
+    "Wiregrid calibrator": WidgetInfo(r"MotorDriver.wiregridcal_ui", "Ui_MainWindow",
                         QtGui.QMainWindow, os.path.join("MotorDriver","TKCalibrator.py"))
     # "Temperature Monitor": WidgetInfo(r"Lakeshore330Monitor.lakeshore330Panel_ui", "Ui_Form",
     #                     QtGui.QWidget, os.path.join("Lakeshore330Monitor","lakeshoreMonitor.py"))
@@ -176,6 +179,7 @@ class ExampleLoader(QtGui.QMainWindow):
         self.ui.splitter.setStretchFactor(1, 1)
 
         self.ui.lwNames.currentItemChanged.connect(self.updateDisplayWidget)
+        self.ui.lwNames.doubleClicked.connect(self.runApplication)
 
         self.show()
 
@@ -206,7 +210,11 @@ class ExampleLoader(QtGui.QMainWindow):
 
         else:
             newWin.ui = ui()
-            newWin.ui.setupUi(newWin)
+            try:
+                newWin.ui.setupUi(newWin)
+            except:
+                print ui
+                raise
 
 
         # Remove parent of the render layout and let it be garbage
@@ -231,7 +239,7 @@ class ExampleLoader(QtGui.QMainWindow):
         excStr = "{} {}".format(sys.executable, fn)
         a = QtCore.QProcess()
 
-        newText = QtGui.QTextEdit()
+        newText = QtGui.QTextEdit(self.ui.tabWidget)
         newText.setReadOnly(True)
         self.ui.tabWidget.addTab(newText, self.ui.lwNames.currentItem().text())
 
@@ -244,14 +252,18 @@ class ExampleLoader(QtGui.QMainWindow):
         a.start(excStr)
 
     def closeEvent(self, QCloseEvent):
-        print "tried to closeEvent"
-
-        # QtCore.QProcess.state()
         anyRunning = any([ii.proc.state()==QtCore.QProcess.Running for ii in outputStreams])
+
+
         if anyRunning:
-            print "Process is running"
-        else:
-            print "No Processing running"
+            wid = QtGui.QMessageBox.warning(self, "Confirm exit",
+                                            "Applications are still running. Are you sure you want to "
+                                            "exit? (Running applications will be terminated)",
+                                            QtGui.QMessageBox.Yes | QtGui.QMessageBox.Cancel,
+                                            QtGui.QMessageBox.Cancel)
+            if wid == QtGui.QMessageBox.Cancel:
+                QCloseEvent.ignore()
+                return
         super(ExampleLoader, self).closeEvent(QCloseEvent)
 
 
@@ -263,8 +275,8 @@ def run():
     import pyqtgraph.console as pgc
 
     global cons
-    # cons = pgc.ConsoleWidget(namespace={"load":loader})
-    # cons.show()
+    cons = pgc.ConsoleWidget(namespace={"load":loader})
+    cons.show()
 
     app.exec_()
 

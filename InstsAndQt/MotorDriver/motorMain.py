@@ -1,8 +1,8 @@
 from PyQt4 import QtCore, QtGui
 from movementWindow_ui import Ui_MainWindow
-from ..TIMSMotorDriver import *
-from ..customQt import *
-from ..Instruments import __displayonly__
+from InstsAndQt.TIMSMotorDriver import *
+from InstsAndQt.customQt import *
+from InstsAndQt.Instruments import __displayonly__
 from Control import SettingsWindow
 import numpy as np
 import pyqtgraph

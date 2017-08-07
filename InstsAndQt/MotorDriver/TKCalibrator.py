@@ -10,6 +10,7 @@ import os
 from scipy.interpolate import interp1d as i1d
 from scipy.optimize import curve_fit as cf
 import pyqtgraph as pg
+from wiregridcal_ui import Ui_MainWindow
 
 tkTrans = np.array(
     [
@@ -124,7 +125,7 @@ def minir(x, *p):
 
 tkCalFactor = 0.00502
 
-class UI(object): pass
+
 
 class TKCalibrator(QtGui.QMainWindow):
     thWaitForScope = None
@@ -132,40 +133,7 @@ class TKCalibrator(QtGui.QMainWindow):
     sigDoGui = QtCore.pyqtSignal(object, object)
     def __init__(self):
         super(TKCalibrator, self).__init__()
-        self.ui = UI()
-        layout = QtGui.QVBoxLayout()
-        self.motorWid = MotorWindow()
-        self.scopeWid = TKWid()
-
-        self.ui.fitWid = pg.PlotWidget()
-        self.curveData = self.ui.fitWid.plotItem.plot(pen=None, symbol='o', brush='k')
-        self.curveFit = self.ui.fitWid.plotItem.plot(pen='k')
-        self.textFit = pg.TextItem()
-        self.textFit.setFont(QtGui.QFont("", 15))
-        self.ui.fitWid.plotItem.addItem(self.textFit)
-        self.scopeWid.ui.tabWidget.addTab(self.ui.fitWid, "Cos Fit")
-        # only emit signal when completed.
-        self.scopeWid.settings["emit_mid_average"] = False
-        layout.addWidget(self.motorWid)
-        layout.addWidget(self.scopeWid)
-
-        buttons = QtGui.QHBoxLayout()
-        self.ui.bSaveDir = QtGui.QPushButton("Choose Save Dir")
-        self.ui.bSaveDir.clicked.connect(self.pickSaveDir)
-        self.ui.bStartSweep = QtGui.QPushButton("Start TK Cal")
-        self.ui.bStartSweep.setCheckable(True)
-        self.ui.bStartSweep.clicked.connect(self.startSweep)
-        buttons.addSpacing(2)
-        buttons.addWidget(self.ui.bSaveDir)
-        buttons.addWidget(self.ui.bStartSweep)
-
-        wid = QtGui.QWidget()
-        layout.addLayout(buttons)
-        layout.setStretch(0,1)
-        layout.setStretch(1,10)
-        layout.setStretch(2,1)
-        wid.setLayout(layout)
-        self.setCentralWidget(wid)
+        self.initUI()
 
         self.thDoTKSweep.target = self.doTKSweep
         self.sigDoGui.connect(self.makeGuiThings)
@@ -179,6 +147,26 @@ class TKCalibrator(QtGui.QMainWindow):
         }
 
         self.show()
+
+    def initUI(self):
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
+        self.motorWid = self.ui.wMotor
+        self.scopeWid = self.ui.wTK
+
+        self.ui.fitWid = pg.PlotWidget()
+        self.curveData = self.ui.fitWid.plotItem.plot(pen=None, symbol='o', brush='k')
+        self.curveFit = self.ui.fitWid.plotItem.plot(pen='k')
+        self.textFit = pg.TextItem()
+        self.textFit.setFont(QtGui.QFont("", 15))
+        self.ui.fitWid.plotItem.addItem(self.textFit)
+        self.scopeWid.ui.tabWidget.addTab(self.ui.fitWid, "Cos Fit")
+        # only emit signal when completed.
+        self.scopeWid.settings["emit_mid_average"] = False
+
+        self.ui.bSaveDir.clicked.connect(self.pickSaveDir)
+        self.ui.bStartSweep.clicked.connect(self.startSweep)
+
 
     def pickSaveDir(self):
         path = QtGui.QFileDialog.getSaveFileName(self,

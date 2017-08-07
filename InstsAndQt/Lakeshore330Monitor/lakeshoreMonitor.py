@@ -1,8 +1,8 @@
 from PyQt4 import QtGui, QtCore
 import time
 import numpy as np
-from ..Instruments import LakeShore330
-from ..Instruments import __displayonly__
+from InstsAndQt.Instruments import LakeShore330
+from InstsAndQt.Instruments import __displayonly__
 import pyqtgraph as pg
 pg.setConfigOption("background", "w")
 pg.setConfigOption("foreground", "k")
