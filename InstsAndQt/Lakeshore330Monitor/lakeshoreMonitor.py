@@ -1,7 +1,7 @@
 from PyQt4 import QtGui, QtCore
 import time
 import numpy as np
-from InstsAndQt.Instruments import LakeShore330
+from InstsAndQt.Instruments import LakeShore325, LakeShore330
 from InstsAndQt.Instruments import __displayonly__
 import pyqtgraph as pg
 pg.setConfigOption("background", "w")
@@ -103,7 +103,7 @@ class DateAxis(pg.AxisItem):
 
         return super(DateAxis, self).tickSpacing(minVal, maxVal, size)
 
-class LakeshoreMonitor(QtGui.QWidget):
+class LakeshoreMonitor(QtGui.QMainWindow):
     def __init__(self):
         super(LakeshoreMonitor, self).__init__()
 
@@ -117,7 +117,7 @@ class LakeshoreMonitor(QtGui.QWidget):
         self.updateTimer.timeout.connect(self.updateDisplays)
         self.updateTimer.start()
 
-        self.saveLoc = r'Z:\Hunter Banks\Data\2016\\'
+        self.saveLoc = r'Z:\~Hunter Banks\Data\2017\\'
 
 
     def initUI(self):

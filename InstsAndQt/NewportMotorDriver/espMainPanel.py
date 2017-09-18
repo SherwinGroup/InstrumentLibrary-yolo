@@ -13,42 +13,38 @@ class ESPMainPanel(QtGui.QWidget):
     def __init__(self, parent = None):
         super(ESPMainPanel, self).__init__(parent)
         self.initUI()
-
         self.detHWPWidget = None
-
+        # reference to all motor axes added
+        self.motorAxes = []
         self.addMotorAxes()
 
     def initUI(self):
         self.ui = Ui_ESPPanel()
         self.ui.setupUi(self)
 
-        try:
-            rm = visa.ResourceManager()
-            GPIBList = [i.encode('ascii') for i in rm.list_resources()]
-            GPIBList.append('Fake')
-        except Exception as e:
-            # log.warning("Error loading GPIB list")
-            print "Error loading GPIB list", e
-            GPIBList = ['a', 'b', 'c', 'Fake']
 
         try:
-            GPIBidx = GPIBList.index("GPIB0::2::INSTR")
-        except ValueError:
-            GPIBidx = GPIBList.index("Fake")
-
-        self.ui.cbGPIB.addItems(GPIBList)
-        self.ui.cbGPIB.setCurrentIndex(GPIBidx)
+            self.ui.cbGPIB.setAddress("GPIB0::2::INSTR")
+        except RuntimeError:
+            self.ui.cbGPIB.setAddress("Fake")
 
         self.ui.cbGPIB.currentIndexChanged.connect(self.updateGPIB)
+        self.ui.bErrors.clicked.connect(self.displayErrors)
+
+        self.errorWindow = QtGui.QPlainTextEdit()
+        self.errorWindow.setReadOnly(True)
+        self.errorWindow.setWindowTitle("ESP Error Log")
 
         self.show()
 
 
     def updateGPIB(self):
-        # readd the motor axes, having the
-        # garbage collector remove old references
-        self.addMotorAxes()
-
+        if str(self.ui.cbGPIB.currentText()) == "None":
+            ## What's the safest thing to do here...?
+            return
+        for axis in self.motorAxes:
+            axis.GPIB = str(self.ui.cbGPIB.currentText())
+            axis.openESPAxis(axis=1)
 
     def addMotorAxes(self):
         """
@@ -58,14 +54,27 @@ class ESPMainPanel(QtGui.QWidget):
         """
 
         detHWPgroupbox = QtGui.QGroupBox("Detector Half Wave Plate")
+        detHWPgroupbox.setFlat(True)
         detHWPgbLayout = QtGui.QVBoxLayout(detHWPgroupbox)
         self.detHWPWidget = ESPAxisPanel(parent=self,
                                          GPIB=str(self.ui.cbGPIB.currentText()),
                                          axis=1)
+        self.detHWPWidget.sigErrorsEncountered.connect(self.updateInstrumentErrors)
+        self.motorAxes.append(self.detHWPWidget)
         detHWPgbLayout.addWidget(self.detHWPWidget)
         detHWPgroupbox.setLayout(detHWPgbLayout)
 
         self.ui.layoutAxes.addWidget(detHWPgroupbox)
+
+    def updateInstrumentErrors(self, err):
+        self.errorWindow.appendPlainText(err)
+
+        self.ui.bErrors.setStyleSheet("QPushButton { background-color : Red; color : black; }")
+
+    def displayErrors(self):
+        self.ui.bErrors.setStyleSheet("")
+        self.errorWindow.show()
+
 
 
 

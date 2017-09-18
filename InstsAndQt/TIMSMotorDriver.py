@@ -187,7 +187,7 @@ class TIMS0201(object):
         # You can try to find out
 
         self.handle = c_uint(0)
-        print "opened: {}".format(self.dllOpen(1, self.handle))
+        print "opened: {}".format(self.dllOpen(0, self.handle))
         
         # Need toset up other things to talk to the device properly
         # I don't think it should be done ever again, so they're not

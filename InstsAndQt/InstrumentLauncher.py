@@ -92,13 +92,13 @@ class WidgetInfo(object):
 outputStreams = []
 
 
-class AppOutputStream(object):
+class AppOutputStream(QtCore.QObject):
     def __init__(self, qtextedit=None):
         """
-
         :param qtextedit:
          :type qtextedit: QtGui.QTextEdit
         """
+        super(AppOutputStream, self).__init__()
         self.qText = qtextedit
         print "texteditparent", self.qText.parent()
         global outputStreams
@@ -109,20 +109,19 @@ class AppOutputStream(object):
         self.proc = proc
         proc.readyReadStandardError.connect(self.readErr)
         proc.readyReadStandardOutput.connect(self.readOut)
+        proc.error.connect(self.readErr)
         proc.finished.connect(self.finish)
 
     def readErr(self):
         self.proc.setReadChannel(QtCore.QProcess.StandardError)
         text = str(self.proc.readAll())
-        # self.qText.setTextColor(QtGui.QColor("red"))
-        # self.qText.append(text)
-        # self.qText.setTextColor(QtGui.QColor("black"))
+        self.append('-'*20, 'red')
         self.append(text, 'red')
+        self.append('-'*20, 'red')
 
     def readOut(self):
         self.proc.setReadChannel(QtCore.QProcess.StandardOutput)
         text = str(self.proc.readAll())
-
         self.append(text)
 
     def append(self, text='', col=None):
@@ -136,13 +135,7 @@ class AppOutputStream(object):
         # load.ui.tabWidget.tabBar().setTabTextColor(1, QtGui.QColor("Red"))
 
     def finish(self):
-        # self.qText.setTextColor(QtGui.QColor("green"))
-        # self.qText.append("<application closed>")
-        # self.qText = QtGui.QTextEdit()
         self.append("<application closed>", 'green')
-        # self.qText.setTextColor(QtGui.QColor("black"))
-
-
 
 
 applications = {
@@ -155,7 +148,11 @@ applications = {
     "FEL Pulse Monitor": WidgetInfo(None, None,
                         None, os.path.join("PyroOscope","FELMonitor.py")),
     "Wiregrid calibrator": WidgetInfo(r"MotorDriver.wiregridcal_ui", "Ui_MainWindow",
-                        QtGui.QMainWindow, os.path.join("MotorDriver","TKCalibrator.py"))
+                        QtGui.QMainWindow, os.path.join("MotorDriver","TKCalibrator.py")),
+    "THz Attenuator": WidgetInfo(r"MotorDriver.movementWindow_ui", "Ui_MainWindow",
+                        QtGui.QMainWindow, os.path.join("MotorDriver","motorMain.py")),
+    "Newport Motor Driver": WidgetInfo(r"NewportMotorDriver.UIs.axisPanel_ui", "Ui_ESPAxisPanel",
+                        QtGui.QWidget, os.path.join("NewportMotorDriver","espMainPanel.py"))
     # "Temperature Monitor": WidgetInfo(r"Lakeshore330Monitor.lakeshore330Panel_ui", "Ui_Form",
     #                     QtGui.QWidget, os.path.join("Lakeshore330Monitor","lakeshoreMonitor.py"))
 }
@@ -236,8 +233,9 @@ class ExampleLoader(QtGui.QMainWindow):
         fn = self.currentFile()
         if fn is None:
             return
-        excStr = "{} {}".format(sys.executable, fn)
+        excStr = "{} -u {}".format(sys.executable, fn)
         a = QtCore.QProcess()
+        # a.setProcessChannelMode(QtCore.QProcess.MergedChannels)
 
         newText = QtGui.QTextEdit(self.ui.tabWidget)
         newText.setReadOnly(True)
@@ -249,7 +247,7 @@ class ExampleLoader(QtGui.QMainWindow):
         if  QtGui.QApplication.keyboardModifiers() == QtCore.Qt.ShiftModifier:
             a.startDetached("{} {}".format(sys.executable, fn))
             stream.append("<Proccess Detached...>", "purple")
-        a.start(excStr)
+        a.start(excStr, QtCore.QProcess.ReadOnly)
 
     def closeEvent(self, QCloseEvent):
         anyRunning = any([ii.proc.state()==QtCore.QProcess.Running for ii in outputStreams])
@@ -272,11 +270,14 @@ def run():
     app = QtGui.QApplication([])
     loader = ExampleLoader()
 
-    import pyqtgraph.console as pgc
+    # import pyqtgraph.console as pgc
+    #
+    # global cons
+    # cons = pgc.ConsoleWidget(namespace={"load":loader})
+    # cons.show()
 
-    global cons
-    cons = pgc.ConsoleWidget(namespace={"load":loader})
-    cons.show()
+
+    
 
     app.exec_()
 

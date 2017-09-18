@@ -1,0 +1,2 @@
+python InstrumentLauncher.py
+pause

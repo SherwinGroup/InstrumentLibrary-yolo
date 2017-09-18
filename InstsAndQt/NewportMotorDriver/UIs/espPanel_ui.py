@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'C:\Users\FELLab\Documents\GitHub\InstrumentLibrary-yolo\InstsAndQt\NewportMotorDriver\UIs\espPanel.ui'
 #
-# Created: Wed Feb 24 10:23:48 2016
+# Created: Fri Sep 01 16:42:51 2017
 #      by: PyQt4 UI code generator 4.11.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -26,7 +26,7 @@ except AttributeError:
 class Ui_ESPPanel(object):
     def setupUi(self, ESPPanel):
         ESPPanel.setObjectName(_fromUtf8("ESPPanel"))
-        ESPPanel.resize(634, 262)
+        ESPPanel.resize(634, 157)
         self.horizontalLayout_2 = QtGui.QHBoxLayout(ESPPanel)
         self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
         self.verticalLayout = QtGui.QVBoxLayout()
@@ -35,12 +35,18 @@ class Ui_ESPPanel(object):
         self.layoutAxes.setObjectName(_fromUtf8("layoutAxes"))
         self.verticalLayout.addLayout(self.layoutAxes)
         self.groupBox = QtGui.QGroupBox(ESPPanel)
+        self.groupBox.setFlat(True)
         self.groupBox.setObjectName(_fromUtf8("groupBox"))
         self.horizontalLayout = QtGui.QHBoxLayout(self.groupBox)
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
-        self.cbGPIB = QtGui.QComboBox(self.groupBox)
+        self.cbGPIB = InstrumentGPIB(self.groupBox)
         self.cbGPIB.setObjectName(_fromUtf8("cbGPIB"))
         self.horizontalLayout.addWidget(self.cbGPIB)
+        spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem)
+        self.bErrors = QtGui.QPushButton(self.groupBox)
+        self.bErrors.setObjectName(_fromUtf8("bErrors"))
+        self.horizontalLayout.addWidget(self.bErrors)
         self.verticalLayout.addWidget(self.groupBox)
         self.verticalLayout.setStretch(0, 10)
         self.verticalLayout.setStretch(1, 1)
@@ -52,4 +58,6 @@ class Ui_ESPPanel(object):
     def retranslateUi(self, ESPPanel):
         ESPPanel.setWindowTitle(_translate("ESPPanel", "ESP300 Panel", None))
         self.groupBox.setTitle(_translate("ESPPanel", "GPIB", None))
+        self.bErrors.setText(_translate("ESPPanel", "Errors", None))
 
+from InstsAndQt.instrumentgpib import InstrumentGPIB

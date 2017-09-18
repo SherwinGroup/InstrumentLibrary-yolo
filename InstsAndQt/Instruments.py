@@ -22,7 +22,7 @@ log.setLevel(logging.DEBUG)
 handler = logging.FileHandler("TheInstrumentLog.log")
 handler.setLevel(logging.DEBUG)
 handler1 = logging.StreamHandler()
-handler1.setLevel(logging.DEBUG)
+handler1.setLevel(logging.WARN)
 formatter = logging.Formatter('%(asctime)s - [%(filename)s:%(lineno)s - %(funcName)s()] - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 handler1.setFormatter(formatter)
@@ -43,7 +43,7 @@ except Exception as e:
 class BaseInstr(object):
     """Base class which handles opening the GPIB and safely reading/writing to the instrument"""
     def __init__(self, GPIB_Number = None, timeout = 3000):
-        if GPIB_Number is None or GPIB_Number == 'Fake':
+        if GPIB_Number is None or GPIB_Number == 'Fake' or GPIB_Number == 'None':
             log.debug('Error. No GPIB assigned {}'.format(self.__class__.__name__))
             # self.instrument = FakeInstr()
             self.instrument = getCls(self)()
@@ -70,7 +70,7 @@ class BaseInstr(object):
         try:
             self.instrument.write(command)
         except Exception as e:
-            print 'Error writting command, {}. {}'.format(command, e)
+            log.exception("Error writitng command: {}".format(command))
             return False
         return True
     
@@ -89,9 +89,9 @@ class BaseInstr(object):
             if strip>=1:
                 ret = ret[:-1]
         except pyvisa.errors.VisaIOError:
-            print "error: timeout while asking", command
+            log.warning("Error: timeout while asking {}".format(command))
         except Exception as e:
-            print 'Error asking,', command, e
+            log.exception("Erorr asking instrument: {}".format(command))
         return ret
 
     def read(self):
@@ -99,7 +99,9 @@ class BaseInstr(object):
         try:
             ret = self.instrument.read()
         except pyvisa.errors.VisaIOError:
-            print "timeout while reading"
+            log.warning("Error: timeout while reading")
+        except Exception as e:
+            log.exception("Error reading")
         return ret
         
     def query(self, command, strip=1):
@@ -115,7 +117,7 @@ class BaseInstr(object):
             if strip>=1:
                 ret = ret[:-1]
         except:
-            print 'Error asking,', command
+            log.exception("Error querying {}".format(command))
         return ret
         
     def query_binary_values(self, command):
@@ -123,8 +125,7 @@ class BaseInstr(object):
         try:
             ret = self.instrument.query_binary_values(command, datatype='b')
         except Exception as e:
-            print 'error querying binary,', command
-            print 'Error is', e
+            log.exception("Error querying binary {}".format(command))
         return ret
 
     def query_ascii_values(self, *arg, **kwargs):
@@ -132,8 +133,7 @@ class BaseInstr(object):
         try:
             ret = self.instrument.query_ascii_values(*arg, **kwargs)
         except Exception as e:
-            print "Error querying ascii values", arg, kwargs
-            print "Error is", e
+            log.exception("Error querying ascii {}".format(args))
         return ret
         
     def close(self):
@@ -362,6 +362,8 @@ class Agilent6000(BaseInstr):
                                 "norm", "aver", "hres"]:
             mode = "NORM"
         self.write(":ACQ:TYPE {}".format(mode))
+
+
     def setAverages(self, num):
         try:
             num = int(num)
@@ -601,7 +603,6 @@ class ESP300(BaseInstr):
         '''
         self._current_axis = input
 
-
     @property
     def velocity(self):
         '''
@@ -655,14 +656,21 @@ class ESP300(BaseInstr):
         self.instrument.write('%i%s%f'%(self.current_axis,command_string,input))
         if self.always_wait_for_stop:
             self.wait_for_stop()
+
     @property
     def home(self):
-        raise NotImplementedError
+        command_string = 'OR'
+        self.instrument.write('%i%s'%(self.current_axis,command_string))
+        if self.always_wait_for_stop:
+            self.wait_for_stop()
+
+    def goHome(self):
+        # Want to overload so this is a callable.
+        self.home
     @home.setter
     def home(self, input):
         command_string = 'DH'
         self.instrument.write('%i%s%f'%(self.current_axis,command_string,input))
-
 
     @property
     def units(self):
@@ -932,6 +940,9 @@ class LakeShore325(BaseInstr):
         #returns temp in C from input A/B in float
         temp=self.ask("CRDG? "+channel)
         return float(temp)
+
+    def getSampleTemp(self, channel="A"):
+        return self.askTemp(channel)
 
 
     def askSetpoint(self, loop="1"):
@@ -1366,65 +1377,10 @@ except ImportError:
 
 if __name__ == '__main__':
     import interactivePG as pg
-    rm = visa.ResourceManager()
-
-    a = DG535("GPIB0::15::INSTR")
-    print "tl", a.getTriggerLevel()
-
-    # a = SR760("GPIB0::10::INSTR")
-    # a.instrument.timeout = 10e3
-
-
-    # a.setSpan(13)
-    # a.setStartFrequency(0)
-    # a.write("STRT")
-    # a.waitForComplete()
-    # d = a.ask("SPEC?-1")[:-1]
-    # d = np.array(map(float, d.split(',')))
-    # f = np.arange(400)/400*a.getSpan()+a.getStartFrequency()
-    # pg.plot(f, d, label="1.56")
-
-
-    # a.setSpan(15)
-    # a.setStartFrequency(0)
-    # a.write("STRT")
-    # a.waitForComplete()
-    # d = a.ask("SPEC?-1")[:-1]
-    # d = np.array(map(float, d.split(',')))
-    # f = np.arange(400)/400*a.getSpan()+a.getStartFrequency()
-    # pg.plot(f, d, label="6.25")
-
-    # a.setSpan(17)
-    # a.setStartFrequency(0)
-    # a.write("STRT")
-    # a.waitForComplete()
-    # d = a.ask("SPEC?-1")[:-1]
-    # d = np.array(map(float, d.split(',')))
-    # f = np.arange(400)/400*a.getSpan()+a.getStartFrequency()
-    # pg.plot(f, d, label="25")
-
-
-    # a.setSpan(18)
-    # a.setStartFrequency(0)
-    # a.write("STRT")
-    # a.waitForComplete()
-    # d = a.ask("SPEC?-1")[:-1]
-    # d = np.array(map(float, d.split(',')))
-    # f = np.arange(400)/400*a.getSpan()+a.getStartFrequency()
-    # pg.plot(f, d, label="50")
-
-
-
-
-
-    # pg.show()
-    # print a.ask("*IDN?")
-    # a.write("*CLS")
-    # print a.ask("STRF?")
-    # print a.read()
-
-
-        
+    a = ESP300("GPIB0::2::INSTR")
+    print a.position
+    a.position-=20
+    print a.position
 
 
 

@@ -10,9 +10,10 @@ try:
     from ..customQt import *
     from ..DelayGenerator.DG535Window import DG535Monitor
 except ValueError:
-    raise
+    # raise
     from InstsAndQt.Instruments import *
     from InstsAndQt.customQt import *
+    from InstsAndQt.Instruments import __displayonly__
     from InstsAndQt.DelayGenerator.DG535Window import DG535Monitor
 import visa
 from Oscilloscope_ui import Ui_Oscilloscope
@@ -32,6 +33,12 @@ def sig(x, *p):
     # For fitting the hole-coupler integrated waveform
     a, mu, b, offset = p
     return a*sps.expit(b*(x-mu)) + offset
+
+
+"""
+The window transmission was measured by Hunter with the VNA.
+"""
+# windowTrans = lambda f: f
 
 """
 Calibration Note:
@@ -210,6 +217,8 @@ class OscWid(QtGui.QWidget):
 
         self.ui.bLogDir.clicked.connect(self.pickLoggingDir)
         self.ui.bLogData.clicked.connect(self.toggleLogging)
+
+        # self.ui.tFELFreq.textChanged.connect()
 
         ###################
         # Setting plot labels
