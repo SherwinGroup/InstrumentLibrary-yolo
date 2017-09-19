@@ -165,8 +165,8 @@ class OscWid(QtGui.QWidget):
         self.settings["exposing"] = False
         self.settings["coupler"] = "Cavity Dump"
         self.settings["integratingMode"] = "Integrating"
-        self.settings["logFile"] = r'Z:\Hunter Banks\Data\2016'
-        self.loggingHandle = None
+        self.settings["logFile"] = r'Z:\~Hunter Banks\Data\2017'
+        # self.loggingHandle = None
 
         # lists for holding the boundaries of the linear regions
         self.settings['bcpyBG'] = [0,0]
@@ -530,12 +530,15 @@ class OscWid(QtGui.QWidget):
         loc = str(loc)
         if not loc: return
         self.settings["logFile"] = loc
+        # if the file doesn't exist, make it and add the
+        # header information.
         if not os.path.isfile(loc):
-            self.loggingHandle = open(loc, 'a+')
-            oh = 'Time,Pulse Energy,Peak Height,Ratio\n'
-            oh += 's,mJ,mV,\n'
-            oh += ',,,\n'
-            self.loggingHandle.write(oh)
+            # self.loggingHandle = open(loc, 'a+')
+            with open(loc, 'a+') as fh:
+                oh = 'Time,Pulse Energy,Peak Height,Ratio\n'
+                oh += 's,mJ,mV,\n'
+                oh += ',,,\n'
+                fh.write(oh)
 
     def writeToLog(self, st=''):
         if self.settings["logFile"] is None: return
