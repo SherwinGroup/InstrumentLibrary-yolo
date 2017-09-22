@@ -10,7 +10,7 @@ from ..customQt import *
 import pyqtgraph as pg
 import visa
 from scipy.interpolate import interp1d as i1d
-from TK_ui import Ui_Oscilloscope
+from .TK_ui import Ui_Oscilloscope
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
 
@@ -301,7 +301,7 @@ class TKWid(QtGui.QWidget):
         :return:
         """
         self.settings['pyData'] = data
-        print '\n'*2, "Data shape", data.shape, "\n"*2
+        print('\n'*2, "Data shape", data.shape, "\n"*2)
 
         # ii = np.random.randint(len(debugdata))
         # self.settings['pyData'] = debugdata[ii]

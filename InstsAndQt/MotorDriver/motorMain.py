@@ -1,9 +1,9 @@
 from PyQt4 import QtCore, QtGui
-from movementWindow_ui import Ui_MainWindow
+from .movementWindow_ui import Ui_MainWindow
 from InstsAndQt.TIMSMotorDriver import *
 from InstsAndQt.customQt import *
 from InstsAndQt.Instruments import __displayonly__
-from Control import SettingsWindow
+from .Control import SettingsWindow
 import numpy as np
 import pyqtgraph
 
@@ -84,7 +84,7 @@ class MotorWindow(QtGui.QMainWindow):
         try:
             self.device.close_()
         except Exception as e:
-            print "error closing", e
+            print("error closing", e)
         self.device = None
         self.toggleUIEnabled(False)
         self.ui.bCloseDevice.blockSignals(True)
@@ -130,7 +130,7 @@ class MotorWindow(QtGui.QMainWindow):
         try:
             self.device.stopMotor()
         except Exception as e:
-            print "Error stopping motor", e
+            print("Error stopping motor", e)
 
     def launchSettings(self):
         self.device.setCurrentLimit(self.currentLimit)

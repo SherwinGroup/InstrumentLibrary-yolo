@@ -5,7 +5,7 @@ Created on Tue Jan 27 16:38:33 2015
 @author: dvalovcin
 """
 
-from __future__ import division
+
 import numpy as np
 import visa
 import pyvisa.errors
@@ -13,9 +13,9 @@ import time
 import logging
 
 
-from customQt import *
+from .customQt import *
 
-import Instruments
+from . import Instruments
 
 
 PRINT_OUTPUT = True
@@ -49,19 +49,19 @@ class FakeInstr(object):
 
     def write(self, string):
         if PRINT_OUTPUT:
-            print ' '*15 + string
+            print(' '*15 + string)
     def ask(self, string):
         if PRINT_OUTPUT:
-            print ' '*12 + string
+            print(' '*12 + string)
         if '*OPC?'==string:
             time.sleep(0.5)
-            return u'1\r'
+            return '1\r'
         
     def close(self):
-        print self.__class__.__name__ + 'closed'
+        print(self.__class__.__name__ + 'closed')
 
     def open(self):
-        print self.__class__.__name__ + 'opened'
+        print(self.__class__.__name__ + 'opened')
 
 class ActonSP(FakeInstr):
     def ask(self, string):
@@ -90,7 +90,7 @@ class ArduinoWavemeter(FakeInstr):
             time.sleep(t/1000)
             return 'd{}'.format(int(t))
         except Exception as e:
-            print "it's not you", string, type(string), e
+            print("it's not you", string, type(string), e)
 
     def read(self):
         # so far, only the arduino calls the reads
@@ -323,7 +323,7 @@ def getCls(cls):
 if __name__ == '__main__':
 
     a = Agilent6000("Fake")
-    print a.__class__
+    print(a.__class__)
 
 
         

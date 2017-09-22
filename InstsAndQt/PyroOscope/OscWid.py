@@ -16,8 +16,8 @@ except ValueError:
     from InstsAndQt.Instruments import __displayonly__
     from InstsAndQt.DelayGenerator.DG535Window import DG535Monitor
 import visa
-from Oscilloscope_ui import Ui_Oscilloscope
-from image_spec_for_gui import *
+from .Oscilloscope_ui import Ui_Oscilloscope
+from .image_spec_for_gui import *
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
 
@@ -401,7 +401,7 @@ class OscWid(QtGui.QWidget):
     def updateLinearRegionFromDelay(self, ch, refs, times):
         # Only worry about if A is changed since that's how
         # we currently move the CD
-        print "update args", ch, refs, times
+        print("update args", ch, refs, times)
         if ch != "A": return
         if refs[0] != refs[1]:
             log.warning("You changed references, does this still work?")
@@ -616,10 +616,10 @@ class OscWid(QtGui.QWidget):
             self.ui.tEField.setText(str(field))
             self.ui.tIntensity.setText(str(intensity))
         except TypeError:
-            print "\n\n"
-            print ratio
-            print pulseTime
-            print "\n\n"
+            print("\n\n")
+            print(ratio)
+            print(pulseTime)
+            print("\n\n")
 
         # count pulse if CD signal - BG signal is greater than
         # some user-specified value.
@@ -824,7 +824,7 @@ class OscWid(QtGui.QWidget):
                 try:
                     linearCoeff = np.polyfit(*pyD[pyFPidx[0]:pyFPidx[1],:].T, deg=1)
                 except np.RankWarning:
-                    print "caught rankwarning"
+                    print("caught rankwarning")
                     return
                 pyFP = np.polyval(x = pyD[pyFPidx[-1], 0], p = linearCoeff)
 
@@ -1043,7 +1043,7 @@ class OscWid(QtGui.QWidget):
             # there wasn't a pulse, so return 0's
             return 0, 0
         except Exception as e:
-            print "Could not calculate electric field, {}".format(e)
+            print("Could not calculate electric field, {}".format(e))
             log.warning("Could not calculate electric field, {}".format(e))
 
     def updateOscilloscopeGraph(self):

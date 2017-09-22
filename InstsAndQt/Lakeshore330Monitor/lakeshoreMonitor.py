@@ -7,7 +7,7 @@ import pyqtgraph as pg
 pg.setConfigOption("background", "w")
 pg.setConfigOption("foreground", "k")
 
-from lakeshore330Panel_ui import Ui_MainWindow
+from .lakeshore330Panel_ui import Ui_MainWindow
 
 class DateAxis(pg.AxisItem):
     def tickStrings(self, values, scale, spacing):

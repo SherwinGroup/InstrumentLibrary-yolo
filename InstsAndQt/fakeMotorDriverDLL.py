@@ -1,6 +1,6 @@
 from ctypes import *
 from struct import *
-from MotorDriver import (CTRL_GETSTATUS  ,
+from .MotorDriver import (CTRL_GETSTATUS  ,
     CTRL_STOP       ,
     CTRL_SINGLESTEP ,
     CTRL_CONTSTEP   ,

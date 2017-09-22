@@ -185,6 +185,6 @@ if __name__ == '__main__':
     # wid = DelayEditor()
     wid = DelayTimeEditor()
     wid.show()
-    print "made"
+    print("made")
 
     app.exec_()

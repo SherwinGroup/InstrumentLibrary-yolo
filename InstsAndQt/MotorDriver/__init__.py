@@ -1,1 +1,1 @@
-from motorMain import MotorWindow
+from .motorMain import MotorWindow

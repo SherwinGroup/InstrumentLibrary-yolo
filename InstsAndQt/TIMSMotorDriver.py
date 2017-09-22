@@ -104,8 +104,8 @@ def calcLRC(byteArr):
 
 def printByteArray(byteArr):
     for i in byteArr:
-        print "{:02x}".format(i).upper(),
-    print ""
+        print("{:02x}".format(i).upper(), end=' ')
+    print("")
 
     
 CTRL_GETSTATUS  = [0x02, 0x00]
@@ -172,9 +172,9 @@ class TIMS0201(object):
         status = c_ulong(1)
         ret = self.dllGetStatus(self.handle, rx, tx, status)
         if not verbose:
-            print "Status: {}\n\trx: {}, tx: {}, status: {}".format(
+            print("Status: {}\n\trx: {}, tx: {}, status: {}".format(
                 ret,
-                rx.value, tx.value, status.value)
+                rx.value, tx.value, status.value))
         return rx.value, tx.value
     
     def open_(self):
@@ -187,23 +187,23 @@ class TIMS0201(object):
         # You can try to find out
 
         self.handle = c_uint(0)
-        print "opened: {}".format(self.dllOpen(0, self.handle))
+        print("opened: {}".format(self.dllOpen(0, self.handle)))
         
         # Need toset up other things to talk to the device properly
         # I don't think it should be done ever again, so they're not
         # extra functions. Looked at Jova's VI's for values
-        print self.dll.FT_SetLatencyTimer(self.handle, c_ubyte(1))
+        print(self.dll.FT_SetLatencyTimer(self.handle, c_ubyte(1)))
         
-        print self.dll.FT_SetBaudRate(self.handle, c_ulong(230000))
+        print(self.dll.FT_SetBaudRate(self.handle, c_ulong(230000)))
         
-        print self.dll.FT_SetDataCharacteristics(self.handle,
-                    c_ubyte(8), c_ubyte(0), c_ubyte(0))
+        print(self.dll.FT_SetDataCharacteristics(self.handle,
+                    c_ubyte(8), c_ubyte(0), c_ubyte(0)))
         
     def close_(self):
         try:
-            print "closed: {}".format(self.dllClose(self.handle))
+            print("closed: {}".format(self.dllClose(self.handle)))
         except:
-            print "already closed"
+            print("already closed")
         
     def purge(self):
         self.dll.FT_Purge(self.handle, c_ulong(3))
@@ -222,18 +222,18 @@ class TIMS0201(object):
             toRead, dump = self.getStatus(verbose=True)
             count += 1
             if count >= self.readTimeout:
-                print "Nothing to read, ", toRead
-                print "Called from,", inspect.stack()[1][3]
+                print("Nothing to read, ", toRead)
+                print("Called from,", inspect.stack()[1][3])
                 return
         readPacket = (c_ubyte * toRead)()
         read = c_ulong()
         self.dllRead(self.handle, readPacket, toRead, read)
 
         if not verbose:
-            print "Read {} bytes.\n\t".format(read),
+            print("Read {} bytes.\n\t".format(read), end=' ')
             for i in readPacket:
-                print "{:02x}".format(i).upper(),
-            print ""
+                print("{:02x}".format(i).upper(), end=' ')
+            print("")
         return readPacket
         
     def stopMotor(self):
@@ -264,7 +264,7 @@ class TIMS0201(object):
         self.read()
         
     def moveAbsolute(self, move):
-        print "NOT IMPLEMENTED: moveAbsolute"
+        print("NOT IMPLEMENTED: moveAbsolute")
         
     def moveRelative(self, move):
         data = int(move)
@@ -293,7 +293,7 @@ class TIMS0201(object):
         if ret is not None:
             return unpack(">i", str(bytearray(ret[8:-1])))[0]
         else:
-            print "ERROR GETTING STEPS"
+            print("ERROR GETTING STEPS")
             return 0
 
     def setSteppingMode(self, toHalf = True):
@@ -332,14 +332,14 @@ class TIMS0201(object):
             try:
                 return read[8:-1][0]
             except Exception as e:
-                print "Error getting current, ", e
-                print " "*5, read
+                print("Error getting current, ", e)
+                print(" "*5, read)
                 return 0
         
     def setCurrentLimit(self, limit=1):
         limit = int(limit)
         if limit > 35:
-            print "ERROR: DO NOT EXCEED 35\%"
+            print("ERROR: DO NOT EXCEED 35\%")
             limit = 35
         packet = TIMS0201.makePacket(CTRL_CURLIMSET, [limit])
         self.mutex.lock()
@@ -360,8 +360,8 @@ class TIMS0201(object):
             # (     V,               A,                  A        )
             return unpack(">fff", str(bytearray(ret[8:-1])))
         else:
-            print "error getting motor power"
-            print self.read()
+            print("error getting motor power")
+            print(self.read())
 
 
     def setStepRate(self, rate):
@@ -389,11 +389,11 @@ class TIMS0201(object):
             try:
                 return unpack(">H", bytearray(ret[8:-1]))[0]
             except:
-                print "ERROR GETTING STEPRATE\n"
+                print("ERROR GETTING STEPRATE\n")
                 printByteArray(bytearray(ret))
                 printByteArray(bytearray(ret[8:-1]))
         else:
-            print "ERROR GETTING STEPRATE, NONE READ"
+            print("ERROR GETTING STEPRATE, NONE READ")
             return 100
             
     def getDeviceStatus(self):
@@ -410,7 +410,7 @@ class TIMS0201(object):
                 log.warning("\tMDCRITICAL: NO DEVICE STATUS: {}".format(ret))
                 return -1
         else:
-            print "ERROR GETTING DEVICE STATUS"
+            print("ERROR GETTING DEVICE STATUS")
             return -1
             
     def isBusy(self):
@@ -432,7 +432,7 @@ class TIMS0201(object):
         try:
             self.dll = CDLL("FTD2XX.dll")
         except:
-            from fakeMotorDriverDLL import FakeDLL
+            from .fakeMotorDriverDLL import FakeDLL
             self.dll = FakeDLL()
         
         self.dllOpen = self.dll.FT_Open
@@ -539,14 +539,14 @@ if __name__ == '__main__':
 
     A = TIMS0201()
     A.open_()
-    print
+    print()
 
-    print A.getSteps()
-    print
+    print(A.getSteps())
+    print()
 
-    print A.getCurrentLimit()
+    print(A.getCurrentLimit())
     A.setCurrentLimit(10)
-    print A.getCurrentLimit()
+    print(A.getCurrentLimit())
     
     
 

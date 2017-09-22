@@ -1,5 +1,5 @@
 from PyQt4 import QtCore, QtGui
-from UIs.axisPanel_ui import Ui_ESPAxisPanel
+from .UIs.axisPanel_ui import Ui_ESPAxisPanel
 # from esp300 import ESP300
 try:
     from ..Instruments import ESP300
@@ -57,7 +57,7 @@ class ESPAxisPanel(QtGui.QWidget):
         try:
             self.ESPAxis.motor_on = bool(self.ui.cbOn.isChecked())
         except Exception as e:
-            print "Error turning motor on", e
+            print("Error turning motor on", e)
 
     def openESPAxis(self, axis):
         self.ESPAxis = ESP300(self.GPIB, current_axis=axis)

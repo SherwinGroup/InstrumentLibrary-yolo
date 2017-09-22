@@ -7,7 +7,7 @@ Created on Mon Jan 19 14:01:23 2015
 "Brevity required, prurience preferred"
 """
 
-from __future__ import division
+
 import os, errno
 import copy
 import json
@@ -16,7 +16,7 @@ import numpy as np
 # hangs on my mac at this import line
 # no idea what the fuck is going on here.
 # import matplotlib.pylab as plt
-import cosmics_hsg as cosmics
+from . import cosmics_hsg as cosmics
 import scipy.ndimage as ndimage
 import pyqtgraph as pg
 # from UIs.ImageViewWithPlotItemContainer import ImageViewWithPlotItemContainer
@@ -97,9 +97,9 @@ class ConsecutiveImageAnalyzer(object):
             try:
                 d /= normFactors[:,None, None]
             except:
-                print "error here"
-                print type(d), d
-                print type(normFactors), normFactors
+                print("error here")
+                print(type(d), d)
+                print(type(normFactors), normFactors)
                 raise
 
 
@@ -390,11 +390,11 @@ class EMCCD_image(object):
                 ret.addenda.extend(other.addenda[1:])
                 ret.subtrahenda.extend(other.subtrahenda)
             else:
-                print "self:{}, ret:{}, other:{}".format(
+                print("self:{}, ret:{}, other:{}".format(
                     self.equipment_dict['center_lambda'],
                     ret.equipment_dict['center_lambda'],
                     other.equipment_dict['center_lambda']
-                )
+                ))
                 # raise Exception('Source: EMCCD_image.__add__\nThese are not from the same grating settings')
                 log.error("Unable to add, data not from same grating settings")
         return ret
@@ -429,7 +429,7 @@ class EMCCD_image(object):
         return ret
         
     def __getslice__(self, *args):
-        print 'getslice ', args
+        print('getslice ', args)
         #Simply pass the slice along to the data
         return self.spectrum[args[0]:args[1]]
         
@@ -602,8 +602,8 @@ class EMCCD_image(object):
         try:
             equipment_str = json.dumps(self.equipment_dict, sort_keys=True)
         except:
-            print "Source: EMCCD_image.save_images\nJSON FAILED"
-            print self.equipment_dict
+            print("Source: EMCCD_image.save_images\nJSON FAILED")
+            print(self.equipment_dict)
             return
         
         my_header = "#" + equipment_str + '\n#' +  self.description.replace('\n','\n#')
@@ -636,9 +636,9 @@ class EMCCD_image(object):
         self.saveFileName = filename
         np.savetxt(os.path.join(folder_str, "Images", filename), data,
                delimiter=',', header=my_header, comments = '#', fmt=fmt)
-        print "Saved image\nDirectory: {}".format(
+        print("Saved image\nDirectory: {}".format(
             os.path.join(folder_str, "Images", filename)
-        )
+        ))
 
     def setAsSequence(self):
         """
@@ -728,16 +728,16 @@ class HSG_FVB_image(HSG_image):
         # self.clean_array = self.raw_array
 
         d = np.array(self.raw_array)
-        print d.shape
+        print(d.shape)
 
         med = ndimage.filters.median_filter(d, size=(d.shape[0], 1), mode='wrap')
-        print med.shape
+        print(med.shape)
         meanMedian  = med.mean(axis=0)
-        print meanMedian.shape
+        print(meanMedian.shape)
         # Construct a cutoff for each pixel. It was kind of guess and
         # check
         cutoff = meanMedian * medianRatio + noiseCoeff * np.std(meanMedian[:100])
-        print cutoff.shape
+        print(cutoff.shape)
 
 
 
@@ -993,7 +993,7 @@ class Abs_image(EMCCD_image):
         self.equipment_dict["reference_file"] = ""
     def __eq__(self, other):
         if type(other) is not type(self):
-            print "not same type: {}/{}/{}".format(type(other), type(self), type(Abs_image()))
+            print("not same type: {}/{}/{}".format(type(other), type(self), type(Abs_image())))
             return False
         if self.equipment_dict["gain"] != other.equipment_dict["gain"]:
             return False
@@ -1050,7 +1050,7 @@ def gen_wavelengths(center_lambda, grating):
         gamma = 0.213428934011
         delta = 1.34584754696
     else:
-        print "What a dick, that's not a valid grating"
+        print("What a dick, that's not a valid grating")
         return None
     
     center = center_lambda*10**-9

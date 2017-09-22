@@ -9,8 +9,8 @@ from PyQt4 import QtGui, QtCore
 import pyqtgraph as pg
 import numpy as np
 import threading
-from mainWindow_ui import Ui_MainWindow
-from scopeView import ScopeViewWidget
+from .mainWindow_ui import Ui_MainWindow
+from .scopeView import ScopeViewWidget
 from InstsAndQt.Instruments import Agilent6000
 from InstsAndQt.customQt import *
 import os
@@ -44,7 +44,7 @@ class Win(QtGui.QMainWindow):
             ar.append('Fake')
             s['GPIBlist'] = ar
         except:
-            print 'Error loading GPIB list'
+            print('Error loading GPIB list')
             ar = ['a', 'b', 'c', 'Fake']
             s['GPIBlist'] = ar
         try:
@@ -203,9 +203,9 @@ class Win(QtGui.QMainWindow):
             elif len(obj) == 3 and type(obj[1]) is type(self.sbTextList[-1]):
                 obj[1].setMessage(obj[0], obj[2])
             else:
-                print "UPDATE STATUSBAR: UNKONWN COMMANDA: {}, {}".format(type(obj[1]), type(self.sbTextList[-1]))
+                print("UPDATE STATUSBAR: UNKONWN COMMANDA: {}, {}".format(type(obj[1]), type(self.sbTextList[-1])))
         else:
-            print "UPDATE STATUSBAR: UNKONWN COMMANDB: {}".format(obj)
+            print("UPDATE STATUSBAR: UNKONWN COMMANDB: {}".format(obj))
 
 
     @staticmethod
@@ -279,14 +279,14 @@ class Win(QtGui.QMainWindow):
         try:
             self.Agilent.close()
         except Exception as e:
-            print "__main__.openAgilent:\nError closing Agilent,",e
+            print("__main__.openAgilent:\nError closing Agilent,",e)
         try:
             self.Agilent = Agilent6000(
                 self.settings["GPIBlist"][int(self.ui.cSettingsGPIB.currentIndex())]
             )
-            print 'Agilent opened'
+            print('Agilent opened')
         except Exception as e:
-            print "__main__.openAgilent:\nError opening Agilent,",e
+            print("__main__.openAgilent:\nError opening Agilent,",e)
             self.Agilent = Agilent6000("Fake")
             # If you change the index programatically,
             # it signals again. But that calls this thread again
@@ -307,7 +307,7 @@ class Win(QtGui.QMainWindow):
         self.scopeCollectionThread.start()
 
     def toggleScopePause(self, val):
-        print "Toggle scope. val={}".format(val)
+        print("Toggle scope. val={}".format(val))
         self.settings["isScopePaused"] = val
         if not val: # We want to stop any pausing thread if neceesary
             try:
@@ -450,7 +450,7 @@ class Win(QtGui.QMainWindow):
         try:
             filelist = os.listdir(self.settings["saveDir"])
         except:
-            print "__main__saveFile:Error, path doesn't exist"
+            print("__main__saveFile:Error, path doesn't exist")
             self.sigSetStatusBar.emit("Please choose a save dir")
             return
         basename = str(self.ui.tSettingsSaveName.text())
@@ -462,7 +462,7 @@ class Win(QtGui.QMainWindow):
                                     basename+"_"+filename+"_"+str(num)+".txt" ),
                        data, header=header)
         except Exception as e:
-            print "__main__saveFile:Error file cannae be saved,",e
+            print("__main__saveFile:Error file cannae be saved,",e)
             self.sigSetStatusBar.emit("File could not be saved")
         else:
             if statusbar is not None:

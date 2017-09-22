@@ -5,7 +5,7 @@ import scipy.optimize as spo
 import pyqtgraph as pg
 import os
 
-from calibrator_ui import Ui_PyroCalibration
+from .calibrator_ui import Ui_PyroCalibration
     
 class PyroCalibrator(QtGui.QMainWindow):
     def __init__(self):

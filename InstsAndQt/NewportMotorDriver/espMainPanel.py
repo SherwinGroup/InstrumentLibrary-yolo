@@ -1,11 +1,11 @@
 from PyQt4 import QtCore, QtGui
-from UIs.espPanel_ui import Ui_ESPPanel
+from .UIs.espPanel_ui import Ui_ESPPanel
 from InstsAndQt.customQt import *
 import numpy as np
 import pyqtgraph
 import visa
 
-from espAxisPanel import ESPAxisPanel
+from .espAxisPanel import ESPAxisPanel
 
 
 class ESPMainPanel(QtGui.QWidget):

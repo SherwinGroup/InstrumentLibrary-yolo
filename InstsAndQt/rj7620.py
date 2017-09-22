@@ -17,7 +17,7 @@ def main():
     try:
         inst = rm.get_instrument("GPIB0::3::INSTR")
     except:
-        print rm.list_resources()
+        print(rm.list_resources())
         return # maybe add better error
     
     inst.write("S1") # No averaging
@@ -26,7 +26,7 @@ def main():
     
     values = list()
     for i in range(WANTED_AVERAGES):
-        print "Waiting for pulse {},".format(i),
+        print("Waiting for pulse {},".format(i), end=' ')
         try:
             # Get the energy
             # return is 
@@ -43,22 +43,22 @@ def main():
             values.append(
                 float(val[:-1].split(":")[1].replace(" ",""))
                 )
-            print "OK: {:.3f} mJ".format( values[-1]*1000)
+            print("OK: {:.3f} mJ".format( values[-1]*1000))
         except:
             missed += 1 
-            print "missed pulse?"
+            print("missed pulse?")
         if missed >= MAX_MISSES:
-            print "Missed too many pulses. Is the FEL on?"
+            print("Missed too many pulses. Is the FEL on?")
             break
     
     st = "Wanted {} Pulses, got {} Pulses: \n\
           \t Average = {:.3f} mJ\n\
           \t std     = {:.3f} mJ"
-    print st.format(WANTED_AVERAGES,
+    print(st.format(WANTED_AVERAGES,
                     len(values),
                     np.mean(values) * 1000,
                     np.std(values) * 1000
-    )
+    ))
     
     inst.close()
           

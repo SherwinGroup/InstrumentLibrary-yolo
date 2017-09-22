@@ -4,7 +4,7 @@ import os
 import glob
 import time
 import pyqtgraph as pg
-from StringIO import StringIO
+from io import StringIO
 
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')

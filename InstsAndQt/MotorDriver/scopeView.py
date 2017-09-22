@@ -3,7 +3,7 @@
 from PyQt4 import QtGui, QtCore
 import pyqtgraph as pg
 import numpy as np
-from singleChannel_ui import Ui_Form
+from .singleChannel_ui import Ui_Form
 import scipy.integrate as spi
 import re
 pg.setConfigOption('background', 'w')

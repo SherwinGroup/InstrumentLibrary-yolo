@@ -80,10 +80,10 @@ for name in fileList:
 n = 0.0
 
 aves = dict()
-for key in attens.keys():
+for key in list(attens.keys()):
     vals = attens[key]
     aves[key] = np.zeros(vals[0].shape)
-    print "key: {}\n\t shape: {}".format(key, aves[key].shape)
+    print("key: {}\n\t shape: {}".format(key, aves[key].shape))
     aves[key][:,0] = vals[0][:,0]
     for arr in vals:
         aves[key][:,1] += arr[:,1]
@@ -94,7 +94,7 @@ for key in attens.keys():
 # Fit the peaks to a polynomial to get a better estimate of the peak value
 allP = []
 maxx = np.empty((0, 2))
-for n in aves.keys():
+for n in list(aves.keys()):
 #    plt.figure()
     plt.title(str(n))
     plt.plot(aves[n][:,0], aves[n][:,1])
@@ -118,7 +118,7 @@ plt.plot(maxx[:,0], maxx[:,1], 'o')
 p, popt = spo.curve_fit(f2, maxx[:,0], maxx[:,1], p0=[0, 4, 0.01, 1])
 x = np.linspace(maxx[0,0], maxx[-1,0], 50)
 plt.plot(x, f2(x, *p))
-print p
+print(p)
 
 #plt.title()
     

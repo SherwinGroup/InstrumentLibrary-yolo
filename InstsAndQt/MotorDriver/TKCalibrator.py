@@ -1,4 +1,4 @@
-from scopeCollect import Win as ScopeViewWidget
+from .scopeCollect import Win as ScopeViewWidget
 from PyQt4 import QtGui, QtCore
 from InstsAndQt.customQt import TempThread
 from InstsAndQt.TKOscope.TKWid import TKWid
@@ -10,7 +10,7 @@ import os
 from scipy.interpolate import interp1d as i1d
 from scipy.optimize import curve_fit as cf
 import pyqtgraph as pg
-from wiregridcal_ui import Ui_MainWindow
+from .wiregridcal_ui import Ui_MainWindow
 
 tkTrans = np.array(
     [
@@ -198,7 +198,7 @@ class TKCalibrator(QtGui.QMainWindow):
     def doTKSweep(self):
         for angle in self.settings["thzSweepPoints"]:
             if not self.ui.bStartSweep.isChecked(): break
-            print "at angle", angle
+            print("at angle", angle)
             self.sigDoGui.emit(
                 self.motorWid.ui.sbAngle.setValue, angle
             )
@@ -207,7 +207,7 @@ class TKCalibrator(QtGui.QMainWindow):
             self.motorWid.thMoveMotor.wait()
             angleData = []
             for i in range(self.settings["numAve"]):
-                print "\t num", i
+                print("\t num", i)
                 waiter = QtCore.QEventLoop()
                 self.scopeWid.ch1View.sigUpdateData.connect(waiter.exit)
                 waiter.exec_()
@@ -218,7 +218,7 @@ class TKCalibrator(QtGui.QMainWindow):
                     angleData = waveformData[:, 1]
 
             tkVal = self.processTKWaveform(angleData.mean(axis=1))
-            print "\n\tmeasured {}\n\n".format(tkVal)
+            print("\n\tmeasured {}\n\n".format(tkVal))
 
 
             self.settings["saveData"].append([angle, tkVal])
@@ -232,7 +232,7 @@ class TKCalibrator(QtGui.QMainWindow):
         self.scopeWid.sigPulseEnergy.disconnect(self.addSweepPoint)
         self.settings["saveData"].append([self.motorWid.currentAngle, energy])
         self.statusBar().showMessage("At {:.2f}, measured {:.3f}".format(*self.settings["saveData"][-1]), 3000)
-        print "At {:.2f}, measured {:.3f}".format(*self.settings["saveData"][-1])
+        print("At {:.2f}, measured {:.3f}".format(*self.settings["saveData"][-1]))
         self.updateFit()
         try:
             # Move the motor. Force an exit if the button was unchecked
@@ -253,7 +253,7 @@ class TKCalibrator(QtGui.QMainWindow):
 
         f = self.settings["saveDir"].split('.txt')[0]
         num = len([ii for ii in glob.glob(f+"*") if os.path.isfile(ii)])
-        print "found {} files".format(num)
+        print("found {} files".format(num))
         f += "{}.txt".format(num)
 
         oh = "#Freq: {}\nAngle,TK\ndeg,mJ\nAngle,TK".format(

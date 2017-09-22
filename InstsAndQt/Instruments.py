@@ -5,7 +5,7 @@ Created on Tue Jan 27 16:38:33 2015
 @author: dvalovcin
 """
 
-from __future__ import division
+
 import numpy as np
 import visa
 import pyvisa.errors
@@ -155,8 +155,8 @@ class ActonSP(BaseInstr):
             time.sleep(0.5) # maybe asking too soon after communication has been established?
             self.grating = self.getGrating() # Need for calibration
             self.wavelength = self.getWavelength()
-        except Exception, e:
-            print "ERROR INIT:", e
+        except Exception as e:
+            print("ERROR INIT:", e)
     def gotoWavelength(self, wl, doCal=True):
         """ Will go to the sepcified wavelength, given in nm, up to 3 decimal places """
         """
@@ -184,20 +184,20 @@ class ActonSP(BaseInstr):
         ret = self.ask('?nm')
         # return is "?nm <wavelength> nm  ok\r\n. base class removes \n
         if not ret:
-            print "ERROR GETTING SPECTROMETER WAVELENGTH"
+            print("ERROR GETTING SPECTROMETER WAVELENGTH")
             return
         return float(ret[3:-8])
 
     def setGrating(self, grating):
         if grating not in (1, 2, 3):
-            print 'Not a valid grating'
+            print('Not a valid grating')
             return
-        print self.ask(str(grating)+' grating', timeout=25000)
+        print(self.ask(str(grating)+' grating', timeout=25000))
 
     def getGrating(self):
         ret = self.ask('?grating')
         if not ret:
-            print "ERROR GETTING SPECTROMETER GRATING\nENSURE COMMUNICATION"
+            print("ERROR GETTING SPECTROMETER GRATING\nENSURE COMMUNICATION")
             return
         return int(ret[8:-5])
 
@@ -295,7 +295,7 @@ class Agilent6000(BaseInstr):
 
     def getSingleChannel(self, channel):
         if channel not in (1, 2, 3, 4):
-            print "Error, invalid channel for reading, {}".format(channel)
+            print("Error, invalid channel for reading, {}".format(channel))
             return
         st = ":DIG CHAN"+str(channel)
         self.write(st)
@@ -426,10 +426,10 @@ class ArduinoWavemeter(BaseInstr):
         if exposureTime is None:
             exposureTime = self.exposureTime
         exposureTime = int(exposureTime)
-        print "querying to expose for,", exposureTime
+        print("querying to expose for,", exposureTime)
 
         retVal = self.ask(str(exposureTime))
-        print "arduino response:", retVal
+        print("arduino response:", retVal)
 
         time.sleep(float(exposureTime)/1000)
 
@@ -439,12 +439,12 @@ class ArduinoWavemeter(BaseInstr):
         if not values:
             return False
         try:
-            return map(int, values.split(';'))
+            return list(map(int, values.split(';')))
         except ValueError:
             # for some reason, sometimes pyvisa will not remove a
             # \n, which map tries to parse to an int, which throws
             # the value error. Just remove the problem non-numbert
-            return map(int, values.split(';')[:-1])
+            return list(map(int, values.split(';')[:-1]))
 
 class DG535(BaseInstr):
 
@@ -458,7 +458,7 @@ class DG535(BaseInstr):
         "CD": 7
     }
 
-    outputUnMap = {v:k for k, v in outputMap.items()}
+    outputUnMap = {v:k for k, v in list(outputMap.items())}
 
     def checkError(self):
         """
@@ -474,7 +474,7 @@ class DG535(BaseInstr):
         1 Wrong number of parameters
         0 Unrecognized command
         """
-        return map(int, "{:08b}".format(int(self.ask("ES"))))
+        return list(map(int, "{:08b}".format(int(self.ask("ES")))))
 
     def checkStatus(self):
         """
@@ -490,7 +490,7 @@ class DG535(BaseInstr):
         1 Busy with timing cycle
         0 Command error detected
         """
-        return map(int, "{:08b}".format(int(self.ask("IS"))))
+        return list(map(int, "{:08b}".format(int(self.ask("IS")))))
 
     def setDelay(self, source, rel="T", t=0):
         chS = DG535.outputMap[source]
@@ -513,7 +513,7 @@ class DG535(BaseInstr):
         return int(self.ask("TM"))
 
     def setTriggerMode(self, val=1):
-        if val not in range(4):
+        if val not in list(range(4)):
             log.warning("Invalid value for trigger mode! {}".format(val))
             return
         self.write("TM {:d}".format(val))
@@ -585,7 +585,7 @@ class ESP300(BaseInstr):
         # GpibInstrument.__init__(self,address,**kwargs)
         super(ESP300, self).__init__(address)
         # self.instrument = rm().open_resource(address)
-        self.instrument.timeout = 10000L
+        self.instrument.timeout = 10000
         self.current_axis = current_axis
         self.always_wait_for_stop = always_wait_for_stop
         self.delay=delay
@@ -731,7 +731,7 @@ class Keithley236Instr(BaseInstr):
     def setBias(self, BiasLevel):
         #Set to the desired bias level, auto ranging and waiting 10ms
         if type(BiasLevel) not in (float, int):
-            print 'Error. Invalid bias level'
+            print('Error. Invalid bias level')
             return
         self.write('B'+str(BiasLevel)+',0,10X')
 
@@ -857,7 +857,7 @@ class Keithley2400Instr(BaseInstr):
             except TypeError:
                 toCall()
             except Exception as e:
-                print "Error calling intermediate function!", e
+                print("Error calling intermediate function!", e)
             time.sleep(sleep)
         return vrange[-1]
 
@@ -1100,81 +1100,81 @@ class SPEX(BaseInstr):
             self.currentPositionWN = wavenumber
         # correct for SPEX offset.
         self.currentPositionWN-=4
-        print 'Checking position'
+        print('Checking position')
         pos = self.whereAmI()
         #First make sure the query didn't return FALSE if it timed out
         if not pos:
-            print 'Error finding position. SPEX hung?'
+            print('Error finding position. SPEX hung?')
             return
         elif pos.lower() == 'f':
-            print 'SPEX already in operating mode. I\'ll keep going, but I\'m not sure I should...'
+            print('SPEX already in operating mode. I\'ll keep going, but I\'m not sure I should...')
         elif not pos.lower() == 'b':
-            print 'This shouldn\'t have happened', pos
+            print('This shouldn\'t have happened', pos)
             return
         #start main program
-        print 'Starting main SPEX software'
+        print('Starting main SPEX software')
         ret = self.ask('O2000', timeout = 5)
         if not ret:
-            print 'Error starting SPEX main program. Retry init suggested'
+            print('Error starting SPEX main program. Retry init suggested')
             return
         elif not ret == '*':
-            print "This also shouldn't have happened. ret =", ret
-        print 'Initializing motors'
+            print("This also shouldn't have happened. ret =", ret)
+        print('Initializing motors')
         
         #Needs to wait for 100 seconds, according to p37        
         ret = self.ask('A', timeout=100)
         if not ret:
-            print 'Error initalizing motors'
+            print('Error initalizing motors')
             return
         elif not ret.lower()=='o':
-            print "Bad motor initialization", ret
+            print("Bad motor initialization", ret)
             return
         
         #These settings are coming from the SPEX init.vi
         #Come from appendix 1
         #
         #speed type 0, 1000Hz min, 18000Hz max, 2000ms ramp time
-        print 'setting motor speed'
+        print('setting motor speed')
         speedStr = '0,1000,18000,2000'
         ret = self.ask('B'+speedStr)
         if not ret:
-            print 'Error initalizing motor speed'
+            print('Error initalizing motor speed')
             return
         elif not ret.lower()[0]=='o':
-            print "Bad motor speed set", ret
+            print("Bad motor speed set", ret)
             return
         ret = self.ask('C0')
         if not ret:
-            print 'Error confirming motor speed'
+            print('Error confirming motor speed')
             return
         elif not ret == 'o'+speedStr:
-            print "Motor speed not correctly set?", ret
+            print("Motor speed not correctly set?", ret)
             
-        print 'Setting internal position...'
+        print('Setting internal position...')
         #This is what the dial reads on the SPEX.
         #Either enter manually or read from a file        
         currentPosition = self.currentPositionWN
         currentStep = self.wavenumberToSteps(currentPosition)
         ret = self.ask('G0,'+str(currentStep))
         if not ret:
-            print 'Error setting position'
+            print('Error setting position')
             return
         elif not ret == 'o':
-            print "Motor position not correctly set?", ret
+            print("Motor position not correctly set?", ret)
         
         #verify position
         ret = self.ask('H0')
         if not ret:
-            print 'Error quering current position'
+            print('Error quering current position')
             return
         elif not ret[0]=='o':
-            print 'I dunno', ret
-        print 'Set to', str(currentStep), '  Reads',str(ret)
+            print('I dunno', ret)
+        print('Set to', str(currentStep), '  Reads',str(ret))
         
     def gotoWN(self, wn):
         #Will move the SPEX to the specified wavenumber
         if wn>15000:
-            print "NO. BAD. DON'T GO THERE.\n\tDesired SPEX wavenumber too large"
+            print("NO. BAD. DON'T GO THERE.\n\tDesired SPEX wavenumber too large")
             return
         notMoving = self.waitForMove()
         
@@ -1182,9 +1182,9 @@ class SPEX(BaseInstr):
         if not notMoving:
             return
         desiredWNSteps = int(self.wavenumberToSteps(wn))
-        print 'Desired wnsteps:',desiredWNSteps
+        print('Desired wnsteps:',desiredWNSteps)
         currentSteps = self.curStep()
-        print 'Currently:', currentSteps
+        print('Currently:', currentSteps)
         
         if desiredWNSteps == currentSteps:
             #Already where you wanted us to be
@@ -1204,8 +1204,8 @@ class SPEX(BaseInstr):
             
         
         newPos = self.curStep()
-        print 'Wanted,', desiredWNSteps
-        print 'Got,', newPos
+        print('Wanted,', desiredWNSteps)
+        print('Got,', newPos)
         
         self.currentPositionSteps = newPos
         self.currentPositionWN = self.stepsToWN(newPos)
@@ -1233,10 +1233,10 @@ class SPEX(BaseInstr):
                 break
             val = self.ask('E')
             if not val:
-                print 'bad return from waiting'
+                print('bad return from waiting')
                 i = i+1
                 if i >= 10:
-                    print 'Tried too many times'
+                    print('Tried too many times')
                     break
             elif val == notBusy:
                 #Done
@@ -1269,7 +1269,7 @@ class SR760(BaseInstr):
         return float(self.ask("BVAL?-1,{:d}".format(i)))
 
     def getFrequencies(self):
-        return np.array(map(self.getBinValue, range(400)))
+        return np.array(list(map(self.getBinValue, list(range(400)))))
 
     def getSpan(self):
         sp = [0.191, 0.382, 0.763, 1.500, 3.100, 6.100, 12.200, 24.400,
@@ -1284,24 +1284,24 @@ class SR760(BaseInstr):
 
     def getSTB(self):
         """serial poll byte"""
-        return map(int, "{:08b}".format(int(self.ask("*STB?"))))
+        return list(map(int, "{:08b}".format(int(self.ask("*STB?")))))
 
     def getESR(self):
         """Standard status byte"""
-        return map(int, "{:08b}".format(int(self.ask("*ESR?"))))
+        return list(map(int, "{:08b}".format(int(self.ask("*ESR?")))))
 
     def getERRS(self):
         """Error status byte"""
-        return map(int, "{:08b}".format(int(self.ask("ERRS?"))))
+        return list(map(int, "{:08b}".format(int(self.ask("ERRS?")))))
 
     def getFFTE(self):
-        return map(int, "{:08b}".format(int(self.ask("FFTE?"))))
+        return list(map(int, "{:08b}".format(int(self.ask("FFTE?")))))
 
     def waitForComplete(self):
         timeout = self.instrument.timeout
         maxCount = int(timeout/250)+1
         bit = self.getSTB()
-        for ii in xrange(maxCount):
+        for ii in range(maxCount):
             if bit[-1]: break
             time.sleep(0.25)
             bit = self.getSTB()
@@ -1325,13 +1325,13 @@ class SR830Instr(BaseInstr):
     def setRefFreq(self, freq):
         """Set the reference frequency  """
         if type(freq) not in (float, int):
-            print 'Error. Given frequency is not a number'
+            print('Error. Given frequency is not a number')
             return
         self.write('FREQ '+str(freq))
             
     def setRefVolt(self, volts):
         if type(volts) not in (float, int):
-            print 'Error. Given voltage is not a number'
+            print('Error. Given voltage is not a number')
             return
         self.write('SLVL '+str(volts))
         
@@ -1340,7 +1340,7 @@ class SR830Instr(BaseInstr):
         
     def getChannel(self, ch=1):
         if ch not in (1, 2, 3, 4, 'X', 'x', 'Y', 'y', 'R', 'r', 't', 'T', 'theta', 'Theta', 'th'):
-            print 'Error. Must give valid channel number'
+            print('Error. Must give valid channel number')
             return
         #if a letter is given instead of  anumber, must convert it
         if type(ch) is str:
@@ -1354,7 +1354,7 @@ class SR830Instr(BaseInstr):
         for (i, ch) in enumerate(args):
             if ch not in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
                           'X', 'x', 'Y', 'y', 'R', 'r', 't', 'T', 'theta', 'Theta', 'th'):
-                print 'Error. Must give valid channel number'
+                print('Error. Must give valid channel number')
                 return
             #if a letter is given instead of  anumber, must convert it
             if type(ch) is str:
@@ -1369,18 +1369,18 @@ class SR830Instr(BaseInstr):
 # cyclical definitions. This makes me think
 # I'm doing things wrong, but I dunno what else.
 try:
-    from fakeInstruments import setPrintOutput, getCls
+    from .fakeInstruments import setPrintOutput, getCls
 except ImportError:
-    print "got the import error"
+    print("got the import error")
 
 
 
 if __name__ == '__main__':
     import interactivePG as pg
     a = ESP300("GPIB0::2::INSTR")
-    print a.position
+    print(a.position)
     a.position-=20
-    print a.position
+    print(a.position)
 
 
 

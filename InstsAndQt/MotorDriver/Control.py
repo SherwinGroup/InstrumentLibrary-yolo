@@ -1,5 +1,5 @@
 from PyQt4 import QtCore, QtGui
-from ControlPanel_ui import Ui_Form
+from .ControlPanel_ui import Ui_Form
 from InstsAndQt.MotorDriver import *
 from InstsAndQt.customQt import *
 import pyqtgraph
@@ -146,7 +146,7 @@ class SettingsWindow(QtGui.QWidget):
 
     def closeEvent(self, QCloseEvent):
         if self.mainParentWindow == None:
-            print "closing device"
+            print("closing device")
             self.device.close_()
         self.doLoops = False
         try:

@@ -7,7 +7,7 @@ Inspiration: http://stackoverflow.com/questions/12182133/pyqt4-combine-textchang
 
 import numpy as np
 import copy
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
 import re
 import traceback
@@ -63,12 +63,12 @@ class QFNumberEdit(QtGui.QLineEdit):
 
         toMatch = re.compile('(\d+\.?\d*|\d*\.\d+)\*(\d+\.?\d*|\d*\.\d+)')
         if re.match(toMatch, inp):
-            print "it's a command! {}".format(inp)
+            print(("it's a command! {}".format(inp)))
             try:
                 ret = eval(inp)
                 return ret
             except Exception as e:
-                print "Can't parse command", inp, e
+                print("Can't parse command", inp, e)
         #tests to see whether digit is whole number or decimal, and if it has
         #some modifier at the end
         toMatch = re.compile('-?(\d+\.?\d*|\d*\.\d+)(m|u|n|M|k)?\Z')
@@ -76,13 +76,13 @@ class QFNumberEdit(QtGui.QLineEdit):
             convDict = {'m': 1e-3, 'u':1e-6, 'n':1e-9, 'M':1e6, 'k':1e3}
             try:
                 ret = (float(inp[:-1]) * #convert first part to number
-                   convDict[[b for b in convDict.keys() if b in inp][0]]) #and multiply by the exponential
+                   convDict[[b for b in list(convDict.keys()) if b in inp][0]]) #and multiply by the exponential
                 return ret
             except Exception as e:
-                print "Can't parse float string"
-                print inp, type(inp)
-                print e
-                print ''
+                print("Can't parse float string")
+                print(inp, type(inp))
+                print(e)
+                print('')
         else:
             return False
 
@@ -213,8 +213,8 @@ class TempThread(QtCore.QThread):
             else:
                 self.target(self.args)
         except Exception as e:
-            print "ERROR IN THREAD,",self.target.__name__
-            print e
+            print("ERROR IN THREAD,",self.target.__name__)
+            print(e)
             traceback.print_exc()
 
 dialogList = []
@@ -245,7 +245,7 @@ class MessageDialog(QtGui.QDialog):
         try:
             dialogList.remove(self)
         except Exception as E:
-            print "ERror removing from list, ",E
+            print("ERror removing from list, ",E)
 
         super(MessageDialog, self).close()
 
@@ -356,7 +356,7 @@ class DoubleYPlot(pg.PlotWidget):
         self.plotItem1.vb.sigResized.connect(lambda: self.p2.setGeometry(self.plotItem1.vb.sceneBoundingRect()))
         self.setY1Color('k')
         self.setY2Color('r')
-        print type(self.plotOne), type(self.plotTwo)
+        print(type(self.plotOne), type(self.plotTwo))
 
     def setXLabel(self, label="X", units=""):
         self.plotItem1.setLabel('bottom',text=label, units=units)
@@ -420,7 +420,7 @@ class LockableBool(object):
     def __set__(self, instance, value):
         if self._changeable: self._value = bool(value)
 
-    def __nonzero__(self):
+    def __bool__(self):
         return self._value
 
     def unlock(self):

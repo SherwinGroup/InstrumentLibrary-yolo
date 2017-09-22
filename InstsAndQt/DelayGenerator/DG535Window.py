@@ -6,7 +6,7 @@ import pyqtgraph as pg
 pg.setConfigOption("background", "w")
 pg.setConfigOption("foreground", "k")
 
-from delayGenerator_ui import Ui_MainWindow
+from .delayGenerator_ui import Ui_MainWindow
 
 
 class DG535Monitor(QtGui.QMainWindow):
@@ -87,7 +87,7 @@ class DG535Monitor(QtGui.QMainWindow):
         if inst is not None:
             self.instrument = inst
 
-        for ch, (cbRef, dTime) in self.channelMap.items():
+        for ch, (cbRef, dTime) in list(self.channelMap.items()):
             ref, tim = self.instrument.getDelay(ch)
             cbRef.blockSignals(True)
             dTime.blockSignals(True)
@@ -170,7 +170,7 @@ class DG535Monitor(QtGui.QMainWindow):
 
     def updateDelay(self, ch):
         ref, tim = self.channelMap[ch]
-        print "updating trigger", tim.editor.value()
+        print("updating trigger", tim.editor.value())
         oldRef, oldTim = self.instrument.getDelay(ch)
         self.instrument.setDelay(ch, str(ref.currentText()), tim.editor.value())
 
@@ -188,15 +188,15 @@ class DG535Monitor(QtGui.QMainWindow):
 
 if __name__ == '__main__':
     import sys
-    print sys.argv
+    print(sys.argv)
     ap = QtGui.QApplication([])
     if "slave" in sys.argv:
         win = DG535Monitor()
-        print "made a slave delay window"
+        print("made a slave delay window")
         ap.exec_()
-        print "exited slave delay window"
+        print("exited slave delay window")
     else:
         win = DG535Monitor()
-        print "made a delay window"
+        print("made a delay window")
         sys.exit(ap.exec_())
 

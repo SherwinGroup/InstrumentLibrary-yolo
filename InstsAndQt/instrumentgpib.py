@@ -71,9 +71,9 @@ class InstrumentGPIB(QtGui.QComboBox):
                     inst = self._instrumentCls(str(self.currentText()), *self._instrumentArgs)
 
             except Exception as e:
-                print "Warning, unable to open desired instrument at addr. {}".format(self.currentText())
-                print "\t",e
-                print "cls/args:", self._instrumentCls, self._instrumentArgs
+                print("Warning, unable to open desired instrument at addr. {}".format(self.currentText()))
+                print("\t",e)
+                print("cls/args:", self._instrumentCls, self._instrumentArgs)
                 self.blockSignals(True)
                 self.setCurrentIndex(self.findText("Fake"))
                 self.blockSignals(False)
@@ -96,7 +96,7 @@ class InstrumentGPIB(QtGui.QComboBox):
                 self._instrument().close()
                 self.sigInstrumentClosed.emit()
             except Exception as e:
-                print "Error closing instrument", e
+                print("Error closing instrument", e)
 
     def setHoverText(self, text=""):
         self.setToolTip(str(text))
@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
     wid = InstrumentGPIB()
     wid.setHoverText("This is text")
-    from Instruments import Agilent6000 as a
+    from .Instruments import Agilent6000 as a
 
     wid.setInstrumentClass(a)
     wid.show()
