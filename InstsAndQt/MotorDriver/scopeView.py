@@ -1,15 +1,25 @@
 
 
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
+
+
 import numpy as np
+
+
 from .singleChannel_ui import Ui_Form
+
+
 import scipy.integrate as spi
+
+
 import re
+raise RuntimeError("this file shoulnd't be called from ehre")
+
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
 
-class ScopeViewWidget(QtGui.QWidget):
+class ScopeViewWidget(QtWidgets.QWidget):
     sigBoxcarValue = QtCore.pyqtSignal(object)
     sigUpdateData = QtCore.pyqtSignal()
 

@@ -1,14 +1,18 @@
-from PyQt4 import QtCore, QtGui
-from .UIs.espPanel_ui import Ui_ESPPanel
+from PyQt5 import QtCore, QtGui, QtWidgets
 from InstsAndQt.customQt import *
 import numpy as np
 import pyqtgraph
 import visa
 
-from .espAxisPanel import ESPAxisPanel
+from InstsAndQt.NewportMotorDriver.UIs.espPanel_ui import Ui_ESPPanel
+from InstsAndQt.NewportMotorDriver.espAxisPanel import ESPAxisPanel
+# from .UIs.espPanel_ui import Ui_ESPPanel
+# from .espAxisPanel import ESPAxisPanel
 
 
-class ESPMainPanel(QtGui.QWidget):
+
+
+class ESPMainPanel(QtWidgets.QWidget):
 
     def __init__(self, parent = None):
         super(ESPMainPanel, self).__init__(parent)
@@ -31,7 +35,7 @@ class ESPMainPanel(QtGui.QWidget):
         self.ui.cbGPIB.currentIndexChanged.connect(self.updateGPIB)
         self.ui.bErrors.clicked.connect(self.displayErrors)
 
-        self.errorWindow = QtGui.QPlainTextEdit()
+        self.errorWindow = QtWidgets.QPlainTextEdit()
         self.errorWindow.setReadOnly(True)
         self.errorWindow.setWindowTitle("ESP Error Log")
 
@@ -53,9 +57,9 @@ class ESPMainPanel(QtGui.QWidget):
         :return:
         """
 
-        detHWPgroupbox = QtGui.QGroupBox("Detector Half Wave Plate")
+        detHWPgroupbox = QtWidgets.QGroupBox("Detector Half Wave Plate")
         detHWPgroupbox.setFlat(True)
-        detHWPgbLayout = QtGui.QVBoxLayout(detHWPgroupbox)
+        detHWPgbLayout = QtWidgets.QVBoxLayout(detHWPgroupbox)
         self.detHWPWidget = ESPAxisPanel(parent=self,
                                          GPIB=str(self.ui.cbGPIB.currentText()),
                                          axis=1)
@@ -82,6 +86,8 @@ class ESPMainPanel(QtGui.QWidget):
 
 if __name__ == "__main__":
     import sys
-    e = QtGui.QApplication(sys.argv)
+
+
+    e = QtWidgets.QApplication(sys.argv)
     win = ESPMainPanel()
     sys.exit(e.exec_())

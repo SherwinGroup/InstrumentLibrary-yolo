@@ -1,4 +1,4 @@
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 import scipy.integrate as spi
 import scipy.stats as spt # for calculating FEL pulse information
 import scipy.special as sps
@@ -16,12 +16,20 @@ except ValueError:
     from InstsAndQt.Instruments import __displayonly__
     from InstsAndQt.DelayGenerator.DG535Window import DG535Monitor
 import visa
-from .Oscilloscope_ui import Ui_Oscilloscope
-from .image_spec_for_gui import *
+try:
+    from .Oscilloscope_ui import Ui_Oscilloscope
+    from .image_spec_for_gui import *
+except ModuleNotFoundError:
+    from Oscilloscope_ui import Ui_Oscilloscope
+    from image_spec_for_gui import *
+
+
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
 
 import logging
+
+
 log = logging.getLogger("EMCCD")
 
 setPrintOutput(False)
@@ -53,7 +61,7 @@ is only what's measured in the CD alone, not the front porch.
 
 
 """
-class OscWid(QtGui.QWidget):
+class OscWid(QtWidgets.QWidget):
 
     scopeCollectionThread = None # Thread which polls the scope
     scopePausingLoop = None # A QEventLoop which causes the scope collection
@@ -105,24 +113,30 @@ class OscWid(QtGui.QWidget):
             self.FELTrans = lambda: 1
 
         self.settings = dict()
-        try:
-            rm = visa.ResourceManager()
-            ar = [i.encode('ascii') for i in rm.list_resources()]
-            ar.append('Fake')
-            self.settings['GPIBlist'] = ar
-        except:
-            log.warning("Error loading GPIB list")
-            ar = ['a', 'b', 'c', 'Fake']
-            self.settings['GPIBlist'] = ar
-        try:
-            # Pretty sure we can safely say it's
-            # this USB value
-            idx = self.settings['GPIBlist'].index('USB0::0x0957::0x1734::MY44007041::INSTR')
-            self.settings["agilGPIBidx"] = idx
-        except ValueError:
-            # otherwise, just set it to the fake index
-            self.settings["agilGPIBidx"] = self.settings['GPIBlist'].index('Fake')
+        # try:
+        #     rm = visa.ResourceManager()
+        #     ar = [i.encode('ascii') for i in rm.list_resources()]
+        #     ar.append('Fake')
+        #     self.settings['GPIBlist'] = ar
+        # except:
+        #     log.warning("Error loading GPIB list")
+        #     ar = ['a', 'b', 'c', 'Fake']
+        #     self.settings['GPIBlist'] = ar
+        # try:
+        #     # Pretty sure we can safely say it's
+        #     # this USB value
+        #     idx = self.settings['GPIBlist'].index('USB0::0x0957::0x1734::MY44007041::INSTR')
+        #     self.settings["agilGPIBidx"] = idx
+        # except ValueError:
+        #     # otherwise, just set it to the fake index
+        #     self.settings["agilGPIBidx"] = self.settings['GPIBlist'].index('Fake')
 
+
+        # Number of points the oscilliscope should digitize and
+        # send to the computer. Set to 0 to not change it
+        self.settings["agilPoints"] = 10000
+        self.settings["agilTrigSrc"] = 4
+        self.settings["agilTrigLvl"] = 1.5
         # This will be used to toggle pausing on the scope
         self.settings["isScopePaused"] = True
         # This flag will be used for safely terminating the
@@ -165,7 +179,7 @@ class OscWid(QtGui.QWidget):
         self.settings["exposing"] = False
         self.settings["coupler"] = "Cavity Dump"
         self.settings["integratingMode"] = "Integrating"
-        self.settings["logFile"] = r'Z:\~Hunter Banks\Data\2017'
+        self.settings["logFile"] = r'Z:\~HSG\Data\2017'
         # self.loggingHandle = None
 
         # lists for holding the boundaries of the linear regions
@@ -189,7 +203,7 @@ class OscWid(QtGui.QWidget):
 
         self.loadSettings(**kwargs)
 
-        self.openAgilent()
+        # self.openAgilent()
         self.ui.cPyroMode.currentIndexChanged.connect(lambda x: self.Agilent.setIntegrating(x))
         self.ui.cFELCoupler.currentIndexChanged.connect(lambda x: self.Agilent.setCD(1-x))
 
@@ -208,10 +222,16 @@ class OscWid(QtGui.QWidget):
         ###################
         # Setting up oscilloscope values
         ##################
-        self.ui.cOGPIB.addItems(self.settings['GPIBlist'])
-        self.ui.cOGPIB.setCurrentIndex(self.settings["agilGPIBidx"])
+        # self.ui.cOGPIB.addItems(self.settings['GPIBlist'])
+        # self.ui.cOGPIB.setCurrentIndex(self.settings["agilGPIBidx"])
+        self.ui.cOGPIB.setInstrumentClass(Agilent6000)
+        # Don't let the GPIB tool close the instrument, so we can wait on it
+        self.ui.cOGPIB.closeOnChange = False
+        self.ui.cOGPIB.sigInstrumentClosed.connect(self.closeAgilent)
+        self.ui.cOGPIB.sigInstrumentOpened.connect(self.openAgilent)
+        self.ui.cOGPIB.setAddress('USB0::0x0957::0x1734::MY44007041::INSTR')
+        # self.ui.cOGPIB.currentIndexChanged.connect(self.openAgilent)
         self.ui.bOPause.clicked[bool].connect(self.toggleScopePause)
-        self.ui.cOGPIB.currentIndexChanged.connect(self.openAgilent)
         self.ui.bOscInit.clicked.connect(self.initOscRegions)
         self.ui.bOPop.clicked.connect(self.popoutOscilloscope)
 
@@ -224,6 +244,8 @@ class OscWid(QtGui.QWidget):
         # Setting plot labels
         ##################
         import sys
+
+
         self.pOsc = self.ui.gOsc.plot(pen='k')
         self.ui.gOsc.sigRangeChanged.connect(self.updatePkTextPos)
 
@@ -241,7 +263,9 @@ class OscWid(QtGui.QWidget):
         self.pkText = pg.TextItem('', color=(0,0,0))
         self.pkText.setPos(0,0)
         self.pkText.setFont(QtGui.QFont("", 15))
-        self.ui.gOsc.addItem(self.pkText)
+        # I'm not sure why ignoreboudns needs to be here. If it's not
+        # the viewbox explodes and it constantly expands the range outward
+        self.ui.gOsc.addItem(self.pkText, ignoreBounds=True)
 
         #Now we make an array of all the textboxes for the linear regions to make it
         #easier to iterate through them. Set it up in memory identical to how it
@@ -317,6 +341,8 @@ class OscWid(QtGui.QWidget):
 
         #Background region for the pyro plot
         self.boxcarRegions[0] = pg.LinearRegionItem(self.settings['bcpyBG'], brush = bgCol)
+        # pg.InfLineLabel(self.boxcarRegions[0].lines[1], text="Background", position=0.5,
+        #                         angle=-90, color='k')
         self.boxcarRegions[1] = pg.LinearRegionItem(self.settings['bcpyFP'], brush = fpCol)
         self.boxcarRegions[2] = pg.LinearRegionItem(self.settings['bcpyCD'], brush = sgCol)
 
@@ -336,9 +362,9 @@ class OscWid(QtGui.QWidget):
     def initOscRegions(self):
         try:
             length = len(self.settings['pyData'])
-            point = self.settings['pyData'][length/2,0]
+            point = self.settings['pyData'][length//2,0]
         except Exception as e:
-            log.warning("Error initializing scope regions {}".format(e))
+            log.exception("Error initializing scope regions")
             return
 
         # Update the dicionary values so that the bounds are proper when
@@ -447,7 +473,7 @@ class OscWid(QtGui.QWidget):
                 self.ui.gOsc.removeItem(i)
             self.ui.gOsc.removeItem(self.pkText)
             self.ui.gOsc.sigRangeChanged.disconnect(self.updatePkTextPos)
-            self.poppedPlotWindow.pw.addItem(self.pkText)
+            self.poppedPlotWindow.pw.addItem(self.pkText, ignoreBounds=True)
             self.pOsc = self.poppedPlotWindow.pw.plot(pen='k')
             self.poppedPlotWindow.pw.sigRangeChanged.connect(self.updatePkTextPos)
             plotitem = self.poppedPlotWindow.pw.getPlotItem()
@@ -470,13 +496,40 @@ class OscWid(QtGui.QWidget):
         self.pOsc = self.oldpOsc
         self.plotItem = self.ui.gOsc.plotItem
         self.initLinearRegions()
-        self.ui.gOsc.addItem(self.pkText)
+        self.ui.gOsc.addItem(self.pkText, ignoreBounds=True)
         self.ui.gOsc.sigRangeChanged.connect(self.updatePkTextPos)
 
     @staticmethod
     def __OPEN_CONTROLLER(): pass
 
-    def openAgilent(self, idx = None):
+    def closeAgilent(self):
+        self.settings["shouldScopeLoop"] = False
+        isPaused = self.settings["isScopePaused"] # For intelligently restarting scope afterwards
+        if isPaused:
+            self.toggleScopePause(False)
+        try:
+            self.scopeCollectionThread.wait()
+        except:
+            pass
+
+    def openAgilent(self, inst=None):
+        self.Agilent = inst
+        self.Agilent.write(":WAV:POIN:MODE MAX")
+        if self.settings["agilPoints"]:
+            self.Agilent.write(":WAV:POIN {:d}".format(self.settings["agilPoints"]))
+
+        self.Agilent.setTrigger(
+            source=self.settings["agilTrigSrc"],
+            level=self.settings["agilTrigLvl"])
+        self.settings['shouldScopeLoop'] = True
+        if self.ui.bOPause.isChecked():
+            self.toggleScopePause(True)
+
+        self.scopeCollectionThread = TempThread(target = self.collectScopeLoop)
+        self.scopeCollectionThread.start()
+
+
+    def openAgilentOld(self, idx = None):
         self.settings["shouldScopeLoop"] = False
         isPaused = self.settings["isScopePaused"] # For intelligently restarting scope afterwards
         if isPaused:
@@ -524,9 +577,9 @@ class OscWid(QtGui.QWidget):
 
 
     def pickLoggingDir(self):
-        loc = QtGui.QFileDialog.getSaveFileName(self, "Pick logging file",
+        loc = QtWidgets.QFileDialog.getSaveFileName(self, "Pick logging file",
                                                 self.settings["logFile"],
-                                                "Text File (*.txt)")
+                                                "Text File (*.txt)")[0]
         loc = str(loc)
         if not loc: return
         self.settings["logFile"] = loc
@@ -579,6 +632,12 @@ class OscWid(QtGui.QWidget):
                 self.scopePausingLoop.exec_()
                 continue
             pyData = self.Agilent.getSingleChannel(int(self.ui.cOChannel.currentIndex())+1)
+            if pyData is visa.constants.VI_ERROR_TMO:
+                log.warning("Timeout error occured. Reload instrument")
+                self.settings["shouldScopeLoop"] = False
+                self.ui.cOGPIB.sigSetAddress.emit("None")
+                return
+
             # if str(self.ui.cPyroMode.currentText()) == "Integrating":
             #     pyData[:,1] = np.cumsum(pyData[:,1])#*(pyData[1,0]-pyData[0,0])
             #     log.critical("THIS IS A DEBUG LINE, GET RID OF THIS")
@@ -594,8 +653,12 @@ class OscWid(QtGui.QWidget):
         and decide whether to add them all to the running tally
         :return:
         """
-
-        pyBG, pyFP, pyCD, pulseTime, pkpk, ratio = self.integrateData()
+        try:
+            pyBG, pyFP, pyCD, pulseTime, pkpk, ratio = self.integrateData()
+        except TypeError:
+            # Pulse regions aren't initialized, so don't
+            # continue with integrating/processing
+            return
         self.settings["pyBG"] = pyBG
         self.settings["pyFP"] = pyFP
         self.settings["pyCD"] = pyCD
@@ -783,6 +846,12 @@ class OscWid(QtGui.QWidget):
 
         pyCDbounds = self.boxcarRegions[2].getRegion()
         pyCDidx = self.findIndices(pyCDbounds, pyD[:,0])
+
+        # Don't waste time integrating if the bounds aren't properly selected
+        # (the indeces are set to (0,1)
+        if (pyBGidx[0]==0 and pyBGidx[1] == 1) or \
+            (pyCDidx[0] == 0 and pyCDidx[1] == 1):
+            return
 
         if not np.diff(pyFPbounds)[0] and not self.ui.cFELCoupler.currentIndex():
             # don't bother trying if you haven't set
@@ -1191,6 +1260,8 @@ class OscWid(QtGui.QWidget):
 
 if __name__ == '__main__':
     import sys
-    app = QtGui.QApplication(sys.argv)
+
+
+    app = QtWidgets.QApplication(sys.argv)
     ex = OscWid()
     sys.exit(app.exec_())

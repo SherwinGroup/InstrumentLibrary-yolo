@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>741</width>
-    <height>543</height>
+    <width>508</width>
+    <height>431</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -207,7 +207,16 @@
    <item>
     <widget class="QWidget" name="oscControlsWidget" native="true">
      <layout class="QHBoxLayout" name="horizontalLayout">
-      <property name="margin">
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
        <number>0</number>
       </property>
       <item>
@@ -245,7 +254,7 @@
           <number>0</number>
          </property>
          <item>
-          <widget class="QComboBox" name="cOGPIB">
+          <widget class="InstrumentGPIB" name="cOGPIB">
            <property name="toolTip">
             <string>GPIB0::5::INSTR</string>
            </property>
@@ -333,6 +342,11 @@
    <class>PlotWidget</class>
    <extends>QGraphicsView</extends>
    <header>pyqtgraph</header>
+  </customwidget>
+  <customwidget>
+   <class>InstrumentGPIB</class>
+   <extends>QComboBox</extends>
+   <header>InstsAndQt.instrumentgpib</header>
   </customwidget>
  </customwidgets>
  <tabstops>

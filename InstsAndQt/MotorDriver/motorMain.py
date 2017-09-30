@@ -1,16 +1,19 @@
-from PyQt4 import QtCore, QtGui
-from .movementWindow_ui import Ui_MainWindow
+from PyQt5 import QtCore, QtGui, QtWidgets
+import numpy as np
+
 from InstsAndQt.TIMSMotorDriver import *
 from InstsAndQt.customQt import *
 from InstsAndQt.Instruments import __displayonly__
-from .Control import SettingsWindow
-import numpy as np
-import pyqtgraph
+from InstsAndQt.MotorDriver.Control import SettingsWindow
+from InstsAndQt.MotorDriver.movementWindow_ui import Ui_MainWindow
 
 
 
 
-class MotorWindow(QtGui.QMainWindow):
+
+
+
+class MotorWindow(QtWidgets.QMainWindow):
     # emit a list of values to update the voltages/currents of the coils
     thMoveMotor = None
     sigUpdateDegrees = QtCore.pyqtSignal(object)
@@ -193,6 +196,8 @@ class MotorWindow(QtGui.QMainWindow):
 
 if __name__ == "__main__":
     import sys
-    e = QtGui.QApplication(sys.argv)
+
+
+    e = QtWidgets.QApplication(sys.argv)
     win = MotorWindow(device = TIMS0201(), parent = None)
     sys.exit(e.exec_())

@@ -1,5 +1,11 @@
-from PyQt4 import QtGui, QtCore
-class MCLineEdit(QtGui.QLineEdit):
+from PyQt5 import QtCore, QtGui, QtWidgets
+try:
+    QString = unicode
+except NameError:
+    # Python 3
+    QString = str
+
+class MCLineEdit(QtWidgets.QLineEdit):
     """
     Subclassed LineEdit which forces QCompleter to be checked
     constantly at arbitrary points in the string, not just
@@ -24,7 +30,7 @@ class MCLineEdit(QtGui.QLineEdit):
         c.complete(cr)
 
     def cursorWord(self, string):
-        sentence = QtCore.QString(string)
+        sentence = QString(string)
         return sentence.mid(sentence.left(self.cursorPosition()).lastIndexOf("{"),
                         self.cursorPosition() -
                         sentence.left(self.cursorPosition()).lastIndexOf("{"))

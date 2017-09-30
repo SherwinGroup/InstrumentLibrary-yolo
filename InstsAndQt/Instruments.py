@@ -69,6 +69,8 @@ class BaseInstr(object):
         proper ending to command. """
         try:
             self.instrument.write(command)
+        except pyvisa.errors.VisaIOError:
+            log.warning("Error: timeout while writing {}".format(command))
         except Exception as e:
             log.exception("Error writitng command: {}".format(command))
             return False
@@ -85,7 +87,11 @@ class BaseInstr(object):
         try:
             ret = self.instrument.ask(command)
             if strip>=0:
-                ret = ret.encode('ascii')
+                # python 3 changed encoding features.
+                # Need to test this with various intsruments to see how to chance
+                # note: "".encode("ascii") which was previously used,
+                # returns a byte string.
+                pass
             if strip>=1:
                 ret = ret[:-1]
         except pyvisa.errors.VisaIOError:
@@ -124,6 +130,9 @@ class BaseInstr(object):
         ret = False
         try:
             ret = self.instrument.query_binary_values(command, datatype='b')
+        except pyvisa.errors.VisaIOError:
+            log.warning("Timeout occured in querying binary command {}".format(command))
+            return visa.constants.VI_ERROR_TMO
         except Exception as e:
             log.exception("Error querying binary {}".format(command))
         return ret
@@ -302,6 +311,8 @@ class Agilent6000(BaseInstr):
         self.waitForComplete()
 
         raw = self.readChannel(channel)
+        if raw is visa.constants.VI_ERROR_TMO:
+            return visa.constants.VI_ERROR_TMO
         return self.scaleData(raw)
 
     def getMultipleChannels(self, *channels):
@@ -499,6 +510,10 @@ class DG535(BaseInstr):
 
     def getDelay(self, source):
         ret = self.ask("DT {}".format(DG535.outputMap[source]))
+        if not ret:
+            #timeout or something else occured
+            log.warning("Error getting delay values for channel {}".format(source))
+            return -1, -1
         ch, t = ret.split(',')
         return DG535.outputUnMap[int(ch)], float(t)
 

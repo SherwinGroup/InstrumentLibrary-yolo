@@ -1,109 +1,116 @@
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 import time
 import numpy as np
 from InstsAndQt.Instruments import LakeShore325, LakeShore330
 from InstsAndQt.Instruments import __displayonly__
 import pyqtgraph as pg
+from InstsAndQt.cQt.DateAxis import DateAxis
+
+
 pg.setConfigOption("background", "w")
 pg.setConfigOption("foreground", "k")
 
-from .lakeshore330Panel_ui import Ui_MainWindow
-
-class DateAxis(pg.AxisItem):
-    def tickStrings(self, values, scale, spacing):
-        strns = []
-        for x in values:
-            try:
-                strns.append(time.strftime("%X", time.localtime(x)))
-            except ValueError:  ## Windows can't handle dates before 1970
-                strns.append('')
-        return strns
-
-    def drawPicture(self, p, axisSpec, tickSpecs, textSpecs):
-        """
-
-        :param p:
-        :type p: QtGui.QPainter
-        :param axisSpec:
-        :param tickSpecs:
-        :param textSpecs:
-        :return:
-        """
-
-        p.setRenderHint(p.Antialiasing, False)
-        p.setRenderHint(p.TextAntialiasing, True)
-
-        ## draw long line along axis
-        pen, p1, p2 = axisSpec
-        p.setPen(pen)
-        p.drawLine(p1, p2)
-        p.translate(0.5,0)  ## resolves some damn pixel ambiguity
-
-        ## draw ticks
-        for pen, p1, p2 in tickSpecs:
-            p.setPen(pen)
-            p.drawLine(p1, p2)
-
-        ## Draw all text
-        if self.tickFont is not None:
-            p.setFont(self.tickFont)
-        p.setPen(self.pen())
-        ## TODO: Figure this out, I want this text rotate, ffs.
-        for rect, flags, text in textSpecs:
-            # p.rotate(-2)
-            p.save()
-            QtCore.QRectF().center()
-            p.translate(rect.center())
-            p.rotate(40)
-            # height = rect.width()*0.8
-            p.translate(-rect.center())
-            p.drawText(rect, flags, text)
-            # p.rotate(2)
-            # p.drawRect(rect)
-            p.restore()
-        # self.setStyle(tickTextHeight=int(height)*5)
+try:
+    from .lakeshore330Panel_ui import Ui_MainWindow
+except ModuleNotFoundError:
+    from lakeshore330Panel_ui import Ui_MainWindow
 
 
-    def tickSpacing(self, minVal, maxVal, size):
-        """
-        I delcare that my desired possible spacings are every
-        1s, 5s, 10s, 15s, 30s,
-        1m, 5m, 10m, 15m, 30m,
-        1h, 5h, 10h
-        And hopefully no further than that?
-        """
-        superRet = super(DateAxis, self).tickSpacing(minVal, maxVal, size)
-        # return ret
-        # Todo set spacing to be reasonable
-        dif = abs(maxVal - minVal)
-        spacings = np.array([1, 5, 10, 15, 30,
-                             1*60, 5*60, 10*60, 15*60, 30*60,
-                             1*60*60, 5*60*60, 10*60*60])
-        numTicks = (maxVal - minVal)/spacings
 
-        # I really want to know where this comes from,
-        # I just nabbed it from Luke's code
-        optimalTickCount = max(2., np.log(size))
+# class DateAxis(pg.AxisItem):
+#     def tickStrings(self, values, scale, spacing):
+#         strns = []
+#         for x in values:
+#             try:
+#                 strns.append(time.strftime("%X", time.localtime(x)))
+#             except ValueError:  ## Windows can't handle dates before 1970
+#                 strns.append('')
+#         return strns
+#
+#     def drawPicture(self, p, axisSpec, tickSpecs, textSpecs):
+#         """
+#
+#         :param p:
+#         :type p: QtGui.QPainter
+#         :param axisSpec:
+#         :param tickSpecs:
+#         :param textSpecs:
+#         :return:
+#         """
+#
+#         p.setRenderHint(p.Antialiasing, False)
+#         p.setRenderHint(p.TextAntialiasing, True)
+#
+#         ## draw long line along axis
+#         pen, p1, p2 = axisSpec
+#         p.setPen(pen)
+#         p.drawLine(p1, p2)
+#         p.translate(0.5,0)  ## resolves some damn pixel ambiguity
+#
+#         ## draw ticks
+#         for pen, p1, p2 in tickSpecs:
+#             p.setPen(pen)
+#             p.drawLine(p1, p2)
+#
+#         ## Draw all text
+#         if self.tickFont is not None:
+#             p.setFont(self.tickFont)
+#         p.setPen(self.pen())
+#         ## TODO: Figure this out, I want this text rotate, ffs.
+#         for rect, flags, text in textSpecs:
+#             # p.rotate(-2)
+#             p.save()
+#             QtCore.QRectF().center()
+#             p.translate(rect.center())
+#             p.rotate(40)
+#             # height = rect.width()*0.8
+#             p.translate(-rect.center())
+#             p.drawText(rect, flags, text)
+#             # p.rotate(2)
+#             # p.drawRect(rect)
+#             p.restore()
+#         # self.setStyle(tickTextHeight=int(height)*5)
+#
+#     def tickSpacing(self, minVal, maxVal, size):
+#         """
+#         I delcare that my desired possible spacings are every
+#         1s, 5s, 10s, 15s, 30s,
+#         1m, 5m, 10m, 15m, 30m,
+#         1h, 5h, 10h
+#         And hopefully no further than that?
+#         """
+#         superRet = super(DateAxis, self).tickSpacing(minVal, maxVal, size)
+#         # return ret
+#         # Todo set spacing to be reasonable
+#         dif = abs(maxVal - minVal)
+#         spacings = np.array([1, 5, 10, 15, 30,
+#                              1*60, 5*60, 10*60, 15*60, 30*60,
+#                              1*60*60, 5*60*60, 10*60*60])
+#         numTicks = (maxVal - minVal)/spacings
+#
+#         # I really want to know where this comes from,
+#         # I just nabbed it from Luke's code
+#         optimalTickCount = max(2., np.log(size))
+#
+#         bestValidx = np.abs(numTicks-optimalTickCount).argmin()
+#         desiredTicks = numTicks[bestValidx]
+#         if desiredTicks > 20:
+#             # Too many ticks to plot, would cause the render engine to break
+#             # Cutoff is arbitrary
+#             # todo: set it to a density (px/spacing) to handle it better
+#             return superRet
+#         bestVal = spacings[bestValidx]
+#         # todo: set better minor tick spacings
+#         ret =  [
+#             (bestVal, 0),
+#             (bestVal/5., 0),
+#             (bestVal/10., 0)
+#         ]
+#         return ret
+#
+#         return super(DateAxis, self).tickSpacing(minVal, maxVal, size)
 
-        bestValidx = np.abs(numTicks-optimalTickCount).argmin()
-        desiredTicks = numTicks[bestValidx]
-        if desiredTicks > 20:
-            # Too many ticks to plot, would cause the render engine to break
-            # Cutoff is arbitrary
-            # todo: set it to a density (px/spacing) to handle it better
-            return superRet
-        bestVal = spacings[bestValidx]
-        # todo: set better minor tick spacings
-        ret =  [
-            (bestVal, 0),
-            (bestVal/5., 0),
-            (bestVal/10., 0)
-        ]
-        return ret
-
-        return super(DateAxis, self).tickSpacing(minVal, maxVal, size)
-
-class LakeshoreMonitor(QtGui.QMainWindow):
+class LakeshoreMonitor(QtWidgets.QMainWindow):
     def __init__(self):
         super(LakeshoreMonitor, self).__init__()
 
@@ -155,19 +162,19 @@ class LakeshoreMonitor(QtGui.QMainWindow):
         pi.layout.addItem(caxis, 3,1)
 
 
-        auto = QtGui.QMenu("Autoscroll", self)
-        self.ui.cbAutoEnabled = QtGui.QCheckBox("Enabled")
+        auto = QtWidgets.QMenu("Autoscroll", self)
+        self.ui.cbAutoEnabled = QtWidgets.QCheckBox("Enabled")
         self.ui.cbAutoEnabled.setChecked(True)
         self.ui.sbAutoTime = pg.SpinBox(value=10, step=1, decimals=1, bounds=(0, 600))
         self.ui.cbAutoEnabled.stateChanged.connect(
             lambda x:self.ui.sbAutoTime.setEnabled(x)
         )
-        wid = QtGui.QWidget(None)
-        layout = QtGui.QHBoxLayout(wid)
+        wid = QtWidgets.QWidget(None)
+        layout = QtWidgets.QHBoxLayout(wid)
         layout.addWidget(self.ui.cbAutoEnabled)
         layout.addWidget(self.ui.sbAutoTime)
         wid.setLayout(layout)
-        self.ui.acAutoTime = QtGui.QWidgetAction(None)
+        self.ui.acAutoTime = QtWidgets.QWidgetAction(None)
         self.ui.acAutoTime.setDefaultWidget(wid)
         auto.addAction(self.ui.acAutoTime)
 
@@ -215,7 +222,7 @@ class LakeshoreMonitor(QtGui.QMainWindow):
         PIDWid.changePIDValues(self, self.instrument)
 
     def saveData(self):
-        loc = QtGui.QFileDialog.getSaveFileName(self, "Save File Name", self.saveLoc)
+        loc = QtWidgets.QFileDialog.getSaveFileName(self, "Save File Name", self.saveLoc)[0]
         if not loc: return
         # if not loc[-4:].lower() == ".txt": loc+=".txt"
         self.saveLoc = str(loc)
@@ -264,40 +271,40 @@ class LakeshoreMonitor(QtGui.QMainWindow):
 class Ui_Dialog(object):
     def setupUi(self, Dialog):
         Dialog.resize(269, 94)
-        self.verticalLayout = QtGui.QVBoxLayout(Dialog)
-        self.horizontalLayout_4 = QtGui.QHBoxLayout()
-        self.groupBox = QtGui.QGroupBox(Dialog)
+        self.verticalLayout = QtWidgets.QVBoxLayout(Dialog)
+        self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
+        self.groupBox = QtWidgets.QGroupBox(Dialog)
         self.groupBox.setFlat(True)
-        self.horizontalLayout = QtGui.QHBoxLayout(self.groupBox)
+        self.horizontalLayout = QtWidgets.QHBoxLayout(self.groupBox)
         self.horizontalLayout.setContentsMargins(0, 10, 0, 0)
-        self.tP = QtGui.QLineEdit(self.groupBox)
+        self.tP = QtWidgets.QLineEdit(self.groupBox)
         self.horizontalLayout.addWidget(self.tP)
         self.horizontalLayout_4.addWidget(self.groupBox)
-        self.groupBox_2 = QtGui.QGroupBox(Dialog)
+        self.groupBox_2 = QtWidgets.QGroupBox(Dialog)
         self.groupBox_2.setFlat(True)
-        self.horizontalLayout_2 = QtGui.QHBoxLayout(self.groupBox_2)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.groupBox_2)
         self.horizontalLayout_2.setContentsMargins(0, 10, 0, 0)
-        self.tI = QtGui.QLineEdit(self.groupBox_2)
+        self.tI = QtWidgets.QLineEdit(self.groupBox_2)
         self.horizontalLayout_2.addWidget(self.tI)
         self.horizontalLayout_4.addWidget(self.groupBox_2)
-        self.groupBox_3 = QtGui.QGroupBox(Dialog)
+        self.groupBox_3 = QtWidgets.QGroupBox(Dialog)
         self.groupBox_3.setFlat(True)
-        self.horizontalLayout_3 = QtGui.QHBoxLayout(self.groupBox_3)
+        self.horizontalLayout_3 = QtWidgets.QHBoxLayout(self.groupBox_3)
         self.horizontalLayout_3.setContentsMargins(0, 10, 0, 0)
-        self.tD = QtGui.QLineEdit(self.groupBox_3)
+        self.tD = QtWidgets.QLineEdit(self.groupBox_3)
         self.horizontalLayout_3.addWidget(self.tD)
         self.horizontalLayout_4.addWidget(self.groupBox_3)
         self.verticalLayout.addLayout(self.horizontalLayout_4)
-        self.buttonBox = QtGui.QDialogButtonBox(Dialog)
+        self.buttonBox = QtWidgets.QDialogButtonBox(Dialog)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Apply|QtGui.QDialogButtonBox.Ok)
+        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Apply|QtWidgets.QDialogButtonBox.Ok)
         self.verticalLayout.addWidget(self.buttonBox)
         Dialog.setWindowTitle("PID Settings")
         self.groupBox.setTitle("P")
         self.groupBox_2.setTitle("I")
         self.groupBox_3.setTitle("D")
 
-class PIDWid(QtGui.QDialog):
+class PIDWid(QtWidgets.QDialog):
     def __init__(self, *args, **kwargs):
         self.instrument = kwargs.pop("inst", None)
         super(PIDWid, self).__init__(*args, **kwargs)
@@ -314,7 +321,7 @@ class PIDWid(QtGui.QDialog):
         self.ui.tD.setText(str(D))
 
         self.ui.buttonBox.accepted.connect(self.accept)
-        self.ui.buttonBox.button(QtGui.QDialogButtonBox.Apply).clicked.connect(self.setPID)
+        self.ui.buttonBox.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.setPID)
 
     def setPID(self):
         P = int(self.ui.tP.text())
@@ -335,7 +342,9 @@ class PIDWid(QtGui.QDialog):
 
 if __name__ == '__main__':
     import sys
-    ap = QtGui.QApplication([])
+
+
+    ap = QtWidgets.QApplication([])
     win = LakeshoreMonitor()
     sys.exit(ap.exec_())
 

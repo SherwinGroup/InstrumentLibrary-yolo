@@ -7,45 +7,39 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 try:
-    _fromUtf8 = QtCore.QString.fromUtf8
-except AttributeError:
-    def _fromUtf8(s):
-        return s
-
-try:
-    _encoding = QtGui.QApplication.UnicodeUTF8
+    _encoding = QtWidgets.QApplication.UnicodeUTF8
     def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig, _encoding)
+        return QtCore.QCoreApplication.translate(context, text, disambig, _encoding)
 except AttributeError:
     def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig)
+        return QtCore.QCoreApplication.translate(context, text, disambig)
 
 class Ui_ESPPanel(object):
     def setupUi(self, ESPPanel):
-        ESPPanel.setObjectName(_fromUtf8("ESPPanel"))
+        ESPPanel.setObjectName("ESPPanel")
         ESPPanel.resize(634, 157)
-        self.horizontalLayout_2 = QtGui.QHBoxLayout(ESPPanel)
-        self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
-        self.verticalLayout = QtGui.QVBoxLayout()
-        self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
-        self.layoutAxes = QtGui.QVBoxLayout()
-        self.layoutAxes.setObjectName(_fromUtf8("layoutAxes"))
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(ESPPanel)
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.verticalLayout = QtWidgets.QVBoxLayout()
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.layoutAxes = QtWidgets.QVBoxLayout()
+        self.layoutAxes.setObjectName("layoutAxes")
         self.verticalLayout.addLayout(self.layoutAxes)
-        self.groupBox = QtGui.QGroupBox(ESPPanel)
+        self.groupBox = QtWidgets.QGroupBox(ESPPanel)
         self.groupBox.setFlat(True)
-        self.groupBox.setObjectName(_fromUtf8("groupBox"))
-        self.horizontalLayout = QtGui.QHBoxLayout(self.groupBox)
-        self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
+        self.groupBox.setObjectName("groupBox")
+        self.horizontalLayout = QtWidgets.QHBoxLayout(self.groupBox)
+        self.horizontalLayout.setObjectName("horizontalLayout")
         self.cbGPIB = InstrumentGPIB(self.groupBox)
-        self.cbGPIB.setObjectName(_fromUtf8("cbGPIB"))
+        self.cbGPIB.setObjectName("cbGPIB")
         self.horizontalLayout.addWidget(self.cbGPIB)
-        spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
-        self.bErrors = QtGui.QPushButton(self.groupBox)
-        self.bErrors.setObjectName(_fromUtf8("bErrors"))
+        self.bErrors = QtWidgets.QPushButton(self.groupBox)
+        self.bErrors.setObjectName("bErrors")
         self.horizontalLayout.addWidget(self.bErrors)
         self.verticalLayout.addWidget(self.groupBox)
         self.verticalLayout.setStretch(0, 10)
@@ -61,3 +55,4 @@ class Ui_ESPPanel(object):
         self.bErrors.setText(_translate("ESPPanel", "Errors", None))
 
 from InstsAndQt.instrumentgpib import InstrumentGPIB
+

@@ -1,22 +1,29 @@
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 import scipy.integrate as spi
 import scipy.stats as spt # for calculating FEL pulse information
 import scipy.special as sps
 import scipy.optimize as spo
 import warnings
-from ..Instruments import *
-from ..Instruments import __displayonly__
-from ..customQt import *
 import pyqtgraph as pg
 import visa
 from scipy.interpolate import interp1d as i1d
-from .TK_ui import Ui_Oscilloscope
+
+from InstsAndQt.Instruments import *
+from InstsAndQt.Instruments import __displayonly__
+from InstsAndQt.customQt import *
+from InstsAndQt.TKOscope.TK_ui import Ui_Oscilloscope
+
+# from .TK_ui import Ui_Oscilloscope
+# from ..Instruments import *
+# from ..Instruments import __displayonly__
+# from ..customQt import *
+
+
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
 
 import logging
 log = logging.getLogger("EMCCD")
-
 setPrintOutput(False)
 
 tkTrans = np.array(
@@ -130,6 +137,8 @@ tkCalFactor = 0.00502
 
 
 import glob, os
+
+
 debugfiles = glob.glob(os.path.join(r"Z:\Darren\Data\2016\01-14 Wire Calibration", "wiregridcal_signalWaveform[0-9].txt"))
 debugdata = [np.genfromtxt(ii, delimiter=',')[3:] for ii in debugfiles]
 
@@ -140,7 +149,7 @@ def sig(x, *p):
     return a*sps.expit(b*(x-mu)) + offset
 
 
-class TKWid(QtGui.QWidget):
+class TKWid(QtWidgets.QWidget):
     scopeCollectionThread = None # Thread which polls the scope
     scopePausingLoop = None # A QEventLoop which causes the scope collection
                             # thread to wait
@@ -164,23 +173,23 @@ class TKWid(QtGui.QWidget):
         super(TKWid, self).__init__(*args)
 
         self.settings = dict()
-        try:
-            rm = visa.ResourceManager()
-            ar = [i.encode('ascii') for i in rm.list_resources()]
-            ar.append('Fake')
-            self.settings['GPIBlist'] = ar
-        except:
-            log.warning("Error loading GPIB list")
-            ar = ['a', 'b', 'c', 'Fake']
-            self.settings['GPIBlist'] = ar
-        try:
-            # Pretty sure we can safely say it's
-            # GPIB5
-            idx = self.settings['GPIBlist'].index('USB0::0x0957::0x1798::MY54410143::INSTR')
-            self.settings["agilGPIBidx"] = idx
-        except ValueError:
-            # otherwise, just set it to the fake index
-            self.settings["agilGPIBidx"] = self.settings['GPIBlist'].index('Fake')
+        # try:
+        #     rm = visa.ResourceManager()
+        #     ar = [i.encode('ascii') for i in rm.list_resources()]
+        #     ar.append('Fake')
+        #     self.settings['GPIBlist'] = ar
+        # except:
+        #     log.warning("Error loading GPIB list")
+        #     ar = ['a', 'b', 'c', 'Fake']
+        #     self.settings['GPIBlist'] = ar
+        # try:
+        #     # Pretty sure we can safely say it's
+        #     # GPIB5
+        #     idx = self.settings['GPIBlist'].index('USB0::0x0957::0x1798::MY54410143::INSTR')
+        #     self.settings["agilGPIBidx"] = idx
+        # except ValueError:
+        #     # otherwise, just set it to the fake index
+        #     self.settings["agilGPIBidx"] = self.settings['GPIBlist'].index('Fake')
 
         # This will be used to toggle pausing on the scope
         self.settings["isScopePaused"] = True
@@ -192,8 +201,14 @@ class TKWid(QtGui.QWidget):
 
         self.settings['pyData'] = None
 
+        # Number of points the oscilliscope should digitize and
+        # send to the computer. Set to 0 to not change it
+        self.settings["agilPoints"] = 10000
+        self.settings["agilTrigSrc"] = "EXT"
+        self.settings["agilTrigLvl"] = 1.5
+
         # can we always assume 10k points? I don't know.
-        self.settings["aveData"] = np.ones((10000, 4))*np.nan
+        self.settings["aveData"] = np.ones((self.settings["agilPoints"], 4))*np.nan
         # self.settings["aveData"] = np.ones((9999, 4))*np.nan # WHY IS THIS 9999??
 
         self.settings["fel_lambda"] = 0
@@ -213,7 +228,7 @@ class TKWid(QtGui.QWidget):
 
         self.poppedPlotWindow = None
 
-        self.openAgilent()
+        # self.openAgilent()
 
     def initUI(self):
         self.ui = Ui_Oscilloscope()
@@ -225,10 +240,17 @@ class TKWid(QtGui.QWidget):
         ###################
         # Setting up oscilloscope values
         ##################
-        self.ui.cOGPIB.addItems(self.settings['GPIBlist'])
-        self.ui.cOGPIB.setCurrentIndex(self.settings["agilGPIBidx"])
+        # self.ui.cOGPIB.addItems(self.settings['GPIBlist'])
+        # self.ui.cOGPIB.setCurrentIndex(self.settings["agilGPIBidx"])
         self.ui.bOPause.clicked[bool].connect(self.toggleScopePause)
-        self.ui.cOGPIB.currentIndexChanged.connect(self.openAgilent)
+        # self.ui.cOGPIB.currentIndexChanged.connect(self.openAgilent)
+        self.ui.cOGPIB.setInstrumentClass(Agilent6000)
+        # Don't let the GPIB tool close the instrument, so we can wait on it
+        self.ui.cOGPIB.closeOnChange = False
+        self.ui.cOGPIB.sigInstrumentClosed.connect(self.closeAgilent)
+        self.ui.cOGPIB.sigInstrumentOpened.connect(self.openAgilent)
+        self.ui.cOGPIB.setAddress('USB0::0x0957::0x1798::MY54410143::INSTR')
+
 
 
         self.ui.sbAveNum.valueChanged.connect(self.updateAveSize)
@@ -249,7 +271,7 @@ class TKWid(QtGui.QWidget):
         self.pkText = pg.TextItem('', color=(0,0,0))
         self.pkText.setPos(0,0)
         self.pkText.setFont(QtGui.QFont("", 15))
-        self.ui.gOsc.addItem(self.pkText)
+        self.ui.gOsc.addItem(self.pkText, ignoreBounds=True)
 
         # all of the curves to be used
         self.lines = {
@@ -301,7 +323,7 @@ class TKWid(QtGui.QWidget):
         :return:
         """
         self.settings['pyData'] = data
-        print('\n'*2, "Data shape", data.shape, "\n"*2)
+        # print('\n'*2, "Data shape", data.shape, "\n"*2)
 
         # ii = np.random.randint(len(debugdata))
         # self.settings['pyData'] = debugdata[ii]
@@ -329,7 +351,35 @@ class TKWid(QtGui.QWidget):
     @staticmethod
     def __OPEN_CONTROLLER(): pass
 
-    def openAgilent(self, idx = None):
+    def closeAgilent(self):
+        self.settings["shouldScopeLoop"] = False
+        isPaused = self.settings["isScopePaused"]  # For intelligently restarting scope afterwards
+        if isPaused:
+            self.toggleScopePause(False)
+        try:
+            self.scopeCollectionThread.wait()
+        except:
+            pass
+
+    def openAgilent(self, inst=None):
+        self.Agilent = inst
+        self.Agilent.write(":WAV:POIN:MODE MAX")
+        if self.settings["agilPoints"]:
+            self.Agilent.write(":WAV:POIN {:d}".format(self.settings["agilPoints"]))
+
+        self.Agilent.setTrigger(
+            source=self.settings["agilTrigSrc"],
+            level=self.settings["agilTrigLvl"])
+        # THE SCOPE IS TRIGGERED BY THE BP, NOT THE AT
+        self.Agilent.EXTERNAL_OFFSET = 0
+        self.settings['shouldScopeLoop'] = True
+        if self.ui.bOPause.isChecked():
+            self.toggleScopePause(True)
+
+        self.scopeCollectionThread = TempThread(target=self.collectScopeLoop)
+        self.scopeCollectionThread.start()
+
+    def openAgilentOld(self, idx = None):
         self.settings["shouldScopeLoop"] = False
         isPaused = self.settings["isScopePaused"] # For intelligently restarting scope afterwards
         if isPaused:
@@ -391,6 +441,11 @@ class TKWid(QtGui.QWidget):
                 self.scopePausingLoop.exec_()
                 continue
             pyData = self.Agilent.getSingleChannel(int(self.ui.cOChannel.currentIndex())+1)
+            if pyData is visa.constants.VI_ERROR_TMO:
+                log.warning("Timeout error occured. Reload instrument")
+                self.settings["shouldScopeLoop"] = False
+                self.ui.cOGPIB.sigSetAddress.emit("None")
+                return
             # if str(self.ui.cPyroMode.currentText()) == "Integrating":
             #     pyData[:,1] = np.cumsum(pyData[:,1])#*(pyData[1,0]-pyData[0,0])
             #     log.critical("THIS IS A DEBUG LINE, GET RID OF THIS")
@@ -407,6 +462,16 @@ class TKWid(QtGui.QWidget):
         :return:
         """
         txtinfo = "{:.3f} mJ"
+        height = self.fitData(self.settings["pyData"])
+        mean, std = self.settings["pyData"][:,1].mean(), self.settings["pyData"][:,1].std()
+        if abs(height)<3*std:
+            log.warning("Not counting this pulses")
+            return
+        else:
+            print("counting this pulses")
+            print("\t{:.3f}, {:.3f}, {:.3f}".format(height*1e4, mean*1e4, std*1e4))
+            print("\t{:.3f}, {:.3f}\n".format(np.abs(height-mean)*1e4, std*1e4))
+
         if self.ui.gbAveraging.isChecked():
             if str(self.ui.cbAveMode.currentText()) == "Waveform":
                 nextidx = np.argwhere(np.isnan(self.settings["aveData"][0, :]))[0][0]
@@ -484,6 +549,13 @@ class TKWid(QtGui.QWidget):
     def __INTEGRATING(): pass
 
     def fitData(self, data):
+        """
+        Fit's the data to a cubic around the minima and a quadratic around the
+        max, returns the difference in heights. A lot of the magic numbers are
+        from testing.
+        :param data: TK time trace data to fit
+        :return: difference in heights.
+        """
         minSt, minEn = np.argmin(data[:, 1]) + np.array([-200, 350])
         self.lines["minData"].setData(data[minSt:minEn])
 
@@ -532,6 +604,10 @@ class TKWid(QtGui.QWidget):
         st += ", E: {:.2f} mJ".format(energy)
         self.pkText.setText(st, color=(0,0,0))
 
+    def closeEvent(self, QCloseEvent):
+        self.close()
+        super(TKWid, self).closeEvent(QCloseEvent)
+
     def close(self):
         self.settings['shouldScopeLoop'] = False
         self.settings["doPhotonCounting"] = False
@@ -575,6 +651,8 @@ class TKWid(QtGui.QWidget):
 
 if __name__ == '__main__':
     import sys
-    app = QtGui.QApplication(sys.argv)
+
+
+    app = QtWidgets.QApplication(sys.argv)
     ex = TKWid()
     sys.exit(app.exec_())

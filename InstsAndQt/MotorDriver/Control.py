@@ -1,12 +1,14 @@
-from PyQt4 import QtCore, QtGui
-from .ControlPanel_ui import Ui_Form
+from PyQt5 import QtCore, QtGui, QtWidgets
+from InstsAndQt.MotorDriver.ControlPanel_ui import Ui_Form
 from InstsAndQt.MotorDriver import *
 from InstsAndQt.customQt import *
 import pyqtgraph
 
 
 
-class SettingsWindow(QtGui.QWidget):
+
+
+class SettingsWindow(QtWidgets.QWidget):
     # emit a list of values to update the voltages/currents of the coils
     sigUpdatePowers = QtCore.pyqtSignal(object)
     thMonitorVoltage = None
@@ -167,6 +169,8 @@ class SettingsWindow(QtGui.QWidget):
 
 if __name__ == "__main__":
     import sys
-    e = QtGui.QApplication(sys.argv)
+
+
+    e = QtWidgets.QApplication(sys.argv)
     win = SettingsWindow(device = TIMS0201(), parent = None)
     sys.exit(e.exec_())

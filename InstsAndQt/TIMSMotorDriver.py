@@ -23,9 +23,8 @@ from matplotlib import rcParams
 from ctypes import *
 from struct import *
 import time
-
 try:
-    from PyQt4.QtCore import QMutex
+    from PyQt5.QtCore import QMutex
 except:
     # Still allow functionality if no PyQt4 is detected.
     class QMutex:
@@ -34,6 +33,8 @@ except:
         def tryLock(self): return False
 
 import logging
+
+
 log = logging.getLogger("MotorDriver")
 log.setLevel(logging.DEBUG)
 handler1 = logging.StreamHandler()
@@ -42,10 +43,8 @@ formatter = logging.Formatter('%(message)s')
 handler1.setFormatter(formatter)
 log.addHandler(handler1)
 import traceback
-
-
 try:
-    from PyQt4.QtCore import QMutex
+    from PyQt5.QtCore import QMutex
     class MyMutex(QMutex):
         """
         Custom mutex for debugging purposes
@@ -167,9 +166,9 @@ class TIMS0201(object):
         
         
     def getStatus(self, verbose = False):
-        rx = c_ulong(1)
-        tx = c_ulong(1)
-        status = c_ulong(1)
+        rx = c_ulong(0)
+        tx = c_ulong(0)
+        status = c_ulong(0)
         ret = self.dllGetStatus(self.handle, rx, tx, status)
         if not verbose:
             print("Status: {}\n\trx: {}, tx: {}, status: {}".format(

@@ -7,72 +7,66 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 try:
-    _fromUtf8 = QtCore.QString.fromUtf8
-except AttributeError:
-    def _fromUtf8(s):
-        return s
-
-try:
-    _encoding = QtGui.QApplication.UnicodeUTF8
+    _encoding = QtWidgets.QApplication.UnicodeUTF8
     def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig, _encoding)
+        return QtCore.QCoreApplication.translate(context, text, disambig, _encoding)
 except AttributeError:
     def _translate(context, text, disambig):
-        return QtGui.QApplication.translate(context, text, disambig)
+        return QtCore.QCoreApplication.translate(context, text, disambig)
 
 class Ui_ESPAxisPanel(object):
     def setupUi(self, ESPAxisPanel):
-        ESPAxisPanel.setObjectName(_fromUtf8("ESPAxisPanel"))
+        ESPAxisPanel.setObjectName("ESPAxisPanel")
         ESPAxisPanel.resize(409, 77)
-        self.verticalLayout = QtGui.QVBoxLayout(ESPAxisPanel)
-        self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
-        self.horizontalLayout = QtGui.QHBoxLayout()
-        self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
-        spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.verticalLayout = QtWidgets.QVBoxLayout(ESPAxisPanel)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
-        self.lPos = QtGui.QLabel(ESPAxisPanel)
-        self.lPos.setObjectName(_fromUtf8("lPos"))
+        self.lPos = QtWidgets.QLabel(ESPAxisPanel)
+        self.lPos.setObjectName("lPos")
         self.horizontalLayout.addWidget(self.lPos)
         self.sbPosition = SpinBox(ESPAxisPanel)
-        self.sbPosition.setObjectName(_fromUtf8("sbPosition"))
+        self.sbPosition.setObjectName("sbPosition")
         self.horizontalLayout.addWidget(self.sbPosition)
-        self.labelMoving = QtGui.QLabel(ESPAxisPanel)
-        self.labelMoving.setObjectName(_fromUtf8("labelMoving"))
+        self.labelMoving = QtWidgets.QLabel(ESPAxisPanel)
+        self.labelMoving.setObjectName("labelMoving")
         self.horizontalLayout.addWidget(self.labelMoving)
-        self.lAxis = QtGui.QLabel(ESPAxisPanel)
-        self.lAxis.setObjectName(_fromUtf8("lAxis"))
+        self.lAxis = QtWidgets.QLabel(ESPAxisPanel)
+        self.lAxis.setObjectName("lAxis")
         self.horizontalLayout.addWidget(self.lAxis)
-        self.sbAxis = QtGui.QSpinBox(ESPAxisPanel)
+        self.sbAxis = QtWidgets.QSpinBox(ESPAxisPanel)
         self.sbAxis.setMinimum(1)
         self.sbAxis.setMaximum(3)
-        self.sbAxis.setObjectName(_fromUtf8("sbAxis"))
+        self.sbAxis.setObjectName("sbAxis")
         self.horizontalLayout.addWidget(self.sbAxis)
         self.verticalLayout.addLayout(self.horizontalLayout)
-        self.horizontalLayout_2 = QtGui.QHBoxLayout()
-        self.horizontalLayout_2.setObjectName(_fromUtf8("horizontalLayout_2"))
-        spacerItem1 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_2.addItem(spacerItem1)
-        self.lOn = QtGui.QLabel(ESPAxisPanel)
-        self.lOn.setObjectName(_fromUtf8("lOn"))
+        self.lOn = QtWidgets.QLabel(ESPAxisPanel)
+        self.lOn.setObjectName("lOn")
         self.horizontalLayout_2.addWidget(self.lOn)
-        self.cbOn = QtGui.QCheckBox(ESPAxisPanel)
-        self.cbOn.setText(_fromUtf8(""))
-        self.cbOn.setObjectName(_fromUtf8("cbOn"))
+        self.cbOn = QtWidgets.QCheckBox(ESPAxisPanel)
+        self.cbOn.setText("")
+        self.cbOn.setObjectName("cbOn")
         self.horizontalLayout_2.addWidget(self.cbOn)
-        self.bSetPosition = QtGui.QPushButton(ESPAxisPanel)
-        self.bSetPosition.setObjectName(_fromUtf8("bSetPosition"))
+        self.bSetPosition = QtWidgets.QPushButton(ESPAxisPanel)
+        self.bSetPosition.setObjectName("bSetPosition")
         self.horizontalLayout_2.addWidget(self.bSetPosition)
-        self.bGoHome = QtGui.QPushButton(ESPAxisPanel)
-        self.bGoHome.setObjectName(_fromUtf8("bGoHome"))
+        self.bGoHome = QtWidgets.QPushButton(ESPAxisPanel)
+        self.bGoHome.setObjectName("bGoHome")
         self.horizontalLayout_2.addWidget(self.bGoHome)
-        self.bSettings = QtGui.QPushButton(ESPAxisPanel)
-        self.bSettings.setObjectName(_fromUtf8("bSettings"))
+        self.bSettings = QtWidgets.QPushButton(ESPAxisPanel)
+        self.bSettings.setObjectName("bSettings")
         self.horizontalLayout_2.addWidget(self.bSettings)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
-        spacerItem2 = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        spacerItem2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem2)
 
         self.retranslateUi(ESPAxisPanel)
@@ -89,3 +83,4 @@ class Ui_ESPAxisPanel(object):
         self.bSettings.setText(_translate("ESPAxisPanel", "Settings...", None))
 
 from pyqtgraph import SpinBox
+

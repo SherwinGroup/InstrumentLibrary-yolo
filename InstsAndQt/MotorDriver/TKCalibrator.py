@@ -1,16 +1,28 @@
 from .scopeCollect import Win as ScopeViewWidget
-from PyQt4 import QtGui, QtCore
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 from InstsAndQt.customQt import TempThread
+
 from InstsAndQt.TKOscope.TKWid import TKWid
+
 from InstsAndQt.MotorDriver.motorMain import MotorWindow
+
 import time
+
 import numpy as np
+
 import glob
+
 import os
+
 from scipy.interpolate import interp1d as i1d
+
 from scipy.optimize import curve_fit as cf
+
 import pyqtgraph as pg
+
 from .wiregridcal_ui import Ui_MainWindow
+
 
 tkTrans = np.array(
     [
@@ -127,7 +139,7 @@ tkCalFactor = 0.00502
 
 
 
-class TKCalibrator(QtGui.QMainWindow):
+class TKCalibrator(QtWidgets.QMainWindow):
     thWaitForScope = None
     thDoTKSweep = TempThread()
     sigDoGui = QtCore.pyqtSignal(object, object)
@@ -169,10 +181,10 @@ class TKCalibrator(QtGui.QMainWindow):
 
 
     def pickSaveDir(self):
-        path = QtGui.QFileDialog.getSaveFileName(self,
+        path = QtWidgets.QFileDialog.getSaveFileName(self,
                                                  "Save File",
                                                  self.settings["saveDir"],
-                                                 "Text files (*.txt)")
+                                                 "Text files (*.txt)")[0]
         if not path:
             return
         self.settings["saveDir"] = str(path)
@@ -180,7 +192,7 @@ class TKCalibrator(QtGui.QMainWindow):
     def startSweep(self, val):
         if not val:
             return
-        st, ok = QtGui.QInputDialog.getText(self,
+        st, ok = QtWidgets.QInputDialog.getText(self,
                     "Desired Angles",
                     "Enter angles in deg separated by commas",
                     text=",".join(map(str, self.settings["thzSweepPoints"])))
@@ -293,7 +305,8 @@ class TKCalibrator(QtGui.QMainWindow):
 
 
 if __name__ == '__main__':
-    ex = QtGui.QApplication([])
+    ex = QtWidgets.QApplication([])
     win = TKCalibrator()
     import sys
+
     sys.exit(ex.exec_())

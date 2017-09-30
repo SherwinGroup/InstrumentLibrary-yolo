@@ -6,6 +6,7 @@ Inspiration: http://stackoverflow.com/questions/12182133/pyqt4-combine-textchang
 """
 
 import numpy as np
+from PyQt5.QtWidgets import *
 import copy
 from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
@@ -160,7 +161,6 @@ class QTimedText(QtGui.QLabel):
     def clearText(self):
         self.setText("")
 
-
 class QButtonDblClick(QtGui.QPushButton):
     """
     http://stackoverflow.com/questions/19247436/pyqt-mouse-mousebuttondblclick-event
@@ -289,13 +289,11 @@ class BorderlessPgPlot(QtGui.QMainWindow):
 
         self.move(newpos)
 
-
 class DraggablePlotWidget(pg.PlotWidget):
     def __init__(self, parent=None, background='default', **kargs):
         vb = DraggableViewBox()
         kargs["viewBox"] = vb
         super(DraggablePlotWidget, self).__init__(parent, background, **kargs)
-
 
 class DraggableViewBox(pg.ViewBox):
     """
@@ -320,9 +318,6 @@ class DraggableViewBox(pg.ViewBox):
             self.sigDropEvent.emit(self, ev.screenPos()-ev.lastScreenPos())
         else:
             super(DraggableViewBox, self).mouseDragEvent(ev, axis)
-
-
-
 
 class DoubleYPlot(pg.PlotWidget):
     """

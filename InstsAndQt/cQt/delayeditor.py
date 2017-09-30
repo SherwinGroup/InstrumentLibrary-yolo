@@ -1,6 +1,7 @@
 __author__ = 'Home'
-from PyQt4 import QtCore, QtGui
-from PyQt4.QtCore import Qt
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt
+
 
 # Map the position of the text string to the exponential
 # it represents
@@ -26,7 +27,7 @@ posMapper = {
     18: -12
 }
 
-class DelayEditor(QtGui.QLineEdit):
+class DelayEditor(QtWidgets.QLineEdit):
 
     # emits signal when the user has updated the vaalue in the
     # text box. Emits the new values
@@ -158,10 +159,10 @@ class DelayEditor(QtGui.QLineEdit):
     def value(self):
         return float(str(self.text()).replace(' ',''))
 
-class DelayTimeEditor(QtGui.QWidget):
+class DelayTimeEditor(QtWidgets.QWidget):
     def __init__(self, *args, **kwargs):
         super(DelayTimeEditor, self).__init__(*args, **kwargs)
-        self.layout = QtGui.QGridLayout()
+        self.layout = QtWidgets.QGridLayout()
         self.editor = DelayEditor(*args, **kwargs)
         self.layout.addWidget(self.editor, 0, 0, 1, 5)
 
@@ -169,7 +170,7 @@ class DelayTimeEditor(QtGui.QWidget):
 
         # self.layout.addItem(QtGui.QSpacerItem(10, 0), 1, 0)
         for ii in range(1, 5):
-            label = QtGui.QLabel(self)
+            label = QtWidgets.QLabel(self)
             label.setText("{}s".format(pref[ii]))
             label.setMargin(0)
             self.layout.addWidget(label, 1, ii, Qt.AlignCenter)
@@ -181,7 +182,7 @@ class DelayTimeEditor(QtGui.QWidget):
         self.setLayout(self.layout)
 
 if __name__ == '__main__':
-    app = QtGui.QApplication([])
+    app = QtWidgets.QApplication([])
     # wid = DelayEditor()
     wid = DelayTimeEditor()
     wid.show()

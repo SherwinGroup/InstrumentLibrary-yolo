@@ -1,15 +1,32 @@
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 import time
+
+
 import numpy as np
+
+
 from InstsAndQt.Instruments import DG535
+
+
 import pyqtgraph as pg
+
+
 pg.setConfigOption("background", "w")
 pg.setConfigOption("foreground", "k")
 
-from .delayGenerator_ui import Ui_MainWindow
+# Support for running as a standalone object,
+# or imported into another.
+#
+#
+try:
+    from .delayGenerator_ui import Ui_MainWindow
+except ModuleNotFoundError:
+    from delayGenerator_ui import Ui_MainWindow
 
 
-class DG535Monitor(QtGui.QMainWindow):
+
+
+class DG535Monitor(QtWidgets.QMainWindow):
 
     # emit as <str 'Changed Channel'>,
     #         <tup (old ref, new ref)>,
@@ -49,9 +66,10 @@ class DG535Monitor(QtGui.QMainWindow):
         self.ui.dDTime.editor.sigNewValue.connect(
             lambda: self.updateDelay("D"))
 
-
         if "GPIB0::15::INSTR" in self.ui.cbGPIB:
             self.ui.cbGPIB.setAddress("GPIB0::15::INSTR")
+
+
 
 
 
@@ -89,6 +107,11 @@ class DG535Monitor(QtGui.QMainWindow):
 
         for ch, (cbRef, dTime) in list(self.channelMap.items()):
             ref, tim = self.instrument.getDelay(ch)
+            # if timeout errors occured, the
+            if ref == tim == -1:
+                ref = "D"
+                tim = -1
+
             cbRef.blockSignals(True)
             dTime.blockSignals(True)
 
@@ -188,8 +211,10 @@ class DG535Monitor(QtGui.QMainWindow):
 
 if __name__ == '__main__':
     import sys
+
+
     print(sys.argv)
-    ap = QtGui.QApplication([])
+    ap = QtWidgets.QApplication([])
     if "slave" in sys.argv:
         win = DG535Monitor()
         print("made a slave delay window")

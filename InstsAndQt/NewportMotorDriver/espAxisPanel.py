@@ -1,20 +1,34 @@
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 from .UIs.axisPanel_ui import Ui_ESPAxisPanel
+
+
 # from esp300 import ESP300
 try:
     from ..Instruments import ESP300
+
+
 except ValueError:
     from InstsAndQt.Instruments import ESP300
+
+
 from InstsAndQt.customQt import *
+
+
 import numpy as np
+
+
 import pyqtgraph
 
 
+
+
 import logging
+
+
 log = logging.getLogger("Instruments")
 
 
-class ESPAxisPanel(QtGui.QWidget):
+class ESPAxisPanel(QtWidgets.QWidget):
     thWaitForMotor = TempThread()
     sigCreateGuiElement = QtCore.pyqtSignal(object, object)
     # Emits a signal of error messages when encountered.
@@ -40,10 +54,11 @@ class ESPAxisPanel(QtGui.QWidget):
         self.ui.sbPosition.sigValueChanged.connect(lambda: self.startChangePosition(self.moveMotor))
         self.ui.cbOn.toggled.connect(self.toggleMotor)
         self.ui.bSetPosition.clicked.connect(self.setCurrentPosition)
-        self.ui.bGoHome.clicked.connect(self.goHome)
+        # self.ui.bGoHome.clicked.connect(self.goHome)
+        self.ui.bGoHome.clicked.connect(lambda: self.startChangePosition(target=self.ESPAxis.goHome))
 
     def setCurrentPosition(self):
-        val, ok = QtGui.QInputDialog.getDouble(self,"Current Position", "Current Angle:", 0)
+        val, ok = QtWidgets.QInputDialog.getDouble(self,"Current Position", "Current Angle:", 0)
         if ok:
             self.ui.sbPosition.blockSignals(True)
             self.ESPAxis.home = val
@@ -51,7 +66,9 @@ class ESPAxisPanel(QtGui.QWidget):
             self.ui.sbPosition.blockSignals(False)
 
     def goHome(self):
-        self.startChangePosition(target=self.ESPAxis.goHome)
+        pass
+        # self.startChangePosition(target=self.ESPAxis.goHome)
+        # self.ESPAxis.goHome()
 
     def toggleMotor(self):
         try:
@@ -76,11 +93,8 @@ class ESPAxisPanel(QtGui.QWidget):
         """
         if target is None:
             target = self.moveMotor
-        self.thWaitForMotor.target = target
-        # self.thWaitForMotor.finished.connect(self.cleanupMotorMove)
-        self.thWaitForMotor.start()
 
-    def moveMotor(self):
+
 
         self.setStatusWidget("Moving", "QLabel { background-color : yellow; color : black; }")
         expectedTime = np.abs(self.ESPAxis.position - float(self.ui.sbPosition.value()))/self.ESPAxis.velocity
@@ -90,13 +104,31 @@ class ESPAxisPanel(QtGui.QWidget):
         # Have about ~10% more than expected, just for safety.
         self.ESPAxis.instrument.timeout = expectedTime * 1.1 * 1000 + self.ESPAxis.delay
 
+        self.thWaitForMotor.target = target
+        self.thWaitForMotor.finished.connect(self.cleanupMotorMove)
+        self.thWaitForMotor.start()
+
+        # self.thWaitForMotor.finished.connect(self.cleanupMotorMove)
+
+
+
+    def moveMotor(self):
+
+        # self.setStatusWidget("Moving", "QLabel { background-color : yellow; color : black; }")
+        # expectedTime = np.abs(self.ESPAxis.position - float(self.ui.sbPosition.value()))/self.ESPAxis.velocity
+        # # force minimum of 10s
+        # expectedTime = max(expectedTime, 10)
+        # # Update the timeout time so it won't break when you want long moves
+        # # Have about ~10% more than expected, just for safety.
+        # self.ESPAxis.instrument.timeout = expectedTime * 1.1 * 1000 + self.ESPAxis.delay
+
         try:
             self.ESPAxis.position = float(self.ui.sbPosition.value())
         except Exception as e:
             log.exception("Error moving axis\n\tTimeout set to: {}".format(self.ESPAxis.instrument.timeout))
             self.setStatusWidget("Timeout", "QLabel { background-color : red; color : black; }")
             return
-        self.sigCreateGuiElement.emit(self.cleanupMotorMove, [])
+        # self.sigCreateGuiElement.emit(self.cleanupMotorMove, [])
 
     def cleanupMotorMove(self, *args):
         self.ui.sbPosition.blockSignals(True)
@@ -143,6 +175,8 @@ class ESPAxisPanel(QtGui.QWidget):
 
 if __name__ == "__main__":
     import sys
-    e = QtGui.QApplication(sys.argv)
+
+
+    e = QtWidgets.QApplication(sys.argv)
     win = MotorWindow(device = TIMS0201(), parent = None)
     sys.exit(e.exec_())

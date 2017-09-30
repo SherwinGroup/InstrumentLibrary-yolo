@@ -5,18 +5,36 @@ Created on Sun Sep 28 15:36:27 2014
 @author: Darren
 """
 
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
+
+
 import numpy as np
+
+
 import threading
+
+
 from .mainWindow_ui import Ui_MainWindow
+
+
 from .scopeView import ScopeViewWidget
+
+
 from InstsAndQt.Instruments import Agilent6000
+
+
 from InstsAndQt.customQt import *
+
+
 import os
+
+
 import visa
 
-class Win(QtGui.QMainWindow):
+
+raise RuntimeError("this file shoulnd't be called from ehre")
+class Win(QtWidgets.QMainWindow):
     sigDataUpdate = QtCore.pyqtSignal()
     sigSetStatusBar = QtCore.pyqtSignal(object)
 
@@ -428,7 +446,7 @@ class Win(QtGui.QMainWindow):
     #=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
     def chooseSaveDir(self):
-        directory = QtGui.QFileDialog.getExistingDirectory(self,
+        directory = QtWidgets.QFileDialog.getExistingDirectory(self,
                                                      caption="Choose Save Directory",
                                                      directory=self.settings["saveDir"])
         if directory == "":
@@ -530,7 +548,9 @@ class Win(QtGui.QMainWindow):
 
 def main():
     import sys
-    app = QtGui.QApplication(sys.argv)
+
+
+    app = QtWidgets.QApplication(sys.argv)
     ex = Win()
     sys.exit(app.exec_())
 

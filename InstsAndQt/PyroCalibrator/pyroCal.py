@@ -1,13 +1,17 @@
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
 import time
 import scipy.optimize as spo
 import pyqtgraph as pg
 import os
 
-from .calibrator_ui import Ui_PyroCalibration
+try:
+    from .calibrator_ui import Ui_PyroCalibration
+except ModuleNotFoundError:
+    from calibrator_ui import Ui_PyroCalibration
+
     
-class PyroCalibrator(QtGui.QMainWindow):
+class PyroCalibrator(QtWidgets.QMainWindow):
     def __init__(self):
         super(PyroCalibrator, self).__init__()
         self.initUI()
@@ -32,7 +36,7 @@ class PyroCalibrator(QtGui.QMainWindow):
         # pulses
         self.ui.pyroWid.settings["exposing"] = True
 
-        self.saveDir = r'Z:\~Hunter Banks\Data\2017'
+        self.saveDir = r'Z:\~HSG\Data\2017'
 
     def initUI(self):
         self.ui = Ui_PyroCalibration()
@@ -118,9 +122,9 @@ class PyroCalibrator(QtGui.QMainWindow):
             self.synchronizer.start()
 
     def saveData(self):
-        loc = QtGui.QFileDialog.getSaveFileName(
+        loc = QtWidgets.QFileDialog.getSaveFileName(
             self, "Choose save file", self.saveDir, "Text files (*.txt)"
-        )
+        )[0]
         loc = str(loc)
         if not loc: return
         self.saveDir = os.path.dirname(loc)
@@ -161,7 +165,9 @@ class PyroCalibrator(QtGui.QMainWindow):
 
 if __name__ == '__main__':
 	import sys
-	ap = QtGui.QApplication(sys.argv)
+
+
+	ap = QtWidgets.QApplication(sys.argv)
 	wid = PyroCalibrator()
 	wid.show()
 	sys.exit(ap.exec_())

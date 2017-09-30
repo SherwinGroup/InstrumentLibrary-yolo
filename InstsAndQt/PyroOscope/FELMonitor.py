@@ -1,26 +1,29 @@
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
 import os
 import glob
 import time
 import pyqtgraph as pg
-from io import StringIO
+from io import StringIO, BytesIO
+# import InstsAndQt # get the __init__ to rehook exceptions to stop crashign
+from InstsAndQt.cQt.DateAxis import DateAxis
+
 
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
 
 class UI(object): pass
-class DateAxis(pg.AxisItem):
-    def tickStrings(self, values, scale, spacing):
-        strns = []
-        for x in values:
-            try:
-                strns.append(time.strftime("%X", time.localtime(x)))
-            except ValueError:  ## Windows can't handle dates before 1970
-                strns.append('')
-        return strns
+# class DateAxis(pg.AxisItem):
+#     def tickStrings(self, values, scale, spacing):
+#         strns = []
+#         for x in values:
+#             try:
+#                 strns.append(time.strftime("%X", time.localtime(x)))
+#             except ValueError:  ## Windows can't handle dates before 1970
+#                 strns.append('')
+#         return strns
 
-class FELMonitor(QtGui.QWidget):
+class FELMonitor(QtWidgets.QWidget):
     updateTimer = QtCore.QTimer()
     def __init__(self, *args, **kwargs):
         super(FELMonitor, self).__init__(*args, **kwargs)
@@ -36,36 +39,36 @@ class FELMonitor(QtGui.QWidget):
         pi.axes["bottom"]["item"] = caxis
         pi.layout.addItem(caxis, 3, 1)
 
-        auto = QtGui.QMenu("Autoscroll", self)
-        self.ui.cbAutoEnabled = QtGui.QCheckBox("Enabled")
+        auto = QtWidgets.QMenu("Autoscroll", self)
+        self.ui.cbAutoEnabled = QtWidgets.QCheckBox("Enabled")
         self.ui.cbAutoEnabled.setChecked(True)
-        self.ui.sbAutoTime = pg.SpinBox(value=10, step=1, decimals=1, bounds=(0, 600))
+        self.ui.sbAutoTime = pg.SpinBox(value=10, step=1, int=True, bounds=(0, 600))
         self.ui.cbAutoEnabled.stateChanged.connect(
             lambda x: self.ui.sbAutoTime.setEnabled(x)
         )
-        wid = QtGui.QWidget(None)
-        layout = QtGui.QHBoxLayout(wid)
+        wid = QtWidgets.QWidget(None)
+        layout = QtWidgets.QHBoxLayout(wid)
         layout.addWidget(self.ui.cbAutoEnabled)
         layout.addWidget(self.ui.sbAutoTime)
         wid.setLayout(layout)
-        self.ui.acAutoTime = QtGui.QWidgetAction(None)
+        self.ui.acAutoTime = QtWidgets.QWidgetAction(None)
         self.ui.acAutoTime.setDefaultWidget(wid)
         auto.addAction(self.ui.acAutoTime)
 
         pi.vb.menu.addMenu(auto)
 
-        self.ui.bChooseDir = QtGui.QPushButton("Choose File")
+        self.ui.bChooseDir = QtWidgets.QPushButton("Choose File")
         self.ui.bChooseDir.clicked.connect(self.openFile)
-        mainlayout = QtGui.QVBoxLayout()
-        button1 = QtGui.QHBoxLayout()
-        button1.setMargin(0)
+        mainlayout = QtWidgets.QVBoxLayout()
+        button1 = QtWidgets.QHBoxLayout()
+        button1.setContentsMargins(0, 0, 0, 0)
         button1.addStretch(10)
         button1.addWidget(self.ui.bChooseDir)
         mainlayout.addWidget(self.ui.gPlotter)
         mainlayout.addLayout(button1)
-        mainlayout.setMargin(0)
+        mainlayout.setContentsMargins(0, 0, 0, 0)
 
-        self.logFile = r'Z:\~Hunter Banks\Data\2017'
+        self.logFile = r'Z:\~HSG\Data\2017'
 
 
         self.updateTimer.timeout.connect(self.updatePlot)
@@ -79,25 +82,23 @@ class FELMonitor(QtGui.QWidget):
 
         self.show()
     def openFile(self):
-        loc = QtGui.QFileDialog.getOpenFileName(self, "Pick logging file",
+        loc = QtWidgets.QFileDialog.getOpenFileName(self, "Pick logging file",
                                                 self.logFile,
-                                                "Text File (*.txt)")
+                                                "Text File (*.txt)")[0]
         loc = str(loc)
         if not loc: return
         self.logFile = loc
         self.fh = open(self.logFile, 'rt')
 
     def updatePlot(self):
-        # print "checking new file"
-        # print self.fh.read()
         if self.fh is None: return
         newData = self.fh.read()
         if not newData: return
-        newData = np.genfromtxt(StringIO(newData), delimiter=',')
-        # print newData
-        # print "new data:", newData
-        # print '\n'*3
+        print("newData", StringIO(newData))
+        newData = np.genfromtxt(BytesIO(newData.encode()), delimiter=',')
         if 0 in newData.shape: return
+        # remove nan's
+        newData = newData[np.isfinite(newData[:,0])]
 
         self.data = np.row_stack((self.data, newData))
         self.pData.setData(self.data[:,0], self.data[:,1])
@@ -128,6 +129,8 @@ class FELMonitor(QtGui.QWidget):
 
 if __name__ == '__main__':
     import sys
-    app = QtGui.QApplication(sys.argv)
+
+
+    app = QtWidgets.QApplication(sys.argv)
     ex = FELMonitor()
     sys.exit(app.exec_())

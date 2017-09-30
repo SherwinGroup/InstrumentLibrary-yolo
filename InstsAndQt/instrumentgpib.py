@@ -1,12 +1,18 @@
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 import weakref
+
+
 try:
     import visa
+
+
     rm = visa.ResourceManager()
 except ImportError:
     raise ImportError("Need pyvisa to operate ComboBox")
 
 import logging
+
+
 log = logging.getLogger("Instruments")
 
 
@@ -15,9 +21,15 @@ def BaseInstrument(object):
         pass
 
 
-class InstrumentGPIB(QtGui.QComboBox):
+class InstrumentGPIB(QtWidgets.QComboBox):
+    # Emits the instrument when it's opened
     sigInstrumentOpened = QtCore.pyqtSignal(object)
+    # emits when a close is requested, not necessarily
+    # when it's closed (as it can be set by closeOnChange)
     sigInstrumentClosed = QtCore.pyqtSignal()
+    # signal which connects to the function so it can be
+    # called in threads
+    sigSetAddress = QtCore.pyqtSignal(object)
     def __init__(self, parent=None, *args, **kwargs):
         super(InstrumentGPIB, self).__init__(parent)
 
@@ -26,18 +38,20 @@ class InstrumentGPIB(QtGui.QComboBox):
         self._instrumentArgs = None
         self._instrument = None
         self.currentIndexChanged.connect(self.changeInstrument)
+        self.sigSetAddress.connect(self.setAddress)
 
         self.closeOnChange = True
 
         self.refreshGPIBList()
 
     def __contains__(self, item):
-        return item in self._GPIBList
+        return item in self._GPIBList or item is "None" or item is "Fake"
 
     def refreshGPIBList(self):
         self.blockSignals(True)
         gpiblist = rm.list_resources()
         curLabel = self.currentText()
+        if not curLabel: curLabel = "None"
         self.clear()
 
         self._GPIBList = [str(i) for i in gpiblist]
@@ -79,8 +93,8 @@ class InstrumentGPIB(QtGui.QComboBox):
                 self.blockSignals(False)
                 return
 
-        self._instrument = weakref.ref(inst)
-        self.sigInstrumentOpened.emit(inst)
+            self._instrument = weakref.ref(inst)
+            self.sigInstrumentOpened.emit(inst)
 
     def setAddress(self, address):
         if address not in self:
@@ -91,12 +105,13 @@ class InstrumentGPIB(QtGui.QComboBox):
 
 
     def closeInstrument(self):
+        self.sigInstrumentClosed.emit()
         if self.closeOnChange and self._instrument is not None:
             try:
                 self._instrument().close()
-                self.sigInstrumentClosed.emit()
             except Exception as e:
-                print("Error closing instrument", e)
+                log.exception("Error closing instrument in GPIB combo")
+
 
     def setHoverText(self, text=""):
         self.setToolTip(str(text))
@@ -111,11 +126,13 @@ class InstrumentGPIB(QtGui.QComboBox):
 
 
 if __name__ == '__main__':
-    app = QtGui.QApplication([])
+    app = QtWidgets.QApplication([])
 
     wid = InstrumentGPIB()
     wid.setHoverText("This is text")
     from .Instruments import Agilent6000 as a
+
+
 
     wid.setInstrumentClass(a)
     wid.show()

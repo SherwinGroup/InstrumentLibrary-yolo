@@ -12,15 +12,16 @@ import os, errno
 import copy
 import json
 import numpy as np
+
 # what the hell is this?
 # hangs on my mac at this import line
 # no idea what the fuck is going on here.
 # import matplotlib.pylab as plt
-from . import cosmics_hsg as cosmics
+# from . import cosmics_hsg as cosmics
+import InstsAndQt.PyroOscope.cosmics_hsg as cosmics
 import scipy.ndimage as ndimage
 import pyqtgraph as pg
 # from UIs.ImageViewWithPlotItemContainer import ImageViewWithPlotItemContainer
-
 import logging
 log = logging.getLogger("EMCCD")
 
