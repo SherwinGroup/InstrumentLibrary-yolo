@@ -63,9 +63,12 @@ class MotorWindow(QtWidgets.QMainWindow):
 
     def openDevice(self):
         try:
-            self.device = TIMS0201()
+            self.device = TIMSArduino()
             self.device.open_()
-            self.currentAngle = self.device.getSteps()/self.stepsPerDeg
+            try:
+                self.currentAngle = self.device.getSteps()/self.stepsPerDeg
+            except:
+                self.currentAngle = 0
             self.currentLimit = self.device.getCurrentLimit()
             if self.currentLimit == 0:
                 self.currentLimit = 25
@@ -116,17 +119,19 @@ class MotorWindow(QtWidgets.QMainWindow):
                 moveBy = self.ui.sbAngle.interpret() - self.currentAngle
 
 
-        for button in self.buttons:
-            button.setEnabled(False)
+        """for button in self.buttons:
+            button.setEnabled(False)"""
 
         if self.settingsWindow is not None:
             self.currentLimit = self.settingsWindow.ui.sbCurrent.interpret()
 
         self.device.setCurrentLimit(self.currentLimit)
         self.device.moveRelative(moveBy * self.stepsPerDeg)
-        self.thMoveMotor = TempThread(target = self.waitForMotor)
+        
+        """self.thMoveMotor = TempThread(target = self.waitForMotor)
         # self.thMoveMotor.terminated.connect(self.finishedMove)
-        self.thMoveMotor.start()
+        self.thMoveMotor.start()"""
+    
 
 
     def stopMove(self):
@@ -146,7 +151,7 @@ class MotorWindow(QtWidgets.QMainWindow):
 
     def waitForMotor(self):
         flg = self.device.isBusy()
-        while flg:
+        while flg== True and type(flg) != None:
             curSteps = self.device.getSteps()
             self.sigUpdateDegrees.emit(curSteps/self.stepsPerDeg)
             time.sleep(0.4)
@@ -160,7 +165,10 @@ class MotorWindow(QtWidgets.QMainWindow):
         self.device.setCurrentLimit(0)
 
         curSteps = self.device.getSteps()
-        self.sigUpdateDegrees.emit(curSteps/self.stepsPerDeg)
+        try:
+            self.sigUpdateDegrees.emit(curSteps/self.stepsPerDeg)
+        except:
+            pass
 
     def setDegrees(self, val):
         self.ui.sbAngle.setValue(val)
@@ -199,5 +207,5 @@ if __name__ == "__main__":
 
 
     e = QtWidgets.QApplication(sys.argv)
-    win = MotorWindow(device = TIMS0201(), parent = None)
+    win = MotorWindow(device = TIMSArduino(), parent = None)
     sys.exit(e.exec_())

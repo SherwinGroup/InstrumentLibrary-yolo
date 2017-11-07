@@ -23,6 +23,7 @@ from matplotlib import rcParams
 from ctypes import *
 from struct import *
 import time
+import visa
 try:
     from PyQt5.QtCore import QMutex
 except:
@@ -136,7 +137,94 @@ CTRL_SEEKRATESAV= [0x02, 0x46]
 
 
 
+class TIMSArduino(object):
+    def __init__(self):
+        self.rm = visa.ResourceManager()
+        self.inst = object
+    
+    def makeMotorStatusPacket():
+        pass
+        
+    @staticmethod
+    def makePacket(control, data = [0x00]):
+        pass
+        
+        
+    def getStatus(self, verbose = False):
+        pass
+    
+    def open_(self):
+        self.inst = self.rm.open_resource('COM4')
+        
+    def close_(self):
+        self.inst.close()
+        
+    def purge(self):
+        pass
+        
+    def write(self, packet):
+        pass
+        
+    def read(self, expectedbytes = 9, verbose = False):
+        pass
+        
+    def stopMotor(self):
+        self.inst.query('sm')
+        
+    def singleStep(self, fwd = True):
+        if fwd:
+            self.inst.query('m1')
+        else:
+            self.inst.query('m-1')
+        
+    def continousMove(self, fwd = True):
+        if fwd:
+            self.inst.query('cm')
+        else:
+            self.inst.query('cm-')
+        
+    def moveAbsolute(self, move):
+        print("NOT IMPLEMENTED: moveAbsolute")
+        
+    def moveRelative(self, move):
+        movestr = 'm' + str(move)
+        self.inst.query(movestr)
+        
+    def getSteps(self):
+        pass
 
+    def setSteppingMode(self, toHalf = True):
+        pass
+
+    
+    def setSteps(self, steps):
+        pass
+        
+    def getCurrentLimit(self):
+        pass
+        
+    def setCurrentLimit(self, limit=1):
+        pass
+    
+    def getMotorPowers(self):
+        pass
+
+
+    def setStepRate(self, rate):
+        pass
+
+    def getStepRate(self):
+        pass
+            
+    def getDeviceStatus(self):
+        pass
+            
+    def isBusy(self):
+        pass
+
+    def registerFunctions(self):
+        pass
+        
 
 class TIMS0201(object):
     readTimeout = 20 #ms
