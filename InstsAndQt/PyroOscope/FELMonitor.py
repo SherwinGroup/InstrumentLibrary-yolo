@@ -94,11 +94,15 @@ class FELMonitor(QtWidgets.QWidget):
         if self.fh is None: return
         newData = self.fh.read()
         if not newData: return
-        print("newData", StringIO(newData))
         newData = np.genfromtxt(BytesIO(newData.encode()), delimiter=',')
         if 0 in newData.shape: return
         # remove nan's
-        newData = newData[np.isfinite(newData[:,0])]
+        try:
+            newData = newData[np.isfinite(newData[:,0])]
+        except IndexError:
+            # newData = newData[np.isfinite(newData[:,0])]
+            if not np.isfinite(newData[0]):
+                return
 
         self.data = np.row_stack((self.data, newData))
         self.pData.setData(self.data[:,0], self.data[:,1])

@@ -43,12 +43,12 @@ class ESPMainPanel(QtWidgets.QWidget):
 
 
     def updateGPIB(self):
-        if str(self.ui.cbGPIB.currentText()) == "None":
+        if str(self.ui.cbGPIB.currentText()) in ["None", "Refresh..."]  :
             ## What's the safest thing to do here...?
             return
         for axis in self.motorAxes:
             axis.GPIB = str(self.ui.cbGPIB.currentText())
-            axis.openESPAxis(axis=1)
+            axis.openESPAxis(axis=int(self.axis.ui.sbAxis.value()))
 
     def addMotorAxes(self):
         """
@@ -62,7 +62,7 @@ class ESPMainPanel(QtWidgets.QWidget):
         detHWPgbLayout = QtWidgets.QVBoxLayout(detHWPgroupbox)
         self.detHWPWidget = ESPAxisPanel(parent=self,
                                          GPIB=str(self.ui.cbGPIB.currentText()),
-                                         axis=1)
+                                         axis=2)
         self.detHWPWidget.sigErrorsEncountered.connect(self.updateInstrumentErrors)
         self.motorAxes.append(self.detHWPWidget)
         detHWPgbLayout.addWidget(self.detHWPWidget)
@@ -78,6 +78,7 @@ class ESPMainPanel(QtWidgets.QWidget):
     def displayErrors(self):
         self.ui.bErrors.setStyleSheet("")
         self.errorWindow.show()
+        self.errorWindow.raise_()
 
 
 
