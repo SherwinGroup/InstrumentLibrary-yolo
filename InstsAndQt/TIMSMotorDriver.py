@@ -5,7 +5,7 @@ Created on Thu Mar 26 11:24:38 2015
 A note on synchronization:
 ----------------------------------
 Serious issues were had when trying to deal with synchronization (in multithreading)
-with this motor driver. It was desired to be able to query the drive often to read the
+with this motor driver. It was desired to be able to write the drive often to read the
 voltages, while still being able to move the motor.
 
 Mutex's are locks which are supposed to be able to control that. However, trying to
@@ -157,6 +157,7 @@ class TIMSArduino(object):
         self.inst = self.rm.open_resource('COM4')
         
     def close_(self):
+        self.inst.write('c')
         self.inst.close()
         
     def purge(self):
@@ -169,36 +170,37 @@ class TIMSArduino(object):
         pass
         
     def stopMotor(self):
-        self.inst.query('sm')
+        time.sleep(.4)
+        self.inst.write('sm')
         
     def singleStep(self, fwd = True):
         if fwd:
-            self.inst.query('m1')
+            self.inst.write('m1')
         else:
-            self.inst.query('m-1')
+            self.inst.write('m-1')
         
     def continousMove(self, fwd = True):
         if fwd:
-            self.inst.query('cm')
+            self.inst.write('cm')
         else:
-            self.inst.query('cm-')
+            self.inst.write('cm-')
         
     def moveAbsolute(self, move):
         print("NOT IMPLEMENTED: moveAbsolute")
         
     def moveRelative(self, move):
         movestr = 'm' + str(move)
-        self.inst.query(movestr)
+        self.inst.write(movestr)
         
     def getSteps(self):
-        pass
+        return float(self.inst.query('gs'))
 
     def setSteppingMode(self, toHalf = True):
         pass
 
     
     def setSteps(self, steps):
-        pass
+        self.inst.write('s'+str(steps))
         
     def getCurrentLimit(self):
         pass
@@ -220,7 +222,9 @@ class TIMSArduino(object):
         pass
             
     def isBusy(self):
-        pass
+        time.sleep(1.4)
+        status = int(self.inst.query('ib'))
+        return status
 
     def registerFunctions(self):
         pass

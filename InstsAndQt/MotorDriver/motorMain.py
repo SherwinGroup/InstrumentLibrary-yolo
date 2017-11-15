@@ -6,6 +6,7 @@ from InstsAndQt.customQt import *
 from InstsAndQt.Instruments import __displayonly__
 from InstsAndQt.MotorDriver.Control import SettingsWindow
 from InstsAndQt.MotorDriver.movementWindow_ui import Ui_MainWindow
+import time
 
 
 
@@ -44,13 +45,14 @@ class MotorWindow(QtWidgets.QMainWindow):
             self.ui.bp01,
             self.ui.bp05,
             self.ui.bp10,
-            self.ui.bGo
+            self.ui.bGo,
+            self.ui.bStop
         ]
         for button in self.buttons:
             button.clicked.connect(self.moveMotorDeg)
 
         self.ui.sbAngle.setOpts(bounds = (-360, 360), decimals = 1, step = 0.1)
-        self.ui.bStop.clicked.connect(self.stopMove)
+        #self.ui.bStop.clicked.connect(self.stopMove)
 
         self.ui.mMoreSettings.triggered.connect(self.launchSettings)
         self.ui.mMoreZero.triggered.connect(self.zeroDegrees)
@@ -119,8 +121,8 @@ class MotorWindow(QtWidgets.QMainWindow):
                 moveBy = self.ui.sbAngle.interpret() - self.currentAngle
 
 
-        """for button in self.buttons:
-            button.setEnabled(False)"""
+        for button in self.buttons:
+            button.setEnabled(False)
 
         if self.settingsWindow is not None:
             self.currentLimit = self.settingsWindow.ui.sbCurrent.interpret()
@@ -128,13 +130,14 @@ class MotorWindow(QtWidgets.QMainWindow):
         self.device.setCurrentLimit(self.currentLimit)
         self.device.moveRelative(moveBy * self.stepsPerDeg)
         
-        """self.thMoveMotor = TempThread(target = self.waitForMotor)
+        self.thMoveMotor = TempThread(target = self.waitForMotor)
         # self.thMoveMotor.terminated.connect(self.finishedMove)
-        self.thMoveMotor.start()"""
+        self.thMoveMotor.start()
     
 
 
     def stopMove(self):
+        self.thMoveMotor.terminate()
         try:
             self.device.stopMotor()
         except Exception as e:
@@ -151,10 +154,10 @@ class MotorWindow(QtWidgets.QMainWindow):
 
     def waitForMotor(self):
         flg = self.device.isBusy()
+        
         while flg== True and type(flg) != None:
             curSteps = self.device.getSteps()
             self.sigUpdateDegrees.emit(curSteps/self.stepsPerDeg)
-            time.sleep(0.4)
             flg = self.device.isBusy()
         self.finishedMove()
 
