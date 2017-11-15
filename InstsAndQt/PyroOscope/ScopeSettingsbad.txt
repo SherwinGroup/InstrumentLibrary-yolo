@@ -1,0 +1,26 @@
+{
+    "bcpyBG": [
+        0.408386817,
+        1.46205424
+    ],
+    "bcpyCD": [
+        3.39343912,
+        3.4277421
+    ],
+    "bcpyFP": [
+        2.02720398,
+        3.35574401
+    ],
+    "coupler": "Cavity Dump",
+    "eff_field": "1.67",
+    "fel_lambda": "18.4",
+    "fel_pol": "H",
+    "fel_power": "4.007",
+    "fel_reprate": "1.07",
+    "integratingMode": "Integrating",
+    "logFile": "Z:/~HSG/Data/2017/11-07-17 A100817 New Polarimetry/pulses.txt",
+    "pulseCountRatio": "0.007",
+    "pyroCalFactor": "0.138",
+    "sample_spot_size": "0.05",
+    "window_trans": "0.75"
+}

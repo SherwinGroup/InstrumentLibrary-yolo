@@ -196,6 +196,12 @@ class QButtonDblClick(QtGui.QPushButton):
             self.update()
         self.left_click_count = 0
 
+
+
+
+
+
+
 class TempThread(QtCore.QThread):
     """ Creates a QThread which will monitor the temperature changes in the
         CCD. Actually more general than that since it simply takes a function and some args...

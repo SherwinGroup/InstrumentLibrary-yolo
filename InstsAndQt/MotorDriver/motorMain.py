@@ -59,6 +59,8 @@ class MotorWindow(QtWidgets.QMainWindow):
 
         self.ui.bCloseDevice.clicked.connect(self.toggleDeviceOpen)
 
+        self.ui.tCosCalc.setReadOnly(False)
+
         self.show()
 
     def openDevice(self):

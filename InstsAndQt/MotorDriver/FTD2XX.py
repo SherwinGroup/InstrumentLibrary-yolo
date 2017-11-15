@@ -250,7 +250,7 @@ class FTD2XX(object):
 
 if __name__ == '__main__':
     ftd = FTD2XX()
-    # ftd.getNumDevices()
+    ftd.getNumDevices()
     ftd.getInformationByIndex(0)
     # ftd.open_()
     ftd.getAllInformation()
