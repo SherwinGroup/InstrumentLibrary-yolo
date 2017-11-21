@@ -141,6 +141,7 @@ class TIMSArduino(object):
     def __init__(self):
         self.rm = visa.ResourceManager()
         self.inst = object
+        
     
     def makeMotorStatusPacket():
         pass
@@ -180,10 +181,7 @@ class TIMSArduino(object):
             self.inst.write('m-1')
         
     def continousMove(self, fwd = True):
-        if fwd:
-            self.inst.write('cm')
-        else:
-            self.inst.write('cm-')
+        pass
         
     def moveAbsolute(self, move):
         print("NOT IMPLEMENTED: moveAbsolute")
@@ -191,6 +189,8 @@ class TIMSArduino(object):
     def moveRelative(self, move):
         movestr = 'm' + str(move)
         self.inst.write(movestr)
+        print(move)
+        
         
     def getSteps(self):
         return float(self.inst.query('gs'))
@@ -222,7 +222,7 @@ class TIMSArduino(object):
         pass
             
     def isBusy(self):
-        time.sleep(1.4)
+        time.sleep(3.5) #this delay is necessary for for communicating with Arduino for some reason
         status = int(self.inst.query('ib'))
         return status
 
