@@ -4,6 +4,10 @@ from pyqtgraph import SpinBox
 import time
 import os
 from InstsAndQt.SettingsDict import Settings
+import numpy as np
+
+import interactivePG as pg
+from InstsAndQt.cQt.DateAxis import DateAxis
 import logging
 log = logging.getLogger("Instruments")
 
@@ -22,7 +26,7 @@ class WS6Monitor(QtWidgets.QLabel):
     # Emits as <previous value> <new value>
     # TODO: decide what units (or constant nm?)
     sigWavelengthChanged = QtCore.pyqtSignal(object, object)
-
+    _plot = None
     def __init__(self, *args, **kwargs):
         super(WS6Monitor, self).__init__()
 
@@ -34,6 +38,11 @@ class WS6Monitor(QtWidgets.QLabel):
             "setpointErr": 1, #pm
         })
         self.settings.filePath = os.path.join(os.path.dirname(__file__), "Settings.txt")
+
+        # Keep a reference to the log file to prevent needs to open/close
+        # all the time, hopefully saving a lot of time when the laser is
+        # jumping and causing a lot of writes
+        self._logFile = None
 
 
         try:
@@ -76,12 +85,6 @@ class WS6Monitor(QtWidgets.QLabel):
         # and square pulses, because it'll look worse
         self._lastWrite = time.time()
 
-        # Keep a reference to the log file to prevent needs to open/close
-        # all the time, hopefully saving a lot of time when the laser is
-        # jumping and causing a lot of writes
-
-        self._logFile = None
-
         # internal reference to the wavelength, in nm
         # Prevents precision issues if you use the value in
         # self.text() alone
@@ -98,6 +101,7 @@ class WS6Monitor(QtWidgets.QLabel):
         except AttributeError:
             pass
         print("closed event")
+        self.ws.registerFunctions()
         super(WS6Monitor, self).closeEvent(ev)
 
     def changeEvent(self, ev):
@@ -197,6 +201,8 @@ class WS6Monitor(QtWidgets.QLabel):
         save = menu.addAction("Select Save File...")
         save.triggered.connect(self.chooseLogFile)
 
+        menu.addAction("Show Plot").triggered.connect(self.showPlot)
+
         return menu
 
     def handleWavelengthChange(self, oldVal, newVal):
@@ -204,10 +210,9 @@ class WS6Monitor(QtWidgets.QLabel):
         self.saveWavelengthChange(oldVal, newVal)
 
         if abs(newVal - self.sbSetPoint.value()) > self.sbSetPointErr.value()*1e-3:
-            self.resetStyleSheet(color="red")
+            self.resetStyleSheet(**{"background-color":"red", "color":"yellow"})
 
     def saveWavelengthChange(self, oldVal, newVal):
-
         if self.settings["logFile"] is None: return
         if self._logFile is None: return
         curTime = time.time()
@@ -246,13 +251,19 @@ class WS6Monitor(QtWidgets.QLabel):
             oh += 'Time,wavelength\n'
             oh += 's,nm\n'
             oh += ',\n'
+
+        # Save the current value. But don't do it if
+        # this is called before everything's been initialized
+        if self.value() != 1:
+            oh += "{},{:.4f}\n".format(time.time(), self._value)
         try:
             print("opening file", loc)
             self._logFile = open(loc, 'a+')
             self._logFile.write(oh)
             self._logFile.flush()
+            print("I made a log handle,", self._logFile)
         except:
-            log.exception("Coudln't open the log file")
+            log.exception("Couldn't open the log file")
 
     def updateUnits(self, button):
         oldUnits = self.settings["units"]
@@ -267,7 +278,9 @@ class WS6Monitor(QtWidgets.QLabel):
         try:
             value = round(converter[self.settings["units"]][units](self._value), 4)
         except ZeroDivisionError:
-            return 1
+            return 1 # Not sure when this one occurs
+        except AttributeError:
+            return 1 # called called before fully initialized
         except:
             log.exception("Error converting value!")
             return 1
@@ -289,7 +302,7 @@ class WS6Monitor(QtWidgets.QLabel):
             WS6.c.cmiTemperature,
             WS6.c.cmiPressure
         ]: return
-        if intVal in [WS6.c.ErrBigSignal, WS6.c.ErrLowSignal]:
+        if int(dval) in [WS6.c.ErrBigSignal, WS6.c.ErrLowSignal]:
             self.resetStyleSheet(color="blue")
             return
         if mode == WS6.c.cmiWavelength1:
@@ -307,6 +320,35 @@ class WS6Monitor(QtWidgets.QLabel):
 
         else:
             print("Dunno mode", mode, intVal, dval)
+
+    def showPlot(self):
+        if not os.path.isfile(self.settings["logFile"]): return
+        data = np.genfromtxt(self.settings["logFile"], delimiter=',')[3:]
+
+        wid = pg.PlotContainerWindow()
+
+
+
+        pi = wid.plotWidget.plotItem
+        pi.layout.removeItem(pi.getAxis('bottom'))
+        caxis = DateAxis(orientation='bottom', parent=pi)
+        caxis.linkToView(pi.vb)
+        pi.axes["bottom"]["item"] = caxis
+        pi.layout.addItem(caxis, 3, 1)
+
+
+        pi.layout.removeItem(pi.getAxis('top'))
+        caxis = DateAxis(orientation='top', parent=pi)
+        caxis.linkToView(pi.vb)
+        pi.axes["top"]["item"] = caxis
+        pi.layout.addItem(caxis, 0, 1)
+
+        wid.plot(data)
+        wid.show()
+
+        self._plot = wid
+
+
 
     def updateValue(self, value, givenUnits="nm"):
         prec = {
@@ -339,3 +381,10 @@ converter = {
     "eV":         {"nm": lambda x: h*c/(x*1e-9),   "eV": lambda x: x,                   "cm-1":lambda x: (x*1e-2)/(h*c)},
     "cm-1":       {"nm": lambda x: 1e7/x, "eV": lambda x: (x*1e-2)*(h*c),           "cm-1": lambda x: x}
 }
+
+if __name__ == '__main__':
+    import sys
+    ex = QtWidgets.QApplication(sys.argv)
+    wid = WS6Monitor()
+    wid.show()
+    sys.exit(ex.exec_())

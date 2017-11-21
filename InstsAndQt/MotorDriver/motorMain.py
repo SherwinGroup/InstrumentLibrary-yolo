@@ -83,7 +83,7 @@ class MotorWindow(QtWidgets.QMainWindow):
 
             self.finishedMove()
         except Exception as e:
-            log.critical("Cannot open motor driver (No driver?)")
+            log.exception("Cannot open motor driver (No driver?)")
         else:
             self.toggleUIEnabled(True)
             self.ui.bCloseDevice.blockSignals(True)

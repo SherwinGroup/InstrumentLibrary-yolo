@@ -57,3 +57,4 @@ InstsAndQt/Lakeshore330Monitor/TheInstrumentLog.log
 InstsAndQt/PyroOscope/ScopeSettings.txt
 InstsAndQt/PyroCalibrator/TheInstrumentLog.log
 *.log
+InstsAndQt/WS6Monitor/Settings.txt

@@ -136,8 +136,8 @@ CTRL_SEEKRATESAV= [0x02, 0x46]
 
 
 
-
-class TIMSArduino(object):
+from InstsAndQt.Instruments import BaseInstr
+class TIMSArduino(BaseInstr):
     def __init__(self):
         self.rm = visa.ResourceManager()
         self.inst = object
@@ -154,7 +154,7 @@ class TIMSArduino(object):
         pass
     
     def open_(self):
-        self.inst = self.rm.open_resource('COM4')
+        self.inst = self.rm.open_resource('ASRL7::INSTR')
         
     def close_(self):
         self.inst.write('c')
