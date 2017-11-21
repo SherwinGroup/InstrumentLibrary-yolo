@@ -22,7 +22,7 @@ class MotorWindow(QtWidgets.QMainWindow):
 
     def __init__(self, device = None, parent = None):
         super(MotorWindow, self).__init__(parent)
-        self.stepsPerDeg = 23.71
+        self.stepsPerDeg = 11.85556
         self.initUI()
         if __displayonly__: return
         self.device = None
@@ -46,12 +46,11 @@ class MotorWindow(QtWidgets.QMainWindow):
             self.ui.bp05,
             self.ui.bp10,
             self.ui.bGo,
-            self.ui.bStop
         ]
         for button in self.buttons:
             button.clicked.connect(self.moveMotorDeg)
 
-        self.ui.sbAngle.setOpts(bounds = (-360, 360), decimals = 1, step = 0.1)
+        self.ui.sbAngle.setOpts(bounds = (-360, 360), decimals = 4, step = 0.1)
         #self.ui.bStop.clicked.connect(self.stopMove)
 
         self.ui.mMoreSettings.triggered.connect(self.launchSettings)
@@ -60,8 +59,6 @@ class MotorWindow(QtWidgets.QMainWindow):
         self.ui.bQuit.clicked.connect(self.close)
 
         self.ui.bCloseDevice.clicked.connect(self.toggleDeviceOpen)
-
-        self.ui.tCosCalc.setReadOnly(False)
 
         self.show()
 
@@ -155,12 +152,12 @@ class MotorWindow(QtWidgets.QMainWindow):
         self.finishedMove()
 
     def waitForMotor(self):
-        flg = self.device.isBusy()
-        
-        while flg== True and type(flg) != None:
+        flg = True        
+        while flg == True and type(flg) != None:
+            flg = self.device.isBusy()
             curSteps = self.device.getSteps()
             self.sigUpdateDegrees.emit(curSteps/self.stepsPerDeg)
-            flg = self.device.isBusy()
+
         self.finishedMove()
 
     def finishedMove(self):
