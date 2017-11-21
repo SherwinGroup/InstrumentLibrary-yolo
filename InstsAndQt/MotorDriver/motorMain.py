@@ -22,7 +22,7 @@ class MotorWindow(QtWidgets.QMainWindow):
 
     def __init__(self, device = None, parent = None):
         super(MotorWindow, self).__init__(parent)
-        self.stepsPerDeg = 11.875
+        self.stepsPerDeg = 11.85556
         self.initUI()
         if __displayonly__: return
         self.device = None

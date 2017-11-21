@@ -158,7 +158,7 @@ class TIMSArduino(object):
         self.inst = self.rm.open_resource('COM4')
         
     def close_(self):
-        self.inst.write('c')
+        self.inst.write('e')
         self.inst.close()
         
     def purge(self):
