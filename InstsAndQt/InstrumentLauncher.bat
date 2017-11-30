@@ -1,4 +1,4 @@
 @ECHO OFF
 cd %~dp0
-python InstrumentLauncher.py
+pythonw InstrumentLauncher.py
 pause
