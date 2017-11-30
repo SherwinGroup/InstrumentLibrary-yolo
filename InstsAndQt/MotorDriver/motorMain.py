@@ -152,8 +152,8 @@ class MotorWindow(QtWidgets.QMainWindow):
         self.finishedMove()
 
     def waitForMotor(self):
-        flg = True        
-        while flg == True and type(flg) != None:
+        flg = self.device.isBusy()        
+        while flg == True:
             flg = self.device.isBusy()
             curSteps = self.device.getSteps()
             self.sigUpdateDegrees.emit(curSteps/self.stepsPerDeg)

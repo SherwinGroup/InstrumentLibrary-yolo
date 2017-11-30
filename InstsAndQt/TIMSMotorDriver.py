@@ -171,7 +171,6 @@ class TIMSArduino(object):
         pass
         
     def stopMotor(self):
-        time.sleep(.4)
         self.inst.write('sm')
         
     def singleStep(self, fwd = True):
@@ -189,7 +188,7 @@ class TIMSArduino(object):
     def moveRelative(self, move):
         movestr = 'm' + str(move)
         self.inst.write(movestr)
-        print(move)
+        time.sleep(.2)
         
         
     def getSteps(self):
@@ -222,7 +221,6 @@ class TIMSArduino(object):
         pass
             
     def isBusy(self):
-        time.sleep(3.5) #this delay is necessary for for communicating with Arduino for some reason
         status = int(self.inst.query('ib'))
         return status
 
