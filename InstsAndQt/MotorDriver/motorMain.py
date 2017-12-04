@@ -80,7 +80,7 @@ class MotorWindow(QtWidgets.QMainWindow):
 
             self.finishedMove()
         except Exception as e:
-            log.exception("Cannot open motor driver (No driver?)")
+            log.critical("Cannot open motor driver (No driver?)")
         else:
             self.toggleUIEnabled(True)
             self.ui.bCloseDevice.blockSignals(True)
@@ -157,7 +157,6 @@ class MotorWindow(QtWidgets.QMainWindow):
             flg = self.device.isBusy()
             curSteps = self.device.getSteps()
             self.sigUpdateDegrees.emit(curSteps/self.stepsPerDeg)
-
         self.finishedMove()
 
     def finishedMove(self):
