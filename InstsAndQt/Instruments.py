@@ -116,7 +116,7 @@ class BaseInstr(object):
         strip = 1 will strip tailing \n and encode from unicode
         strip = 0 will simply encode from unicode
         strip < 0 will do nothing"""
-        ret = False
+        ret = None
         try:
             ret = self._instrument.query(command)
             if strip>=0:
