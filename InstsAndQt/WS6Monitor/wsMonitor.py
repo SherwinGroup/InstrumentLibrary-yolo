@@ -302,9 +302,9 @@ class WS6Monitor(QtWidgets.QLabel):
             WS6.c.cmiTemperature,
             WS6.c.cmiPressure
         ]: return
-        if int(dval) in [WS6.c.ErrBigSignal, WS6.c.ErrLowSignal]:
-            self.resetStyleSheet(color="blue")
-            return
+        # if int(dval) in [WS6.c.ErrBigSignal, WS6.c.ErrLowSignal]:
+        #     self.resetStyleSheet(color="blue")
+        #     return
         if mode == WS6.c.cmiWavelength1:
             # don't waste time updating if there's no change
             if round(dval, 4) == self.value(): return

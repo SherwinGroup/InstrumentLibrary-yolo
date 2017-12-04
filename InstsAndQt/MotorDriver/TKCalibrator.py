@@ -1,28 +1,23 @@
-from .scopeCollect import Win as ScopeViewWidget
-
+
 from PyQt5 import QtCore, QtGui, QtWidgets
 from InstsAndQt.customQt import TempThread
-
 from InstsAndQt.TKOscope.TKWid import TKWid
-
 from InstsAndQt.MotorDriver.motorMain import MotorWindow
-
 import time
-
 import numpy as np
-
 import glob
-
 import os
-
 from scipy.interpolate import interp1d as i1d
-
 from scipy.optimize import curve_fit as cf
-
 import pyqtgraph as pg
-
-from .wiregridcal_ui import Ui_MainWindow
-
+
+try:
+    from .wiregridcal_ui import Ui_MainWindow
+except ModuleNotFoundError:
+    from wiregridcal_ui import Ui_MainWindow
+# from .scopeCollect import Win as ScopeViewWidget
+
+
 
 tkTrans = np.array(
     [
@@ -152,7 +147,7 @@ class TKCalibrator(QtWidgets.QMainWindow):
 
 
         self.settings = {
-            "saveDir": r'Z:\~Hunter Banks\Data\2017',
+            "saveDir": r'Z:\~HSG\Data\2017',
             "thzSweepPoints": [0,15,25,32,35,39,44,50,54,58,60,63,68],
             "thzSweepPointsIter": iter([]),
             "saveData": [],
@@ -171,7 +166,7 @@ class TKCalibrator(QtWidgets.QMainWindow):
         self.curveFit = self.ui.fitWid.plotItem.plot(pen='k')
         self.textFit = pg.TextItem()
         self.textFit.setFont(QtGui.QFont("", 15))
-        self.ui.fitWid.plotItem.addItem(self.textFit)
+        self.ui.fitWid.plotItem.addItem(self.textFit, ignoreBounds=True)
         self.scopeWid.ui.tabWidget.addTab(self.ui.fitWid, "Cos Fit")
         # only emit signal when completed.
         self.scopeWid.settings["emit_mid_average"] = False
@@ -299,6 +294,11 @@ class TKCalibrator(QtWidgets.QMainWindow):
         else:
             func(args)
 
+    def closeEvent(self, ev):
+        self.scopeWid.close()
+        super(TKCalibrator, self).closeEvent(ev)
+
+
 
 
 
@@ -308,5 +308,6 @@ if __name__ == '__main__':
     ex = QtWidgets.QApplication([])
     win = TKCalibrator()
     import sys
-
+
+
     sys.exit(ex.exec_())

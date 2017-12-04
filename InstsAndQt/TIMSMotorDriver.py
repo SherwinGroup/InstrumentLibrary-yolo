@@ -138,12 +138,11 @@ CTRL_SEEKRATESAV= [0x02, 0x46]
 
 from InstsAndQt.Instruments import BaseInstr
 class TIMSArduino(BaseInstr):
-    def __init__(self):
-        self.rm = visa.ResourceManager()
-        self.inst = object
+    def __init__(self, GPIB_Number='ASRL7::INSTR'):
+        super(TIMSArduino, self).__init__(GPIB_Number)
         
     
-    def makeMotorStatusPacket():
+    def makeMotorStatusPacket(self):
         pass
         
     @staticmethod
@@ -155,30 +154,34 @@ class TIMSArduino(BaseInstr):
         pass
     
     def open_(self):
-        self.inst = self.rm.open_resource('ASRL7::INSTR')
+        super(TIMSArduino, self).open()
+        time.sleep(2)
+        # self.inst = self.rm.open_resource('ASRL7::INSTR')
+        # self._write_termination = ''
+        # time.sleep(2)
         
     def close_(self):
-        self.inst.write('e')
-        self.inst.close()
+        self.write('e')
+        super(TIMSArduino, self).close()
         
     def purge(self):
         pass
         
-    def write(self, packet):
-        pass
+    # def write(self, packet):
+    #     pass
         
     def read(self, expectedbytes = 9, verbose = False):
         pass
         
     def stopMotor(self):
         time.sleep(.4)
-        self.inst.write('sm')
+        self.write('sm')
         
     def singleStep(self, fwd = True):
         if fwd:
-            self.inst.write('m1')
+            self.write('m1')
         else:
-            self.inst.write('m-1')
+            self.write('m-1')
         
     def continousMove(self, fwd = True):
         pass
@@ -188,19 +191,18 @@ class TIMSArduino(BaseInstr):
         
     def moveRelative(self, move):
         movestr = 'm' + str(move)
-        self.inst.write(movestr)
-        print(move)
+        self.write(movestr)
         
         
     def getSteps(self):
-        return float(self.inst.query('gs'))
+        return float(self.query('gs'))
 
     def setSteppingMode(self, toHalf = True):
         pass
 
     
     def setSteps(self, steps):
-        self.inst.write('s'+str(steps))
+        self.write('s'+str(steps))
         
     def getCurrentLimit(self):
         pass
@@ -223,7 +225,12 @@ class TIMSArduino(BaseInstr):
             
     def isBusy(self):
         time.sleep(3.5) #this delay is necessary for for communicating with Arduino for some reason
-        status = int(self.inst.query('ib'))
+        try:
+            # If a timeout occurred
+            status = int(self.query('ib'))
+        except TypeError:
+            return True
+        # status = int(status)
         return status
 
     def registerFunctions(self):
@@ -628,16 +635,16 @@ if __name__ == '__main__':
     except:
         pass
 
-    A = TIMS0201()
+    A = TIMSArduino()
     A.open_()
-    print()
+
+
 
     print(A.getSteps())
-    print()
 
-    print(A.getCurrentLimit())
-    A.setCurrentLimit(10)
-    print(A.getCurrentLimit())
+    # print(A.getCurrentLimit())
+    # A.setCurrentLimit(10)
+    # print(A.getCurrentLimit())
     
     
 

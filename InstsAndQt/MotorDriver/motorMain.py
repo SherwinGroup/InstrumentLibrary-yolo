@@ -185,8 +185,6 @@ class MotorWindow(QtWidgets.QMainWindow):
         self.ui.tCosCalc.setText("{:0.4f}".format(cos))
 
 
-
-
     def closeEvent(self, QCloseEvent):
         if self.settingsWindow is not None:
             self.settingsWindow.close()
