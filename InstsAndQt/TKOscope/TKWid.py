@@ -23,7 +23,7 @@ pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
 
 import logging
-log = logging.getLogger("EMCCD")
+log = logging.getLogger("Instruments")
 setPrintOutput(False)
 
 tkTrans = np.array(
@@ -468,9 +468,10 @@ class TKWid(QtWidgets.QWidget):
             log.warning("Not counting this pulses")
             return
         else:
-            print("counting this pulses")
-            print("\t{:.3f}, {:.3f}, {:.3f}".format(height*1e4, mean*1e4, std*1e4))
-            print("\t{:.3f}, {:.3f}\n".format(np.abs(height-mean)*1e4, std*1e4))
+            pass
+            # print("counting this pulses")
+            # print("\t{:.3f}, {:.3f}, {:.3f}".format(height*1e4, mean*1e4, std*1e4))
+            # print("\t{:.3f}, {:.3f}\n".format(np.abs(height-mean)*1e4, std*1e4))
 
         if self.ui.gbAveraging.isChecked():
             if str(self.ui.cbAveMode.currentText()) == "Waveform":
@@ -488,6 +489,7 @@ class TKWid(QtWidgets.QWidget):
                 E = self.getEnergy(fitData,
                     final = (self.settings["emit_mid_average"] or N==int(self.ui.sbAveNum.value())))
                 txtinfo = txtinfo.format(E)
+                log.debug("Point {}, got {}".format(N, E))
                 if not self.ui.cbRolling.isChecked():
                     txtinfo += " ({})".format(N)
                 if N == int(self.ui.sbAveNum.value()):
@@ -502,6 +504,8 @@ class TKWid(QtWidgets.QWidget):
 
                 E = self.getEnergy(self.settings["pyData"],
                     final = (self.settings["emit_mid_average"] or N==int(self.ui.sbAveNum.value())))
+
+
                 self.settings["aveData"][nextidx] = E
 
                 ave = np.nanmean(self.settings["aveData"])

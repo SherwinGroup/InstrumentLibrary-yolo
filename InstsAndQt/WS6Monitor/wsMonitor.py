@@ -26,6 +26,9 @@ class WS6Monitor(QtWidgets.QLabel):
     # Emits as <previous value> <new value>
     # TODO: decide what units (or constant nm?)
     sigWavelengthChanged = QtCore.pyqtSignal(object, object)
+
+    # Sig for updating style sheet (see docstring on parsing callback)
+    sigStyleSheet = QtCore.pyqtSignal(object)
     _plot = None
     def __init__(self, *args, **kwargs):
         super(WS6Monitor, self).__init__()
@@ -78,6 +81,8 @@ class WS6Monitor(QtWidgets.QLabel):
         )
 
         self.sigWavelengthChanged.connect(self.handleWavelengthChange)
+
+        self.sigStyleSheet.connect(self.resetStyleSheet)
         # I want to keep track of the last time the laser jumped. If it's a long
         # time, I want to have the file log the old and new wavelengths at the same
         # time, so that if I plot it later, it's not a giant jump. But if the
@@ -111,7 +116,7 @@ class WS6Monitor(QtWidgets.QLabel):
             self.resetStyleSheet()
         return super(WS6Monitor, self).changeEvent(ev)
 
-    def resetStyleSheet(self, **sheet):
+    def resetStyleSheet(self, sheet=dict()):
         style = self.defaultStyleSettings.copy()
         style.update(sheet)
         self.setStyleSheet(f"QLabel {{ background-color: {style['background-color']};"
@@ -210,7 +215,7 @@ class WS6Monitor(QtWidgets.QLabel):
         self.saveWavelengthChange(oldVal, newVal)
 
         if abs(newVal - self.sbSetPoint.value()) > self.sbSetPointErr.value()*1e-3:
-            self.resetStyleSheet(**{"background-color":"red", "color":"yellow"})
+            self.resetStyleSheet({"background-color":"red", "color":"yellow"})
 
     def saveWavelengthChange(self, oldVal, newVal):
         if self.settings["logFile"] is None: return
@@ -289,6 +294,10 @@ class WS6Monitor(QtWidgets.QLabel):
     def parseWSCallback(self, mode, intVal, dval):
         """
         function called by the callback function of the WS6
+
+        I don't think this is done in the main thread, as GUI changes
+        from this function cause crashses. need the sigStyleChange to emit
+        changes from here to call in the main thread.
         :param mode:
         :param intVal:
         :param dval:
@@ -302,9 +311,10 @@ class WS6Monitor(QtWidgets.QLabel):
             WS6.c.cmiTemperature,
             WS6.c.cmiPressure
         ]: return
-        # if int(dval) in [WS6.c.ErrBigSignal, WS6.c.ErrLowSignal]:
-        #     self.resetStyleSheet(color="blue")
-        #     return
+        if int(dval) in [WS6.c.ErrBigSignal, WS6.c.ErrLowSignal]:
+            # self.resetStyleSheet(color="blue")
+            self.sigStyleSheet.emit({"color":"blue"})
+            return
         if mode == WS6.c.cmiWavelength1:
             # don't waste time updating if there's no change
             if round(dval, 4) == self.value(): return
@@ -316,7 +326,8 @@ class WS6Monitor(QtWidgets.QLabel):
         elif mode == WS6.c.cmiExposureValue1:
             # Warn me if the exposure is taking too long
             if intVal > 100:
-                self.resetStyleSheet(color="green")
+                # self.resetStyleSheet(color="green")
+                self.sigStyleSheet.emit({"color": "green"})
 
         else:
             print("Dunno mode", mode, intVal, dval)
@@ -347,8 +358,6 @@ class WS6Monitor(QtWidgets.QLabel):
         wid.show()
 
         self._plot = wid
-
-
 
     def updateValue(self, value, givenUnits="nm"):
         prec = {

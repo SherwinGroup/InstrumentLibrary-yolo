@@ -138,9 +138,22 @@ CTRL_SEEKRATESAV= [0x02, 0x46]
 
 from InstsAndQt.Instruments import BaseInstr
 class TIMSArduino(BaseInstr):
-    def __init__(self, GPIB_Number='ASRL7::INSTR'):
-        super(TIMSArduino, self).__init__(GPIB_Number)
-        
+    def __init__(self, GPIB_Number = "ASRL7::INSTR", timeout = 3000):
+        # if GPIB_Number is None or GPIB_Number == 'Fake' or GPIB_Number == 'None':
+        #     log.debug('Error. No GPIB assigned {}'.format(self.__class__.__name__))
+        #     # self.instrument = FakeInstr()
+        #     self._instrument = getCls(self)()
+
+        rm = visa.ResourceManager()
+        try:
+            self._instrument = rm.open_resource(GPIB_Number)
+            log.debug( "GOT INSTRUMENT AT {}".format(GPIB_Number))
+            self._instrument.timeout = timeout
+        except Exception as e:
+            log.exception('Error opening GPIB {}'.format(GPIB_Number))
+            raise
+        self._rm = rm # Need to keep a reference for properly closing Arduino
+                      # (Not sure why this is different)
     
     def makeMotorStatusPacket(self):
         pass
@@ -154,20 +167,25 @@ class TIMSArduino(BaseInstr):
         pass
     
     def open_(self):
-<<<<<<< HEAD
-        self.inst = self.rm.open_resource('ASRL7::INSTR')
-        #self.inst = self.rm.open_resource('COM4')
-=======
-        super(TIMSArduino, self).open()
+        self.open()
+
+    def open(self):
+        # Windows causes the arduino to reset when you open
+        # communication. Having trouble finding out how to
+        # prevent this, so just wait for it to boot
         time.sleep(2)
-        # self.inst = self.rm.open_resource('ASRL7::INSTR')
-        # self._write_termination = ''
-        # time.sleep(2)
->>>>>>> 1feac5e5ae748a08f12f2184cdd32e17dced6563
+        self._instrument.open()
         
     def close_(self):
         self.write('e')
-        super(TIMSArduino, self).close()
+        try:
+            # Need to also close the resource manager
+            # for some reason, it still keeps a reference
+            # alive or something
+            self._instrument.close()
+            self._rm.close()
+        except:
+            log.warning("troubleclosing")
         
     def purge(self):
         pass
@@ -179,12 +197,7 @@ class TIMSArduino(BaseInstr):
         pass
         
     def stopMotor(self):
-<<<<<<< HEAD
-        self.inst.write('sm')
-=======
-        time.sleep(.4)
         self.write('sm')
->>>>>>> 1feac5e5ae748a08f12f2184cdd32e17dced6563
         
     def singleStep(self, fwd = True):
         if fwd:
@@ -200,23 +213,17 @@ class TIMSArduino(BaseInstr):
         
     def moveRelative(self, move):
         movestr = 'm' + str(move)
-<<<<<<< HEAD
-        self.inst.write(movestr)
-        time.sleep(.2)
-=======
         self.write(movestr)
->>>>>>> 1feac5e5ae748a08f12f2184cdd32e17dced6563
-        
-        
+
     def getSteps(self):
         return float(self.query('gs'))
 
     def setSteppingMode(self, toHalf = True):
         pass
 
-    
     def setSteps(self, steps):
-        self.write('s'+str(steps))
+        # self.write('s'+str(steps))
+        self.write("ec")
         
     def getCurrentLimit(self):
         pass
@@ -226,7 +233,6 @@ class TIMSArduino(BaseInstr):
     
     def getMotorPowers(self):
         pass
-
 
     def setStepRate(self, rate):
         pass
@@ -238,17 +244,12 @@ class TIMSArduino(BaseInstr):
         pass
             
     def isBusy(self):
-<<<<<<< HEAD
-        status = int(self.inst.query('ib'))
-=======
-        time.sleep(3.5) #this delay is necessary for for communicating with Arduino for some reason
         try:
             # If a timeout occurred
             status = int(self.query('ib'))
-        except TypeError:
+        except (TypeError, visa.VisaIOError):
             return True
         # status = int(status)
->>>>>>> 1feac5e5ae748a08f12f2184cdd32e17dced6563
         return status
 
     def registerFunctions(self):
@@ -648,14 +649,10 @@ class TIMS0201(object):
 
 
 if __name__ == '__main__':
-    try:
-        A.close_()
-    except:
-        pass
 
     A = TIMSArduino()
+    # A.open_()
     A.open_()
-
 
 
     print(A.getSteps())

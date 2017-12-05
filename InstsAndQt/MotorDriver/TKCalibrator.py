@@ -197,6 +197,8 @@ class TKCalibrator(QtWidgets.QMainWindow):
         self.settings["thzSweepPointsIter"] = iter(self.settings["thzSweepPoints"])
         self.settings["saveData"] = []
         self.motorWid.moveMotorDeg(next(self.settings["thzSweepPointsIter"]))
+
+
         # for it to restart counting
         self.scopeWid.updateAveSize()
         # self.thDoTKSweep.start()
@@ -245,6 +247,7 @@ class TKCalibrator(QtWidgets.QMainWindow):
             # Move the motor. Force an exit if the button was unchecked
             if not self.ui.bStartSweep.isChecked(): raise StopIteration
             self.motorWid.moveMotorDeg(next(self.settings["thzSweepPointsIter"]))
+            time.sleep(0.1)
             self.motorWid.thMoveMotor.wait()
             if not self.ui.bStartSweep.isChecked(): raise StopIteration
         except StopIteration:
@@ -296,6 +299,7 @@ class TKCalibrator(QtWidgets.QMainWindow):
 
     def closeEvent(self, ev):
         self.scopeWid.close()
+        self.motorWid.close()
         super(TKCalibrator, self).closeEvent(ev)
 
 

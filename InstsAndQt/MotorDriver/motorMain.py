@@ -50,7 +50,7 @@ class MotorWindow(QtWidgets.QMainWindow):
         for button in self.buttons:
             button.clicked.connect(self.moveMotorDeg)
 
-        self.ui.sbAngle.setOpts(bounds = (-360, 360), decimals = 4, step = 0.1)
+        self.ui.sbAngle.setOpts(bounds = (-360, 360), decimals = 5, step = 0.1)
         #self.ui.bStop.clicked.connect(self.stopMove)
 
         self.ui.mMoreSettings.triggered.connect(self.launchSettings)
@@ -66,10 +66,10 @@ class MotorWindow(QtWidgets.QMainWindow):
         try:
             self.device = TIMSArduino()
             self.device.open_()
-            try:
-                self.currentAngle = self.device.getSteps()/self.stepsPerDeg
-            except:
-                self.currentAngle = 0
+            # try:
+            #     self.currentAngle = self.device.getSteps()/self.stepsPerDeg
+            # except:
+            #     self.currentAngle = 0
             self.currentLimit = self.device.getCurrentLimit()
             if self.currentLimit == 0:
                 self.currentLimit = 25
@@ -81,6 +81,7 @@ class MotorWindow(QtWidgets.QMainWindow):
             self.finishedMove()
         except Exception as e:
             log.critical("Cannot open motor driver (No driver?)")
+            self.closeDevice()
         else:
             self.toggleUIEnabled(True)
             self.ui.bCloseDevice.blockSignals(True)
@@ -89,7 +90,8 @@ class MotorWindow(QtWidgets.QMainWindow):
 
     def closeDevice(self):
         try:
-            self.device.close_()
+            if self.device is not None:
+                self.device.close_()
         except Exception as e:
             print("error closing", e)
         self.device = None
@@ -132,8 +134,6 @@ class MotorWindow(QtWidgets.QMainWindow):
         self.thMoveMotor = TempThread(target = self.waitForMotor)
         # self.thMoveMotor.terminated.connect(self.finishedMove)
         self.thMoveMotor.start()
-    
-
 
     def stopMove(self):
         self.thMoveMotor.terminate()
@@ -149,14 +149,20 @@ class MotorWindow(QtWidgets.QMainWindow):
     def zeroDegrees(self):
         val = self.ui.sbAngle.interpret()
         self.device.setSteps(0)
+        time.sleep(0.1)
         self.finishedMove()
 
     def waitForMotor(self):
+        # Needed because the arduino seems to drop the first
+        # query. Not sure why, though.
+        time.sleep(0.1)
         flg = self.device.isBusy()        
-        while flg == True:
-            flg = self.device.isBusy()
+        while flg:
             curSteps = self.device.getSteps()
             self.sigUpdateDegrees.emit(curSteps/self.stepsPerDeg)
+            time.sleep(0.1)
+            flg = self.device.isBusy()
+        print("done move")
         self.finishedMove()
 
     def finishedMove(self):
@@ -187,9 +193,14 @@ class MotorWindow(QtWidgets.QMainWindow):
     def closeEvent(self, QCloseEvent):
         if self.settingsWindow is not None:
             self.settingsWindow.close()
-        if self.parent() is None:
-            self.device.close_()
+        # if self.parent() is None:
+        #     self.device.close_()
+        # 12/4/17 previously had the above if statement
+        # not sure why it was there...
+        self.close()
         QCloseEvent.accept()
+    def close(self):
+        self.device.close_()
 
 
 
@@ -206,5 +217,5 @@ if __name__ == "__main__":
 
 
     e = QtWidgets.QApplication(sys.argv)
-    win = MotorWindow(device = TIMSArduino(), parent = None)
+    win = MotorWindow(parent = None)
     sys.exit(e.exec_())
