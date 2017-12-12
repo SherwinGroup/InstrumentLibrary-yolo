@@ -53,7 +53,7 @@ class PyroCalibrator(QtWidgets.QMainWindow):
         self.calText.setFont(QtGui.QFont("", 15))
         self.ui.gRatio.sigRangeChanged.connect(self.updateCalTextPos)
 
-        self.ui.gRatio.addItem(self.calText)
+        self.ui.gRatio.addItem(self.calText, ignoreBounds=True)
         self.pCalPoints = self.ui.gRatio.plotItem.plot(pen=None, symbol='o')
         self.pCalLine = self.ui.gRatio.plotItem.plot(pen='k')
         pi = self.ui.gRatio.plotItem

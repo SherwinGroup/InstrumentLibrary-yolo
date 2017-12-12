@@ -11,6 +11,7 @@ import visa
 import pyvisa.errors
 import time
 import logging
+from ctypes import *
 
 # from customQt import *
 # import fakeInstruments.setPrintOutput
@@ -46,15 +47,15 @@ class BaseInstr(object):
         if GPIB_Number is None or GPIB_Number == 'Fake' or GPIB_Number == 'None':
             log.debug('Error. No GPIB assigned {}'.format(self.__class__.__name__))
             # self.instrument = FakeInstr()
-            self.instrument = getCls(self)()
+            self._instrument = getCls(self)()
         else:
             rm = visa.ResourceManager()
             try:
-                self.instrument = rm.open_resource(GPIB_Number)
+                self._instrument = rm.open_resource(GPIB_Number)
                 log.debug( "GOT INSTRUMENT AT {}".format(GPIB_Number))
-                self.instrument.timeout = timeout
+                self._instrument.timeout = timeout
             except Exception as e:
-                log.warning('Error opening GPIB {}'.format(e))
+                log.exception('Error opening GPIB {}'.format(GPIB_Number))
                 raise
 
         # try:
@@ -68,7 +69,7 @@ class BaseInstr(object):
         """A safer function to catch errors in writing commands. Also ensures
         proper ending to command. """
         try:
-            self.instrument.write(command)
+            self._instrument.write(command)
         except pyvisa.errors.VisaIOError:
             log.warning("Error: timeout while writing {}".format(command))
         except Exception as e:
@@ -82,10 +83,10 @@ class BaseInstr(object):
         strip = 0 will simply encode from unicode
         strip < 0 will do nothing"""
         if timeout is not None:
-            self.instrument.timeout = timeout
+            self._instrument.timeout = timeout
         ret = False
         try:
-            ret = self.instrument.ask(command)
+            ret = self._instrument.ask(command)
             if strip>=0:
                 # python 3 changed encoding features.
                 # Need to test this with various intsruments to see how to chance
@@ -103,7 +104,7 @@ class BaseInstr(object):
     def read(self):
         ret = False
         try:
-            ret = self.instrument.read()
+            ret = self._instrument.read()
         except pyvisa.errors.VisaIOError:
             log.warning("Error: timeout while reading")
         except Exception as e:
@@ -115,9 +116,9 @@ class BaseInstr(object):
         strip = 1 will strip tailing \n and encode from unicode
         strip = 0 will simply encode from unicode
         strip < 0 will do nothing"""
-        ret = False
+        ret = None
         try:
-            ret = self.instrument.query(command)
+            ret = self._instrument.query(command)
             if strip>=0:
                 ret = ret.encode('ascii')
             if strip>=1:
@@ -129,7 +130,7 @@ class BaseInstr(object):
     def query_binary_values(self, command):
         ret = False
         try:
-            ret = self.instrument.query_binary_values(command, datatype='b')
+            ret = self._instrument.query_binary_values(command, datatype='b')
         except pyvisa.errors.VisaIOError:
             log.warning("Timeout occured in querying binary command {}".format(command))
             return visa.constants.VI_ERROR_TMO
@@ -140,20 +141,20 @@ class BaseInstr(object):
     def query_ascii_values(self, *arg, **kwargs):
         ret = False
         try:
-            ret = self.instrument.query_ascii_values(*arg, **kwargs)
+            ret = self._instrument.query_ascii_values(*arg, **kwargs)
         except Exception as e:
-            log.exception("Error querying ascii {}".format(args))
+            log.exception("Error querying ascii {}".format(arg))
         return ret
         
     def close(self):
-        self.instrument.close()
+        self._instrument.close()
         try:
-            self.instrument.unlock()
+            self._instrument.unlock()
         except:
             pass
 
     def open(self):
-        self.instrument.open()
+        self._instrument.open()
 
 class ActonSP(BaseInstr):
     backlashCorr = -6
@@ -240,14 +241,14 @@ class Agilent6000(BaseInstr):
 
     def setIntegrating(self, val):
         try:
-            self.instrument.setIntegrating(val)
+            self._instrument.setIntegrating(val)
         except:
             #for debugging things with fake instruments. I'm sorry
             pass
 
     def setCD(self, val):
         try:
-            self.instrument.setCD(val)
+            self._instrument.setCD(val)
         except:
             #for debugging things with fake instruments. I'm sorry
             pass
@@ -338,12 +339,12 @@ class Agilent6000(BaseInstr):
 
     def waitForComplete(self, timeout=None):
 
-        origTO = self.instrument.timeout
+        origTO = self._instrument.timeout
         if timeout is not None:
-            self.instrument.timeout = timeout
+            self._instrument.timeout = timeout
         #Ask for operations complete
         self.ask('*OPC?')
-        self.instrument.timeout = origTO
+        self._instrument.timeout = origTO
 
     def setTrigger(self, isNormal = True, mode = 'EDGE', level=2.5, slope = 'POS', source = 4):
         """Set up the triggering of the oscilloscope. See the doucmentation for details.
@@ -384,7 +385,7 @@ class Agilent6000(BaseInstr):
         # Set it so it hopefully doesn't timeout
         # 0.75 = ~FEL RR
         # 1.5 is factor in case maybe 1/3 pulses is missed
-        self.instrument.timeout = num/0.75 * 1.5*1000
+        self._instrument.timeout = num / 0.75 * 1.5 * 1000
 
         self.write(":ACQ:COUN {}".format(num))
 
@@ -423,11 +424,11 @@ class Agilent6000(BaseInstr):
 class ArduinoWavemeter(BaseInstr):
     def __init__(self, GPIB_Number=None, timeout = 3000):
         super(ArduinoWavemeter, self).__init__(GPIB_Number, timeout)
-        self.instrument.parent = self
-        self.instrument.open()
-        self.instrument._write_termination = '\n'
-        self.instrument._read_termination = '\r\n'
-        self.instrument.baud_rate = 115200
+        self._instrument.parent = self
+        self._instrument.open()
+        self._instrument._write_termination = '\n'
+        self._instrument._read_termination = '\r\n'
+        self._instrument.baud_rate = 115200
         self.exposureTime = 100 # ms
 
     def ask(self, command, strip=-1, timeout = None):
@@ -559,7 +560,7 @@ class DG535(BaseInstr):
 
 
 class ESP300(BaseInstr):
-    '''
+    """
     Newport Universal Motion Controller/Driver Model ESP300
 
     all axis control commands are sent to the number axis given by the
@@ -570,83 +571,83 @@ class ESP300(BaseInstr):
     esp.units= 'millimeter'
     esp.position = 10
     print esp.position
-    '''
-    UNIT_DICT = {\
-        'enoder count':0,\
-        'motor step':1,\
-        'millimeter':2,\
-        'micrometer':3,\
-        'inches':4,\
-        'milli inches':5,\
-        'micro inches':6,\
-        'degree':7,\
-        'gradient':8,\
-        'radian':9,\
-        'milliradian':10,\
-        'microradian':11,\
+    """
+    UNIT_DICT = {
+        'enoder count':0,
+        'motor step':1,
+        'millimeter':2,
+        'micrometer':3,
+        'inches':4,
+        'milli inches':5,
+        'micro inches':6,
+        'degree':7,
+        'gradient':8,
+        'radian':9,
+        'milliradian':10,
+        'microradian':11,
         }
 
-    def __init__(self, address, current_axis=1,\
+    def __init__(self, address, current_axis=2,
         always_wait_for_stop=True,delay=500,**kwargs):
-        '''
+        """
         takes:
             address:    Gpib address, int [1]
             current_axis:   number of current axis, int [1]
             always_wait_for_stop:   wait for stage to stop before
                 returning control to calling program, boolean [True]
             **kwargs:   passed to GpibInstrument initializer
-        '''
+        """
 
         # GpibInstrument.__init__(self,address,**kwargs)
         super(ESP300, self).__init__(address)
         # self.instrument = rm().open_resource(address)
-        self.instrument.timeout = 10000
+        self._instrument.timeout = 10000
         self.current_axis = current_axis
         self.always_wait_for_stop = always_wait_for_stop
         self.delay=delay
     @property
     def current_axis(self):
-        '''
+        """
         current axis used in all subsequent commands
-        '''
+        """
         return self._current_axis
     @current_axis.setter
     def current_axis(self, input):
-        '''
+        """
         takes:
             input:  desired current axis number, int []
-        '''
+        """
         self._current_axis = input
 
     @property
     def velocity(self):
-        '''
+        """
         the velocity of current axis
-        '''
+        """
         command_string = 'VA'
-        return (float(self.instrument.ask('%i%s?'%(self.current_axis,command_string))))
+        return (float(self.ask('%i%s?'%(self.current_axis,command_string))))
     @velocity.setter
     def velocity(self,input):
         command_string = 'VA'
-        self.instrument.write('%i%s%f'%(self.current_axis,command_string,input))
+        self.write('%i%s%f'%(self.current_axis,command_string,input))
 
     @property
     def acceleration(self):
         command_string = 'AC'
-        return (self.instrument.ask('%i%s?'%(self.current_axis,command_string)))
+        return (self.ask('%i%s?'%(self.current_axis,command_string)))
     @acceleration.setter
     def acceleration(self,input):
         command_string = 'AC'
-        self.instrument.write('%i%s%f'%(self.current_axis,command_string,input))
+        self.write('%i%s%f'%(self.current_axis,command_string,input))
 
     @property
     def deceleration(self):
         command_string = 'AG'
-        return (self.instrument.ask('%i%s?'%(self.current_axis,command_string)))
+        return (self.ask('%i%s?'%(self.current_axis,command_string)))
     @deceleration.setter
     def deceleration(self,input):
         command_string = 'AG'
-        self.instrument.write('%i%s%f'%(self.current_axis,command_string,input))
+        self.write('%i%s%f'%(self.current_axis,command_string,input))
 
     @property
     def position_relative(self):
@@ -654,28 +655,28 @@ class ESP300(BaseInstr):
     @position_relative.setter
     def position_relative(self,input):
         command_string = 'PR'
-        self.instrument.write('%i%s%f'%(self.current_axis,command_string,input))
+        self.write('%i%s%f'%(self.current_axis,command_string,input))
         if self.always_wait_for_stop:
             self.wait_for_stop()
 
     @property
     def position(self):
         command_string = 'TP'
-        return float(self.instrument.ask('%i%s'%(self.current_axis,command_string)))
+        return float(self.ask('%i%s'%(self.current_axis,command_string)))
     @position.setter
     def position(self,input):
-        '''
+        """
         set the position of current axis to input
-        '''
+        """
         command_string = 'PA'
-        self.instrument.write('%i%s%f'%(self.current_axis,command_string,input))
+        self.write('%i%s%f'%(self.current_axis,command_string,input))
         if self.always_wait_for_stop:
             self.wait_for_stop()
 
     @property
     def home(self):
         command_string = 'OR'
-        self.instrument.write('%i%s'%(self.current_axis,command_string))
+        self.write('%i%s'%(self.current_axis,command_string))
         if self.always_wait_for_stop:
             self.wait_for_stop()
 
@@ -685,14 +686,14 @@ class ESP300(BaseInstr):
     @home.setter
     def home(self, input):
         command_string = 'DH'
-        self.instrument.write('%i%s%f'%(self.current_axis,command_string,input))
+        self.write('%i%s%f'%(self.current_axis,command_string,input))
 
     @property
     def units(self):
         raise NotImplementedError('I dont know how to read units')
     @units.setter
     def units(self, input):
-        '''
+        """
          set axis units for all commands.
          takes:
             input: a string, describing the units here are a list of
@@ -709,35 +710,39 @@ class ESP300(BaseInstr):
                 'radian'
                 'milliradian'
                 'microradian'
-        '''
+        """
         command_string = 'SN'
-        self.instrument.write('%i%s%i'%(self.current_axis,command_string, self.UNIT_DICT[input]))
+        self.write('%i%s%i'%(self.current_axis,command_string, self.UNIT_DICT[input]))
 
     @property
     def error_message(self):
-        return (self.instrument.ask('TB?'))
+        return (self.ask('TB?'))
 
     @property
     def motor_on(self):
         command_string = 'MO'
-        return (self.instrument.ask('%i%s?'%(self.current_axis,command_string)))
+        return (self.ask('%i%s?'%(self.current_axis,command_string)))
     @motor_on.setter
     def motor_on(self,input):
         if input:
             command_string = 'MO'
-            self.instrument.write('%i%s'%(self.current_axis,command_string))
+            self.write('%i%s'%(self.current_axis,command_string))
         if not input:
             command_string = 'MF'
-            self.instrument.write('%i%s'%(self.current_axis,command_string))
+            self.write('%i%s'%(self.current_axis,command_string))
 
     def send_stop(self):
         command_string = 'ST'
-        self.instrument.write('%i%s'%(self.current_axis,command_string))
+        self.write('%i%s'%(self.current_axis,command_string))
 
     def wait_for_stop(self):
+        # Tell the device to wait for a stop, then send a SRQ when it's
+        # done. Then tell the local instrument to wait until it recieves that.
         command_string = 'WS'
-        self.instrument.write('%i%s%i'%(self.current_axis,command_string, self.delay))
-        tmp = self.position
+        self.write('%i%s%i;RQ3'%(self.current_axis,command_string, self.delay))
+        self._instrument.wait_for_srq()
+        # print("Status: ", self._instrument.stb)
+        # tmp = self.position
 
 class Keithley236Instr(BaseInstr):
     def __init__(self, GPIB_Number=None, timeout = 3000):
@@ -945,9 +950,9 @@ class Keithley2400Instr(BaseInstr):
         self.breakLoop = True
 
 class LakeShore325(BaseInstr):
-    '''
+    """
     Temperature Controller for LED
-    '''
+    """
     def __init__(self, GPIB_Number=None, timeout=3000):
         super(LakeShore325, self).__init__(GPIB_Number,timeout)
 
@@ -971,13 +976,13 @@ class LakeShore325(BaseInstr):
         return float(output)
 
 class LakeShore330(BaseInstr):
-    '''
+    """
     Temperature Controller for Sample
     There's some distinction between "sample" and control
     channels. I'm not quite sure the difference. At thee
     time of writing, we operate with both being the same
     (channel b)
-    '''
+    """
     def __init__(self, GPIB_Number=None, timeout=3000):
         super(LakeShore330, self).__init__(GPIB_Number,timeout)
 
@@ -1278,7 +1283,7 @@ class SR760(BaseInstr):
     def __init__(self, *args, **kwargs):
         super(SR760, self).__init__(*args, **kwargs)
         # SR760 really dislikes being ended with \r
-        self.instrument._write_termination = '\n'
+        self._instrument._write_termination = '\n'
 
     def getBinValue(self, i=0):
         return float(self.ask("BVAL?-1,{:d}".format(i)))
@@ -1313,7 +1318,7 @@ class SR760(BaseInstr):
         return list(map(int, "{:08b}".format(int(self.ask("FFTE?")))))
 
     def waitForComplete(self):
-        timeout = self.instrument.timeout
+        timeout = self._instrument.timeout
         maxCount = int(timeout/250)+1
         bit = self.getSTB()
         for ii in range(maxCount):
@@ -1327,10 +1332,10 @@ class SR760(BaseInstr):
         return True
 
     def setSpan(self, span=0):
-        self.instrument.write("SPAN {:d}".format(span))
+        self._instrument.write("SPAN {:d}".format(span))
 
     def setStartFrequency(self, st=0):
-        self.instrument.write("STRF {:f}".format(st))
+        self._instrument.write("STRF {:f}".format(st))
 
 class SR830Instr(BaseInstr):
     def __init__(self, GPIB_Number = None, timeout = 3000):
@@ -1379,6 +1384,788 @@ class SR830Instr(BaseInstr):
         toRead = toRead[:-1]
         ret = self.ask('SNAP?'+toRead)
         return [float(i) for i in ret.split(',')]
+
+class WS6flags(object):
+    """
+    Flags for the WS6 object. All taken from the documentation/.h file
+    in the program file.
+    """
+
+    cInstCheckForWLM = -1
+    cInstResetCalc = 0
+    cInstReturnMode = cInstResetCalc
+    cInstNotification = 1
+    cInstCopyPattern = 2
+    cInstCopyAnalysis = cInstCopyPattern
+    cInstControlWLM = 3
+    cInstControlDelay = 4
+    cInstControlPriority = 5
+
+# Notification Constants for 'Mode' parameter
+    cNotifyInstallCallback = 0
+    cNotifyRemoveCallback = 1
+    cNotifyInstallWaitEvent = 2
+    cNotifyRemoveWaitEvent = 3
+    cNotifyInstallCallbackEx = 4
+    cNotifyInstallWaitEventEx = 5
+
+# ResultError Constants of Set...-functions
+    ResERR_NoErr = 0
+    ResERR_WlmMissing = -1
+    ResERR_CouldNotSet = -2
+    ResERR_ParmOutOfRange = -3
+    ResERR_WlmOutOfResources = -4
+    ResERR_WlmInternalError = -5
+    ResERR_NotAvailable = -6
+    ResERR_WlmBusy = -7
+    ResERR_NotInMeasurementMode = -8
+    ResERR_OnlyInMeasurementMode = -9
+    ResERR_ChannelNotAvailable = -10
+    ResERR_ChannelTemporarilyNotAvailable = -11
+    ResERR_CalOptionNotAvailable = -12
+    ResERR_CalWavelengthOutOfRange = -13
+    ResERR_BadCalibrationSignal = -14
+    ResERR_UnitNotAvailable = -15
+    ResERR_FileNotFound = -16
+    ResERR_FileCreation = -17
+    ResERR_TriggerPending = -18
+    ResERR_TriggerWaiting = -19
+    ResERR_NoLegitimation = -20
+
+# Mode Constants for Callback-Export and WaitForWLMEvent-function
+    cmiResultMode = 1
+    cmiRange = 2
+    cmiPulse = 3
+    cmiPulseMode = cmiPulse
+    cmiWideLine = 4
+    cmiWideMode = cmiWideLine
+    cmiFast = 5
+    cmiFastMode = cmiFast
+    cmiExposureMode = 6
+    cmiExposureValue1 = 7
+    cmiExposureValue2 = 8
+    cmiDelay = 9
+    cmiShift = 10
+    cmiShift2 = 11
+    cmiReduce = 12
+    cmiReduced = cmiReduce
+    cmiScale = 13
+    cmiTemperature = 14
+    cmiLink = 15
+    cmiOperation = 16
+    cmiDisplayMode = 17
+    cmiPattern1a = 18
+    cmiPattern1b = 19
+    cmiPattern2a = 20
+    cmiPattern2b = 21
+    cmiMin1 = 22
+    cmiMax1 = 23
+    cmiMin2 = 24
+    cmiMax2 = 25
+    cmiNowTick = 26
+    cmiCallback = 27
+    cmiFrequency1 = 28
+    cmiFrequency2 = 29
+    cmiDLLDetach = 30
+    cmiVersion = 31
+    cmiAnalysisMode = 32
+    cmiDeviationMode = 33
+    cmiDeviationReference = 34
+    cmiDeviationSensitivity = 35
+    cmiAppearance = 36
+    cmiAutoCalMode = 37
+    cmiWavelength1 = 42
+    cmiWavelength2 = 43
+    cmiLinewidth = 44
+    cmiLinewidthMode = 45
+    cmiLinkDlg = 56
+    cmiAnalysis = 57
+    cmiAnalogIn = 66
+    cmiAnalogOut = 67
+    cmiDistance = 69
+    cmiWavelength3 = 90
+    cmiWavelength4 = 91
+    cmiWavelength5 = 92
+    cmiWavelength6 = 93
+    cmiWavelength7 = 94
+    cmiWavelength8 = 95
+    cmiVersion0 = cmiVersion
+    cmiVersion1 = 96
+    cmiDLLAttach = 121
+    cmiSwitcherSignal = 123
+    cmiSwitcherMode = 124
+    cmiExposureValue11 = cmiExposureValue1
+    cmiExposureValue12 = 125
+    cmiExposureValue13 = 126
+    cmiExposureValue14 = 127
+    cmiExposureValue15 = 128
+    cmiExposureValue16 = 129
+    cmiExposureValue17 = 130
+    cmiExposureValue18 = 131
+    cmiExposureValue21 = cmiExposureValue2
+    cmiExposureValue22 = 132
+    cmiExposureValue23 = 133
+    cmiExposureValue24 = 134
+    cmiExposureValue25 = 135
+    cmiExposureValue26 = 136
+    cmiExposureValue27 = 137
+    cmiExposureValue28 = 138
+    cmiPatternAverage = 139
+    cmiPatternAvg1 = 140
+    cmiPatternAvg2 = 141
+    cmiAnalogOut1 = cmiAnalogOut
+    cmiAnalogOut2 = 142
+    cmiMin11 = cmiMin1
+    cmiMin12 = 146
+    cmiMin13 = 147
+    cmiMin14 = 148
+    cmiMin15 = 149
+    cmiMin16 = 150
+    cmiMin17 = 151
+    cmiMin18 = 152
+    cmiMin21 = cmiMin2
+    cmiMin22 = 153
+    cmiMin23 = 154
+    cmiMin24 = 155
+    cmiMin25 = 156
+    cmiMin26 = 157
+    cmiMin27 = 158
+    cmiMin28 = 159
+    cmiMax11 = cmiMax1
+    cmiMax12 = 160
+    cmiMax13 = 161
+    cmiMax14 = 162
+    cmiMax15 = 163
+    cmiMax16 = 164
+    cmiMax17 = 165
+    cmiMax18 = 166
+    cmiMax21 = cmiMax2
+    cmiMax22 = 167
+    cmiMax23 = 168
+    cmiMax24 = 169
+    cmiMax25 = 170
+    cmiMax26 = 171
+    cmiMax27 = 172
+    cmiMax28 = 173
+    cmiAvg11 = cmiPatternAvg1
+    cmiAvg12 = 174
+    cmiAvg13 = 175
+    cmiAvg14 = 176
+    cmiAvg15 = 177
+    cmiAvg16 = 178
+    cmiAvg17 = 179
+    cmiAvg18 = 180
+    cmiAvg21 = cmiPatternAvg2
+    cmiAvg22 = 181
+    cmiAvg23 = 182
+    cmiAvg24 = 183
+    cmiAvg25 = 184
+    cmiAvg26 = 185
+    cmiAvg27 = 186
+    cmiAvg28 = 187
+    cmiPatternAnalysisWritten = 202
+    cmiSwitcherChannel = 203
+    cmiStartCalibration = 235
+    cmiEndCalibration = 236
+    cmiAnalogOut3 = 237
+    cmiAnalogOut4 = 238
+    cmiAnalogOut5 = 239
+    cmiAnalogOut6 = 240
+    cmiAnalogOut7 = 241
+    cmiAnalogOut8 = 242
+    cmiIntensity = 251
+    cmiPower = 267
+    cmiActiveChannel = 300
+    cmiPIDCourse = 1030
+    cmiPIDUseTa = 1031
+    cmiPIDUseT = cmiPIDUseTa
+    cmiPID_T = 1033
+    cmiPID_P = 1034
+    cmiPID_I = 1035
+    cmiPID_D = 1036
+    cmiDeviationSensitivityDim = 1040
+    cmiDeviationSensitivityFactor = 1037
+    cmiDeviationPolarity = 1038
+    cmiDeviationSensitivityEx = 1039
+    cmiDeviationUnit = 1041
+    cmiDeviationBoundsMin = 1042
+    cmiDeviationBoundsMax = 1043
+    cmiDeviationRefMid = 1044
+    cmiDeviationRefAt = 1045
+    cmiPIDConstdt = 1059
+    cmiPID_dt = 1060
+    cmiPID_AutoClearHistory = 1061
+    cmiDeviationChannel = 1063
+    cmiPID_ClearHistoryOnRangeExceed = 1069
+    cmiAutoCalPeriod = 1120
+    cmiAutoCalUnit = 1121
+    cmiAutoCalChannel = 1122
+    cmiServerInitialized = 1124
+    cmiWavelength9 = 1130
+    cmiExposureValue19 = 1155
+    cmiExposureValue29 = 1180
+    cmiMin19 = 1205
+    cmiMin29 = 1230
+    cmiMax19 = 1255
+    cmiMax29 = 1280
+    cmiAvg19 = 1305
+    cmiAvg29 = 1330
+    cmiWavelength10 = 1355
+    cmiWavelength11 = 1356
+    cmiWavelength12 = 1357
+    cmiWavelength13 = 1358
+    cmiWavelength14 = 1359
+    cmiWavelength15 = 1360
+    cmiWavelength16 = 1361
+    cmiWavelength17 = 1362
+    cmiExternalInput = 1400
+    cmiPressure = 1465
+    cmiBackground = 1475
+    cmiDistanceMode = 1476
+    cmiInterval = 1477
+    cmiIntervalMode = 1478
+    cmiCalibrationEffect = 1480
+    cmiLinewidth1 = cmiLinewidth
+    cmiLinewidth2 = 1481
+    cmiLinewidth3 = 1482
+    cmiLinewidth4 = 1483
+    cmiLinewidth5 = 1484
+    cmiLinewidth6 = 1485
+    cmiLinewidth7 = 1486
+    cmiLinewidth8 = 1487
+    cmiLinewidth9 = 1488
+    cmiLinewidth10 = 1489
+    cmiLinewidth11 = 1490
+    cmiLinewidth12 = 1491
+    cmiLinewidth13 = 1492
+    cmiLinewidth14 = 1493
+    cmiLinewidth15 = 1494
+    cmiLinewidth16 = 1495
+    cmiLinewidth17 = 1496
+    cmiTriggerState = 1497
+    cmiDeviceAttach = 1501
+    cmiDeviceDetach = 1502
+    cmiTimePerMeasurement = 1514
+    cmiAutoExpoMin = 1517
+    cmiAutoExpoMax = 1518
+    cmiAutoExpoStepUp = 1519
+    cmiAutoExpoStepDown = 1520
+    cmiAutoExpoAtSaturation = 1521
+    cmiAutoExpoAtLowSignal = 1522
+    cmiAutoExpoFeedback = 1523
+    cmiAveragingCount = 1524
+    cmiAveragingMode = 1525
+    cmiAveragingType = 1526
+
+# Index constants for Get- and SetExtraSetting
+    cesCalculateLive = 4501
+
+# WLM Control Mode Constants
+    cCtrlWLMShow = 1
+    cCtrlWLMHide = 2
+    cCtrlWLMExit = 3
+    cCtrlWLMStore = 4
+    cCtrlWLMCompare = 5
+    cCtrlWLMWait        = 0x0010
+    cCtrlWLMStartSilent = 0x0020
+    cCtrlWLMSilent      = 0x0040
+    cCtrlWLMStartDelay  = 0x0080
+
+# Operation Mode Constants (for "Operation" and "GetOperationState" functions)
+    cStop = 0
+    cAdjustment = 1
+    cMeasurement = 2
+
+# Base Operation Constants (To be used exclusively, only one of this list at a time,
+# but still can be combined with "Measurement Action Addition Constants". See below.)
+    cCtrlStopAll = cStop
+    cCtrlStartAdjustment = cAdjustment
+    cCtrlStartMeasurement = cMeasurement
+    cCtrlStartRecord = 0x0004
+    cCtrlStartReplay = 0x0008
+    cCtrlStoreArray  = 0x0010
+    cCtrlLoadArray   = 0x0020
+
+# Additional Operation Flag Constants (combine with "Base Operation Constants" above.)
+    cCtrlDontOverwrite = 0x0000
+    cCtrlOverwrite     = 0x1000 # don't combine with cCtrlFileDialo
+    cCtrlFileGiven     = 0x0000
+    cCtrlFileDialog    = 0x2000 # don't combine with cCtrlOverwrite and cCtrlFileASCI
+    cCtrlFileBinary    = 0x0000 # *.smr, *.lt
+    cCtrlFileASCII     = 0x4000 # *.smx, *.ltx, don't combine with cCtrlFileDialo
+
+# Measurement Control Mode Constants
+    cCtrlMeasDelayRemove = 0
+    cCtrlMeasDelayGenerally = 1
+    cCtrlMeasDelayOnce = 2
+    cCtrlMeasDelayDenyUntil = 3
+    cCtrlMeasDelayIdleOnce = 4
+    cCtrlMeasDelayIdleEach = 5
+    cCtrlMeasDelayDefault = 6
+
+# Measurement Triggering Action Constants
+    cCtrlMeasurementContinue = 0
+    cCtrlMeasurementInterrupt = 1
+    cCtrlMeasurementTriggerPoll = 2
+    cCtrlMeasurementTriggerSuccess = 3
+    cCtrlMeasurementEx = 0x0100
+
+# ExposureRange Constants
+    cExpoMin = 0
+    cExpoMax = 1
+    cExpo2Min = 2
+    cExpo2Max = 3
+
+# Amplitude Constants
+    cMin1 = 0
+    cMin2 = 1
+    cMax1 = 2
+    cMax2 = 3
+    cAvg1 = 4
+    cAvg2 = 5
+
+# Measurement Range Constants
+    cRange_250_410 = 4
+    cRange_250_425 = 0
+    cRange_300_410 = 3
+    cRange_350_500 = 5
+    cRange_400_725 = 1
+    cRange_700_1100 = 2
+    cRange_800_1300 = 6
+    cRange_900_1500 = cRange_800_1300
+    cRange_1100_1700 = 7
+    cRange_1100_1800 = cRange_1100_1700
+
+# Measurement Range Model Constants
+    cRangeModelOld = 65535
+    cRangeModelByOrder = 65534
+    cRangeModelByWavelength = 65533
+
+# Unit Constants for Get-/SetResultMode, GetLinewidth, Convert... and Calibration
+    cReturnWavelengthVac = 0
+    cReturnWavelengthAir = 1
+    cReturnFrequency = 2
+    cReturnWavenumber = 3
+    cReturnPhotonEnergy = 4
+
+# Power Unit Constants
+    cPower_muW = 0
+    cPower_dBm = 1
+
+# Source Type Constants for Calibration
+    cHeNe633 = 0
+    cHeNe1152 = 0
+    cNeL = 1
+    cOther = 2
+    cFreeHeNe = 3
+
+# Unit Constants for Autocalibration
+    cACOnceOnStart = 0
+    cACMeasurements = 1
+    cACDays = 2
+    cACHours = 3
+    cACMinutes = 4
+
+# ExposureRange Constants
+    cGetSync = 1
+    cSetSync = 2
+
+# Pattern- and Analysis Constants
+    cPatternDisable = 0
+    cPatternEnable = 1
+    cAnalysisDisable = cPatternDisable
+    cAnalysisEnable = cPatternEnable
+
+    cSignal1Interferometers = 0
+    cSignal1WideInterferometer = 1
+    cSignal1Grating = 1
+    cSignal2Interferometers = 2
+    cSignal2WideInterferometer = 3
+    cSignalAnalysis = 4
+    cSignalAnalysisX = cSignalAnalysis
+    cSignalAnalysisY = cSignalAnalysis + 1
+
+# State constants used with AutoExposureSetting functions
+    cJustStepDown = 0
+    cRestartAtMinimum = 1
+    cJustStepUp = 0
+    cDriveToLevel = 1
+    cConsiderFeedback = 1
+    cDontConsiderFeedback = 0
+
+# State constants used with AveragingSetting functions
+    cAvrgFloating = 1
+    cAvrgSucceeding = 2
+    cAvrgSimple = 0
+    cAvrgPattern = 1
+
+# Return errorvalues of GetFrequency, GetWavelength and GetWLMVersion
+    ErrNoValue = 0
+    ErrNoSignal = -1
+    ErrBadSignal = -2
+    ErrLowSignal = -3
+    ErrBigSignal = -4
+    ErrWlmMissing = -5
+    ErrNotAvailable = -6
+    InfNothingChanged = -7
+    ErrNoPulse = -8
+    ErrChannelNotAvailable = -10
+    ErrDiv0 = -13
+    ErrOutOfRange = -14
+    ErrUnitNotAvailable = -15
+    ErrMaxErr = ErrUnitNotAvailable
+
+# Return errorvalues of GetTemperature and GetPressure
+    ErrTemperature = -1000
+    ErrTempNotMeasured = ErrTemperature + ErrNoValue
+    ErrTempNotAvailable = ErrTemperature + ErrNotAvailable
+    ErrTempWlmMissing = ErrTemperature + ErrWlmMissing
+
+# Return errorvalues of GetDistance
+    # real errorvalues are ErrDistance combined with those of GetWavelength
+    ErrDistance = -1000000000
+    ErrDistanceNotAvailable = ErrDistance + ErrNotAvailable
+    ErrDistanceWlmMissing = ErrDistance + ErrWlmMissing
+
+# Return flags of ControlWLMEx in combination with Show or Hide, Wait and Res = 1
+    flServerStarted           = 0x00000001
+    flErrDeviceNotFound       = 0x00000002
+    flErrDriverError          = 0x00000004
+    flErrUSBError             = 0x00000008
+    flErrUnknownDeviceError   = 0x00000010
+    flErrWrongSN              = 0x00000020
+    flErrUnknownSN            = 0x00000040
+    flErrTemperatureError     = 0x00000080
+    flErrPressureError        = 0x00000100
+    flErrCancelledManually    = 0x00000200
+    flErrWLMBusy              = 0x00000400
+    flErrUnknownError         = 0x00001000
+    flNoInstalledVersionFound = 0x00002000
+    flDesiredVersionNotFound  = 0x00004000
+    flErrFileNotFound         = 0x00008000
+    flErrParmOutOfRange       = 0x00010000
+    flErrCouldNotSet          = 0x00020000
+    flErrEEPROMFailed         = 0x00040000
+    flErrFileFailed           = 0x00080000
+    flDeviceDataNewer         = 0x00100000
+    flFileDataNewer           = 0x00200000
+    flErrDeviceVersionOld     = 0x00400000
+    flErrFileVersionOld       = 0x00800000
+    flDeviceStampNewer        = 0x01000000
+    flFileStampNewer          = 0x02000000
+
+# Return file info flags of SetOperationFile
+    flFileInfoDoesntExist = 0x0000
+    flFileInfoExists      = 0x0001
+    flFileInfoCantWrite   = 0x0002
+    flFileInfoCantRead    = 0x0004
+    flFileInfoInvalidName = 0x0008
+    cFileParameterError = -1
+
+    @staticmethod
+    def callbackParse(k):
+        return {1: "cmiResultMode",
+        2: "cmiRange",
+        3: "cmiPulse",
+        # cmiPulse: "cmiPulseMode",
+        4: "cmiWideLine",
+        # cmiWideLine: "cmiWideMode",
+        5: "cmiFast",
+        # cmiFast: "cmiFastMode",
+        6: "cmiExposureMode",
+        7: "cmiExposureValue1",
+        8: "cmiExposureValue2",
+        9: "cmiDelay",
+        10: "cmiShift",
+        11: "cmiShift2",
+        12: "cmiReduce",
+        # cmiReduce: "cmiReduced",
+        13: "cmiScale",
+        14: "cmiTemperature",
+        15: "cmiLink",
+        16: "cmiOperation",
+        17: "cmiDisplayMode",
+        18: "cmiPattern1a",
+        19: "cmiPattern1b",
+        20: "cmiPattern2a",
+        21: "cmiPattern2b",
+        22: "cmiMin1",
+        23: "cmiMax1",
+        24: "cmiMin2",
+        25: "cmiMax2",
+        26: "cmiNowTick",
+        27: "cmiCallback",
+        28: "cmiFrequency1",
+        29: "cmiFrequency2",
+        30: "cmiDLLDetach",
+        31: "cmiVersion",
+        32: "cmiAnalysisMode",
+        33: "cmiDeviationMode",
+        34: "cmiDeviationReference",
+        35: "cmiDeviationSensitivity",
+        36: "cmiAppearance",
+        37: "cmiAutoCalMode",
+        42: "cmiWavelength1",
+        43: "cmiWavelength2",
+        44: "cmiLinewidth",
+        45: "cmiLinewidthMode",
+        56: "cmiLinkDlg",
+        57: "cmiAnalysis",
+        66: "cmiAnalogIn",
+        67: "cmiAnalogOut",
+        69: "cmiDistance",
+        90: "cmiWavelength3",
+        91: "cmiWavelength4",
+        92: "cmiWavelength5",
+        93: "cmiWavelength6",
+        94: "cmiWavelength7",
+        95: "cmiWavelength8",
+        # cmiVersion: "cmiVersion0",
+        96: "cmiVersion1",
+        121: "cmiDLLAttach",
+        123: "cmiSwitcherSignal",
+        124: "cmiSwitcherMode",
+        # cmiExposureValue1: "cmiExposureValue11",
+        125: "cmiExposureValue12",
+        126: "cmiExposureValue13",
+        127: "cmiExposureValue14",
+        128: "cmiExposureValue15",
+        129: "cmiExposureValue16",
+        130: "cmiExposureValue17",
+        131: "cmiExposureValue18",
+        # cmiExposureValue2: "cmiExposureValue21",
+        132: "cmiExposureValue22",
+        133: "cmiExposureValue23",
+        134: "cmiExposureValue24",
+        135: "cmiExposureValue25",
+        136: "cmiExposureValue26",
+        137: "cmiExposureValue27",
+        138: "cmiExposureValue28",
+        139: "cmiPatternAverage",
+        140: "cmiPatternAvg1",
+        141: "cmiPatternAvg2",
+        # cmiAnalogOut: "cmiAnalogOut1",
+        142: "cmiAnalogOut2",
+        # cmiMin1: "cmiMin11",
+        146: "cmiMin12",
+        147: "cmiMin13",
+        148: "cmiMin14",
+        149: "cmiMin15",
+        150: "cmiMin16",
+        151: "cmiMin17",
+        152: "cmiMin18",
+        # cmiMin2: "cmiMin21",
+        153: "cmiMin22",
+        154: "cmiMin23",
+        155: "cmiMin24",
+        156: "cmiMin25",
+        157: "cmiMin26",
+        158: "cmiMin27",
+        159: "cmiMin28",
+        # cmiMax1: "cmiMax11",
+        160: "cmiMax12",
+        161: "cmiMax13",
+        162: "cmiMax14",
+        163: "cmiMax15",
+        164: "cmiMax16",
+        165: "cmiMax17",
+        166: "cmiMax18",
+        # cmiMax2: "cmiMax21",
+        167: "cmiMax22",
+        168: "cmiMax23",
+        169: "cmiMax24",
+        170: "cmiMax25",
+        171: "cmiMax26",
+        172: "cmiMax27",
+        173: "cmiMax28",
+        # cmiPatternAvg1: "cmiAvg11",
+        174: "cmiAvg12",
+        175: "cmiAvg13",
+        176: "cmiAvg14",
+        177: "cmiAvg15",
+        178: "cmiAvg16",
+        179: "cmiAvg17",
+        180: "cmiAvg18",
+        # cmiPatternAvg2: "cmiAvg21",
+        181: "cmiAvg22",
+        182: "cmiAvg23",
+        183: "cmiAvg24",
+        184: "cmiAvg25",
+        185: "cmiAvg26",
+        186: "cmiAvg27",
+        187: "cmiAvg28",
+        202: "cmiPatternAnalysisWritten",
+        203: "cmiSwitcherChannel",
+        235: "cmiStartCalibration",
+        236: "cmiEndCalibration",
+        237: "cmiAnalogOut3",
+        238: "cmiAnalogOut4",
+        239: "cmiAnalogOut5",
+        240: "cmiAnalogOut6",
+        241: "cmiAnalogOut7",
+        242: "cmiAnalogOut8",
+        251: "cmiIntensity",
+        267: "cmiPower",
+        300: "cmiActiveChannel",
+        1030: "cmiPIDCourse",
+        1031: "cmiPIDUseTa",
+        # cmiPIDUseTa: "cmiPIDUseT",
+        1033: "cmiPID_T",
+        1034: "cmiPID_P",
+        1035: "cmiPID_I",
+        1036: "cmiPID_D",
+        1040: "cmiDeviationSensitivityDim",
+        1037: "cmiDeviationSensitivityFactor",
+        1038: "cmiDeviationPolarity",
+        1039: "cmiDeviationSensitivityEx",
+        1041: "cmiDeviationUnit",
+        1042: "cmiDeviationBoundsMin",
+        # 1043: "cmiDeviationBoundsMax ,
+        1044: "cmiDeviationRefMid",
+        1045: "cmiDeviationRefAt",
+        1059: "cmiPIDConstdt",
+        1060: "cmiPID_dt",
+        1061: "cmiPID_AutoClearHistory",
+        1063: "cmiDeviationChannel",
+        1069: "cmiPID_ClearHistoryOnRangeExceed",
+        1120: "cmiAutoCalPeriod",
+        1121: "cmiAutoCalUnit",
+        1122: "cmiAutoCalChannel",
+        1124: "cmiServerInitialized",
+        1130: "cmiWavelength9",
+        1155: "cmiExposureValue19",
+        1180: "cmiExposureValue29",
+        1205: "cmiMin19",
+        1230: "cmiMin29",
+        1255: "cmiMax19",
+        1280: "cmiMax29",
+        1305: "cmiAvg19",
+        1330: "cmiAvg29",
+        1355: "cmiWavelength10",
+        1356: "cmiWavelength11",
+        1357: "cmiWavelength12",
+        1358: "cmiWavelength13",
+        1359: "cmiWavelength14",
+        1360: "cmiWavelength15",
+        1361: "cmiWavelength16",
+        1362: "cmiWavelength17",
+        1400: "cmiExternalInput",
+        1465: "cmiPressure",
+        1475: "cmiBackground",
+        1476: "cmiDistanceMode",
+        1477: "cmiInterval",
+        1478: "cmiIntervalMode",
+        1480: "cmiCalibrationEffect",
+        # cmiLinewidth: "cmiLinewidth1",
+        1481: "cmiLinewidth2",
+        1482: "cmiLinewidth3",
+        1483: "cmiLinewidth4",
+        1484: "cmiLinewidth5",
+        1485: "cmiLinewidth6",
+        1486: "cmiLinewidth7",
+        1487: "cmiLinewidth8",
+        1488: "cmiLinewidth9",
+        1489: "cmiLinewidth10",
+        1490: "cmiLinewidth11",
+        1491: "cmiLinewidth12",
+        1492: "cmiLinewidth13",
+        1493: "cmiLinewidth14",
+        1494: "cmiLinewidth15",
+        1495: "cmiLinewidth16",
+        1496: "cmiLinewidth17",
+        1497: "cmiTriggerState",
+        1501: "cmiDeviceAttach",
+        1502: "cmiDeviceDetach",
+        1514: "cmiTimePerMeasurement",
+        1517: "cmiAutoExpoMin",
+        1518: "cmiAutoExpoMax",
+        1519: "cmiAutoExpoStepUp",
+        1520: "cmiAutoExpoStepDown",
+        1521: "cmiAutoExpoAtSaturation",
+        1522: "cmiAutoExpoAtLowSignal",
+        1523: "cmiAutoExpoFeedback",
+        1524: "cmiAveragingCount",
+        1525: "cmiAveragingMode",
+        1526: "cmiAveragingType"}.get(k, "Not found: {}".format(k))
+
+class WS6(object):
+    """
+    This instrument is controlled by a dll, not the pyvisa
+    library, so it doesn't inherit BaseInstr
+    """
+    c = WS6flags()
+    callbackFuncs = [] # Need to keep references to the callback functions
+                       # to prevent crashing
+    def __init__(self):
+        self.dll = self.registerFunctions()
+        if self.dll is None: return
+
+    def __del__(self):
+        print("I got called to be deleted")
+        try:
+            print(self.dllInstantiate(WS6.c.cInstNotification,
+                                      WS6.c.cNotifyRemoveCallback,
+                                      0, 0))
+        except:
+            log.exception("Couldn't close out functions")
+
+    def attachCallback(self, func):
+        """
+        attach a function to be called when the wavemeter is updated
+        See the WS6 manual. Function needs to take two ints and a float
+        :param func:
+        :return:
+        """
+        if not callable(func):
+            log.warning("Function needs to be callable!")
+            return
+
+        CALLFUNC = CFUNCTYPE(None, c_int, c_int, c_double)
+        cfunc = CALLFUNC(func)
+        WS6.callbackFuncs.append(cfunc)
+        self.dllInstantiate(WS6.c.cInstNotification,
+                               WS6.c.cNotifyInstallCallback,
+                               cfunc, 0)
+
+
+    def registerFunctions(self):
+        try:
+            dll = CDLL("wlmData.dll")
+        except:
+            log.exception("Couldn't instantiate dll object")
+            dll = None
+            return dll
+
+        self.dllInstantiate = dll.Instantiate
+        self.dllInstantiate.restype = c_uint
+        # self.dllInstantiate.argtypes = [c_uint, c_uint, c_uint, c_uint]
+
+        self.dllGetFrequency = dll.GetFrequency
+        self.dllGetFrequency.restype = c_uint
+        self.dllGetFrequency.argtypes = [c_uint, c_uint, c_uint, c_uint]
+
+        self.dllGetPowerNum = dll.GetPowerNum
+        self.dllGetPowerNum.restype = c_uint
+        self.dllGetPowerNum.argtypes = [c_uint, c_uint, c_uint, c_uint]
+
+        self.dllGetResultMode = dll.GetResultMode
+        self.dllGetResultMode.restype = c_uint
+        self.dllGetResultMode.argtypes = [c_uint, c_uint, c_uint, c_uint]
+
+        self.dllSetResultMode = dll.SetResultMode
+        self.dllSetResultMode.restype = c_uint
+        self.dllSetResultMode.argtypes = [c_uint, c_uint, c_uint, c_uint]
+
+        self.dllGetExposureMode = dll.GetExposureMode
+        self.dllGetExposureMode.restype = c_uint
+        self.dllGetExposureMode.argtypes = [c_uint, c_uint, c_uint, c_uint]
+
+
+
+
+
+        return dll
+
 
 # Needs to be at the bottom to prevent
 # cyclical definitions. This makes me think

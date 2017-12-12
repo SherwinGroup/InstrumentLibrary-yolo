@@ -1,0 +1,6 @@
+{
+    "logFile": "Z:/~HSG/Data/2017/11-08 Testing polarimeter/laserState.txt",
+    "setpoint": 754.5613,
+    "setpointErr": 1.0,
+    "units": "nm"
+}

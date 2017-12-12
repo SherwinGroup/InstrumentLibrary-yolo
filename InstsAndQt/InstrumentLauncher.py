@@ -146,9 +146,9 @@ applications = {
     "THz Attenuator": WidgetInfo(r"MotorDriver.movementWindow_ui", "Ui_MainWindow",
                         QtWidgets.QMainWindow, os.path.join("MotorDriver","motorMain.py")),
     "Newport Motor Driver": WidgetInfo(r"NewportMotorDriver.UIs.axisPanel_ui", "Ui_ESPAxisPanel",
-                        QtWidgets.QWidget, os.path.join("NewportMotorDriver","espMainPanel.py"))
-    # "Temperature Monitor": WidgetInfo(r"Lakeshore330Monitor.lakeshore330Panel_ui", "Ui_Form",
-    #                     QtWidgets.QWidget, os.path.join("Lakeshore330Monitor","lakeshoreMonitor.py"))
+                        QtWidgets.QWidget, os.path.join("NewportMotorDriver","espMainPanel.py")),
+    "Wavelength Monitor": WidgetInfo(None, None,
+                        None, os.path.join("WS6Monitor","wsMonitor.py"))
 }
 
 path = os.path.abspath(os.path.dirname(__file__))

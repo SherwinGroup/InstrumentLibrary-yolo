@@ -5,7 +5,7 @@ Created on Thu Mar 26 11:24:38 2015
 A note on synchronization:
 ----------------------------------
 Serious issues were had when trying to deal with synchronization (in multithreading)
-with this motor driver. It was desired to be able to query the drive often to read the
+with this motor driver. It was desired to be able to write the drive often to read the
 voltages, while still being able to move the motor.
 
 Mutex's are locks which are supposed to be able to control that. However, trying to
@@ -23,6 +23,7 @@ from matplotlib import rcParams
 from ctypes import *
 from struct import *
 import time
+import visa
 try:
     from PyQt5.QtCore import QMutex
 except:
@@ -135,8 +136,125 @@ CTRL_SEEKRATESAV= [0x02, 0x46]
 
 
 
+from InstsAndQt.Instruments import BaseInstr
+class TIMSArduino(BaseInstr):
+    def __init__(self, GPIB_Number = "ASRL7::INSTR", timeout = 3000):
+        # if GPIB_Number is None or GPIB_Number == 'Fake' or GPIB_Number == 'None':
+        #     log.debug('Error. No GPIB assigned {}'.format(self.__class__.__name__))
+        #     # self.instrument = FakeInstr()
+        #     self._instrument = getCls(self)()
 
+        rm = visa.ResourceManager()
+        try:
+            self._instrument = rm.open_resource(GPIB_Number)
+            log.debug( "GOT INSTRUMENT AT {}".format(GPIB_Number))
+            self._instrument.timeout = timeout
+        except Exception as e:
+            log.exception('Error opening GPIB {}'.format(GPIB_Number))
+            raise
+        self._rm = rm # Need to keep a reference for properly closing Arduino
+                      # (Not sure why this is different)
+    
+    def makeMotorStatusPacket(self):
+        pass
+        
+    @staticmethod
+    def makePacket(control, data = [0x00]):
+        pass
+        
+        
+    def getStatus(self, verbose = False):
+        pass
+    
+    def open_(self):
+        self.open()
 
+    def open(self):
+        # Windows causes the arduino to reset when you open
+        # communication. Having trouble finding out how to
+        # prevent this, so just wait for it to boot
+        time.sleep(2)
+        self._instrument.open()
+        
+    def close_(self):
+        self.write('e')
+        try:
+            # Need to also close the resource manager
+            # for some reason, it still keeps a reference
+            # alive or something
+            self._instrument.close()
+            self._rm.close()
+        except:
+            log.warning("troubleclosing")
+        
+    def purge(self):
+        pass
+        
+    # def write(self, packet):
+    #     pass
+        
+    def read(self, expectedbytes = 9, verbose = False):
+        pass
+        
+    def stopMotor(self):
+        self.write('sm')
+        
+    def singleStep(self, fwd = True):
+        if fwd:
+            self.write('m1')
+        else:
+            self.write('m-1')
+        
+    def continousMove(self, fwd = True):
+        pass
+        
+    def moveAbsolute(self, move):
+        print("NOT IMPLEMENTED: moveAbsolute")
+        
+    def moveRelative(self, move):
+        movestr = 'm' + str(move)
+        self.write(movestr)
+
+    def getSteps(self):
+        return float(self.query('gs'))
+
+    def setSteppingMode(self, toHalf = True):
+        pass
+
+    def setSteps(self, steps):
+        # self.write('s'+str(steps))
+        self.write("ec")
+        
+    def getCurrentLimit(self):
+        pass
+        
+    def setCurrentLimit(self, limit=1):
+        pass
+    
+    def getMotorPowers(self):
+        pass
+
+    def setStepRate(self, rate):
+        pass
+
+    def getStepRate(self):
+        pass
+            
+    def getDeviceStatus(self):
+        pass
+            
+    def isBusy(self):
+        try:
+            # If a timeout occurred
+            status = int(self.query('ib'))
+        except (TypeError, visa.VisaIOError):
+            return True
+        # status = int(status)
+        return status
+
+    def registerFunctions(self):
+        pass
+        
 
 class TIMS0201(object):
     readTimeout = 20 #ms
@@ -531,21 +649,17 @@ class TIMS0201(object):
 
 
 if __name__ == '__main__':
-    try:
-        A.close_()
-    except:
-        pass
 
-    A = TIMS0201()
+    A = TIMSArduino()
+    # A.open_()
     A.open_()
-    print()
+
 
     print(A.getSteps())
-    print()
 
-    print(A.getCurrentLimit())
-    A.setCurrentLimit(10)
-    print(A.getCurrentLimit())
+    # print(A.getCurrentLimit())
+    # A.setCurrentLimit(10)
+    # print(A.getCurrentLimit())
     
     
 

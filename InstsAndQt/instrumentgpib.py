@@ -45,7 +45,9 @@ class InstrumentGPIB(QtWidgets.QComboBox):
         self.refreshGPIBList()
 
     def __contains__(self, item):
-        return item in self._GPIBList or item is "None" or item is "Fake"
+        return item in self._GPIBList + [
+            "None", "Fake", "Refresh..."
+        ]
 
     def refreshGPIBList(self):
         self.blockSignals(True)
@@ -67,6 +69,7 @@ class InstrumentGPIB(QtWidgets.QComboBox):
         self.blockSignals(False)
 
     def changeInstrument(self):
+
         if str(self.currentText()) == "None":
             self.closeInstrument()
             return
