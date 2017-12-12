@@ -29,3 +29,18 @@ def my_excepthook(type, value, tback):
     sys.__excepthook__(type, value, tback)
 
 sys.excepthook = my_excepthook
+
+
+# Set up the logging handler for all instruments
+import logging
+log = logging.getLogger("Instruments")
+log.setLevel(logging.DEBUG)
+handler = logging.FileHandler("TheInstrumentLog.log")
+handler.setLevel(logging.DEBUG)
+handler1 = logging.StreamHandler()
+handler1.setLevel(logging.WARN)
+formatter = logging.Formatter('%(asctime)s - [%(filename)s:%(lineno)s - %(funcName)s()] - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+handler1.setFormatter(formatter)
+log.addHandler(handler)
+log.addHandler(handler1)
