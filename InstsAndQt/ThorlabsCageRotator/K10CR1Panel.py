@@ -125,10 +125,13 @@ class K10CR1Panel(QtWidgets.QWidget):
         self.thWaitForMotor.finished.connect(self.cleanupMotorMove)
         self.thWaitForMotor.start()
 
-    def moveMotor(self):
+    def moveMotor(self, value = None):
+        if value is None:
+            value = self.ui.sbPosition.value()
+        value = float(value)
         try:
             ret = self.motor.moveAbsolute(
-                self.ui.sbPosition.value(),
+                value,
                 callback = lambda p: self.sigCreateGuiElement.emit(self._updatePosition, p)
             )
             if ret:
