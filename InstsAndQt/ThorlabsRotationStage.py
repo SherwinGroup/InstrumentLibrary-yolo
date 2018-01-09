@@ -1,7 +1,7 @@
 import logging
 import time
 log = logging.getLogger("Instruments")
-logging._handlerList[2]().setLevel(logging.DEBUG)
+# logging._handlerList[2]().setLevel(logging.DEBUG)
 from ctypes import *
 from ctypes import wintypes
 from enum import Enum
@@ -132,6 +132,12 @@ class MOT_HomingParameters(Structure):
         ("velocity", c_uint),
         ("offsetDistance", c_uint)
     ]
+    def __str__(self):
+        st = f"""        "direction": {self.direction}
+        "limitSwitch": {self.limitSwitch}
+        "velocity": {self.velocity}
+        "offsetDistance": {self.offsetDistance}"""
+        return st
 
 class ThorlabsIntegratedStepper(object):
     serialNo = None
@@ -226,32 +232,38 @@ class ThorlabsIntegratedStepper(object):
         ## Instead, I ripped a bunch of values from looking at the Kinesis software
         ## logs and did all the same calls here. presumably, these are all default
         ## values.
-        self.dll.ISC_SetPotentiometerParams(self.serialNo, 0, 20,  1466016)
-        self.dll.ISC_SetPotentiometerParams(self.serialNo, 1, 50,  2199023)
-        self.dll.ISC_SetPotentiometerParams(self.serialNo, 2, 80,  2932031)
-        self.dll.ISC_SetPotentiometerParams(self.serialNo, 3, 100, 3665039)
-
-        jogParams = MOT_JogParameters()
-        jogParams.mode = 2
-        jogParams.stepSize = 682667
-        jogParams.stopMode = 2
-        jogParams.velParams.acceleration = 22530
-        jogParams.velParams.maxVelocity = 109951163
-        jogParams.velParams.minVelocity = 0
-        self.dll.ISC_SetJogParamsBlock(self.serialNo, byref(jogParams))
-
-        limitSwitchParams = MOT_LimitSwitchParameters()
-        limitSwitchParams.clockwiseHardwareLimit = 136533
-        limitSwitchParams.anticlockwiseHardwareLimit = 136533
-        limitSwitchParams.clockwisePosition = 4
-        limitSwitchParams.anticlockwisePosition = 1
-        limitSwitchParams.softLimitMode = 1
-        self.dll.ISC_SetLimitSwitchParamsBlock(self.serialNo, byref(limitSwitchParams))
-        self.dll.ISC_SetTriggerSwitches(self.serialNo, c_byte(0))
-
-        self.dll.ISC_SetMotorParamsExt(self.serialNo, 200, 120, 360)
+                # log.debug("Setting potentionmeter parameters")
+                # self.dll.ISC_SetPotentiometerParams(self.serialNo, 0, 20,  1466016)
+                # self.dll.ISC_SetPotentiometerParams(self.serialNo, 1, 50,  2199023)
+                # self.dll.ISC_SetPotentiometerParams(self.serialNo, 2, 80,  2932031)
+                # self.dll.ISC_SetPotentiometerParams(self.serialNo, 3, 100, 3665039)
+                #
+                # jogParams = MOT_JogParameters()
+                # jogParams.mode = 2
+                # jogParams.stepSize = 682667
+                # jogParams.stopMode = 2
+                # jogParams.velParams.acceleration = 22530
+                # jogParams.velParams.maxVelocity = 109951163
+                # jogParams.velParams.minVelocity = 0
+                # log.debug("Setting Jogging parameters")
+                # self.dll.ISC_SetJogParamsBlock(self.serialNo, byref(jogParams))
+                #
+                # limitSwitchParams = MOT_LimitSwitchParameters()
+                # limitSwitchParams.clockwiseHardwareLimit = 136533
+                # limitSwitchParams.anticlockwiseHardwareLimit = 136533
+                # limitSwitchParams.clockwisePosition = 4
+                # limitSwitchParams.anticlockwisePosition = 1
+                # limitSwitchParams.softLimitMode = 1
+                # log.debug("Setting limit switchparameters")
+                # self.dll.ISC_SetLimitSwitchParamsBlock(self.serialNo, byref(limitSwitchParams))
+                # log.debug("Setting trigger parameters")
+                # self.dll.ISC_SetTriggerSwitches(self.serialNo, c_byte(0))
+                #
+                # log.debug("Setting motor parameters")
+                # self.dll.ISC_SetMotorParamsExt(self.serialNo, 200, 120, 360)
 
         if startPolling:
+            log.debug("Starting polling")
             if self.dll.ISC_StartPolling(self.serialNo, startPolling):
                 self._opened = startPolling
                 time.sleep(startPolling/1000.)
@@ -276,6 +288,19 @@ class ThorlabsIntegratedStepper(object):
         :param waitForStop: wait for the motor to stop in this thread
         :return:
         """
+
+        ## figure out which direction to move to move to reach home fastest.
+
+        ## 12/15/17 Having bugs that it won't home properly in the reverse direction
+        offset = self.getHomeOffset()
+        position = self.getPosition()
+        move = 1 # forward
+        if (offset+position)%360<180:
+            move = 2
+
+        # self.setHomingDirection(move)
+
+
         ret = self.dll.ISC_Home(self.serialNo)
         if ret:
             log.warning("Error homing device, {}".format(ret))
@@ -303,6 +328,34 @@ class ThorlabsIntegratedStepper(object):
         params.offsetDistance = offset
         self.dll.ISC_SetHomingParamsBlock(self.serialNo, params)
 
+    def setHomingDirection(self, dir = 1):
+        """
+        After the motor homes, it can be told to move to some offset.
+        Set that offset here.
+        :param dir: whcih direction to move. Docs aren't clear...
+        :return:
+        """
+
+        # Need to set the homing switch to the same direction.
+        # Note: I'm not even really sure what this means...
+        # Also note: The documentation is fucking garbage on this. The
+        # definition of forward and reverse and the value swaps in 3 different
+        # places.
+        if dir == 2:
+            switch = 1
+        elif dir == 1:
+            switch = 0
+
+        params = MOT_HomingParameters()
+        self.dll.ISC_GetHomingParamsBlock(self.serialNo, params)
+        params.direction = dir
+        params.limitSwitch = switch
+        print("Setting home parameters")
+        print(params)
+        ret = self.dll.ISC_SetHomingParamsBlock(self.serialNo, params)
+        if ret:
+            log.warning("Error setting homing directions, {}".format(ret))
+
     def getHomeOffset(self):
         """
         After the motor homes, it can be told to move to some offset.
@@ -312,6 +365,7 @@ class ThorlabsIntegratedStepper(object):
         """
         params = MOT_HomingParameters()
         self.dll.ISC_GetHomingParamsBlock(self.serialNo, params)
+        params.direction = 2 # go foward, hardcode it cause I'm tired of it moving.
         return self._deviceToReal(params.offsetDistance)
 
     def moveAbsolute(self, position = None, waitForStop = True, *args, **kwargs):
@@ -326,10 +380,12 @@ class ThorlabsIntegratedStepper(object):
         ret = self.dll.ISC_MoveToPosition(self.serialNo, position)
         if ret:
             log.warning("Error moving device, {}".format(ret))
-            return False
+            if ret == 38:
+                log.warning("\tWanted move {} ({})".format(position, self._deviceToReal(position)))
+            return ret
         if waitForStop:
             return self.waitForStop(waitOn = "move", *args, **kwargs)
-        return True
+        return False # no errors
 
     def getPosition(self):
         pos = self.dll.ISC_GetPosition(self.serialNo)

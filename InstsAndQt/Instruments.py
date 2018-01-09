@@ -19,16 +19,16 @@ from ctypes import *
 
 
 log = logging.getLogger("Instruments")
-log.setLevel(logging.DEBUG)
-handler = logging.FileHandler("TheInstrumentLog.log")
-handler.setLevel(logging.DEBUG)
-handler1 = logging.StreamHandler()
-handler1.setLevel(logging.WARN)
-formatter = logging.Formatter('%(asctime)s - [%(filename)s:%(lineno)s - %(funcName)s()] - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-handler1.setFormatter(formatter)
-log.addHandler(handler)
-log.addHandler(handler1)
+# log.setLevel(logging.DEBUG)
+# handler = logging.FileHandler("TheInstrumentLog.log")
+# handler.setLevel(logging.DEBUG)
+# handler1 = logging.StreamHandler()
+# handler1.setLevel(logging.WARN)
+# formatter = logging.Formatter('%(asctime)s - [%(filename)s:%(lineno)s - %(funcName)s()] - %(levelname)s - %(message)s')
+# handler.setFormatter(formatter)
+# handler1.setFormatter(formatter)
+# log.addHandler(handler)
+# log.addHandler(handler1)
 
 
 # The instrument launcher should only display the UIs, nothing more. If a widget is

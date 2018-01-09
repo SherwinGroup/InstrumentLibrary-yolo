@@ -12,7 +12,18 @@ from PyQt5 import QtGui, QtCore
 import pyqtgraph as pg
 import re
 import traceback
+import logging
+import threading
 
+log = logging.getLogger("Instruments")
+
+threadLog = logging.getLogger("Threader")
+threadLog.setLevel(logging.DEBUG)
+handler = logging.FileHandler("TheInstrumentLog.log")
+handler.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s - <THREADS> [%(thread)d :: %(threadName)s] - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+threadLog.addHandler(handler)
 
 class QFNumberEdit(QtGui.QLineEdit):
     #a signal to emit the new, approved number. Will emit False if the
@@ -196,12 +207,6 @@ class QButtonDblClick(QtGui.QPushButton):
             self.update()
         self.left_click_count = 0
 
-
-
-
-
-
-
 class TempThread(QtCore.QThread):
     """ Creates a QThread which will monitor the temperature changes in the
         CCD. Actually more general than that since it simply takes a function and some args...
@@ -211,17 +216,30 @@ class TempThread(QtCore.QThread):
         super(TempThread, self).__init__()
         self.target = target
         self.args = args
+        self._threadid = threading.current_thread()
 
+        self.finished.connect(lambda:
+                              threadLog.debug("Terminate requested. "))
+        # From the doc's, it's unclear what thread the finished signal is emitted from, but I want to be
+        # able to track if it's closed by other means. This chunk is to keep track of which thread is being terminated
+        # Get the thread id when self.run() is called (cause I'm not sure what it is in the __init__),
+        self.finished.connect(lambda: threadLog.debug("\t{}".format(self._getthread())))
+        self._getthread = lambda: self._threadid
     def run(self):
+        self._threadid = threading.current_thread()
+        threadLog.debug("Running thread")
+        threadLog.debug("\t {}".format(self.target.__name__))
         try:
             if self.args is None:
                 self.target()
             else:
                 self.target(self.args)
         except Exception as e:
-            print("ERROR IN THREAD,",self.target.__name__)
-            print(e)
-            traceback.print_exc()
+            threadLog.exception("Error in running thread")
+            threadLog.debug("\t {}".format(self.target.__name__))
+        else:
+            threadLog.debug("Thread exited succesffuly")
+            threadLog.debug("\t {}".format(self.target.__name__))
 
 dialogList = []
 class MessageDialog(QtGui.QDialog):

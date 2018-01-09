@@ -24,9 +24,10 @@ class K10CR1Panel(QtWidgets.QWidget):
 
         self.openMotor()
 
+        self.thWaitForMotor.finished.connect(self.cleanupMotorMove)
+
 
         self.sigCreateGuiElement.connect(self.createGuiElement)
-
 
     def initUI(self):
         self.ui = Ui_ThorlabsPanel()
@@ -60,9 +61,21 @@ class K10CR1Panel(QtWidgets.QWidget):
             self.closeMotor()
 
     def openMotor(self):
+        mod = QtWidgets.QApplication.keyboardModifiers()
+        if mod == QtCore.Qt.ShiftModifier:
+            # add a way to re-instantiate the motor, causing it to restart everything.
+            # Think it's necessary if you plug the device in after starting the software
+            log.debug("Re-instantiating the motor")
+            try:
+                self.motor.close()
+            except:
+                pass
+            self.motor = K10CR1()
+
         ret = self.motor.open()
         if not ret:
             # opening the motor failed, so disable everything
+            log.debug("calling Closing motor")
             self.closeMotor()
             return
         for ii in self.disableElements: ii.setEnabled(True)
@@ -73,6 +86,7 @@ class K10CR1Panel(QtWidgets.QWidget):
         self.ui.sbPosition.blockSignals(False)
 
     def closeMotor(self):
+        log.debug("Closing motor")
         self.motor.close()
         for ii in self.disableElements: ii.setEnabled(False)
         self.ui.labelMoving.setText("Closed")
@@ -99,9 +113,10 @@ class K10CR1Panel(QtWidgets.QWidget):
     def goHome(self):
         try:
             ret = self.motor.home(
-                callback = lambda p: self.sigCreateGuiElement.emit(self._updatePosition, p)
+                callback = lambda p: self.sigCreateGuiElement.emit(self._updatePosition, p),
+                timeout = False
             )
-            if ret:
+            if not ret:
                 self.setStatusWidget("Error", {"background-color": "red"})
         except Exception as e:
             log.exception("Error homing axis")
@@ -111,7 +126,7 @@ class K10CR1Panel(QtWidgets.QWidget):
     def startChangePosition(self, target=None ):
         """
         Start the thread for waiting for the motor to move
-        :param target: Fucntion to thread
+        :param target: Fucntion to thread. If none, defaults to self.moveMotor. If false, doesn't thread.
         :return:
         """
         if target is None:
@@ -121,9 +136,9 @@ class K10CR1Panel(QtWidgets.QWidget):
                              {"background-color" : "yellow"})
 
 
-        self.thWaitForMotor.target = target
-        self.thWaitForMotor.finished.connect(self.cleanupMotorMove)
-        self.thWaitForMotor.start()
+        if target:
+            self.thWaitForMotor.target = target
+            self.thWaitForMotor.start()
 
     def moveMotor(self, value = None):
         if value is None:
@@ -134,7 +149,7 @@ class K10CR1Panel(QtWidgets.QWidget):
                 value,
                 callback = lambda p: self.sigCreateGuiElement.emit(self._updatePosition, p)
             )
-            if ret:
+            if not ret:
                 self.setStatusWidget("Error", {"background-color": "red"})
         except Exception as e:
             log.exception("Error moving axis")

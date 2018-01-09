@@ -1,6 +1,7 @@
 {
-    "logFile": "Z:/~HSG/Data/2017/11-08 Testing polarimeter/laserState.txt",
-    "setpoint": 754.5613,
-    "setpointErr": 1.0,
+    "logFile": "Z:/~HSG/Data/2017/12-13 K10CR1 Pol Testing/01-08 More old AQWP/laser.txt",
+    "powerSetpoint": 1.0,
+    "setpoint": 765.7155,
+    "setpointErr": 30.0,
     "units": "nm"
 }

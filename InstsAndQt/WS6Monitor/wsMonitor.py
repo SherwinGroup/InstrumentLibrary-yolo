@@ -11,6 +11,60 @@ from InstsAndQt.cQt.DateAxis import DateAxis
 import logging
 log = logging.getLogger("Instruments")
 
+class LaserState(object):
+    """
+    helper class for keeping track of the the laser state
+    changing, allowing easier comparison of time and what not.
+
+    """
+    def __init__(self, time=0, wavelength=0, power=0):
+        if isinstance(time, LaserState):
+            self.time=time.time
+            self.wavelength = time.wavelength
+            self.power = time.power
+            self.thresholdPower = time.thresholdPower
+            self.thresholdWavelength = time.thresholdWavelength
+            self.thresholdTime = time.thresholdTime
+        else:
+            self.time = time
+            self.wavelength = wavelength
+            self.power = power
+
+            self.thresholdPower = 10
+            self.thresholdWavelength = 50
+            self.thresholdTime = 10
+
+    def __eq__(self, other):
+        # Returns True if all parameters are within the
+        # threshold values
+        # thT = abs(self.time - other.time) < self.thresholdTime
+        # thW = abs(self.wavelenegth - other.wavelenegth) < self.thresholdWavelength
+        thP = abs(self.power - other.power) < self.thresholdPower
+        thW = self.wavelength == other.wavelength
+        # thP = self.power == other.power
+        return all([thW, thP])
+
+    def __sub__(self, other):
+        """
+        return the time difference between the two states
+        useful for finding time difference in saving
+        :param other:
+        :return:
+        """
+        return self.time-other.time
+
+    def setThresholdPower(self, val):
+        self.thresholdPower = val
+
+    def setThresholdWavelength(self, val):
+        self.thresholdWavelength = val
+
+    def setThresholdTime(self, val):
+        self.thresholdTime = val
+
+    def saveStr(self):
+        if self.wavelength == 0: return ""
+        return f"{self.time},{self.wavelength:.4f},{self.power:.1f}\n"
 
 
 class WS6Monitor(QtWidgets.QLabel):
@@ -25,11 +79,14 @@ class WS6Monitor(QtWidgets.QLabel):
     # Emitted when the wavelength changes.
     # Emits as <previous value> <new value>
     # TODO: decide what units (or constant nm?)
-    sigWavelengthChanged = QtCore.pyqtSignal(object, object)
+    sigStateChanged = QtCore.pyqtSignal()
 
     # Sig for updating style sheet (see docstring on parsing callback)
     sigStyleSheet = QtCore.pyqtSignal(object)
+
+    sigStartTimer = QtCore.pyqtSignal()
     _plot = None
+
     def __init__(self, *args, **kwargs):
         super(WS6Monitor, self).__init__()
 
@@ -39,6 +96,7 @@ class WS6Monitor(QtWidgets.QLabel):
             "logFile": r"Z:\~HSG\Data\2017",
             "setpoint": 764, #nm
             "setpointErr": 1, #pm
+            "powerSetpoint": 10,  # uW
         })
         self.settings.filePath = os.path.join(os.path.dirname(__file__), "Settings.txt")
 
@@ -46,7 +104,6 @@ class WS6Monitor(QtWidgets.QLabel):
         # all the time, hopefully saving a lot of time when the laser is
         # jumping and causing a lot of writes
         self._logFile = None
-
 
         try:
             self.ws = WS6()
@@ -79,21 +136,34 @@ class WS6Monitor(QtWidgets.QLabel):
         self.setWindowFlags(
             QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnTopHint
         )
-
-        self.sigWavelengthChanged.connect(self.handleWavelengthChange)
+        self.setMinimumHeight(62)
+        self.sigStateChanged.connect(self.handleWavelengthChange)
 
         self.sigStyleSheet.connect(self.resetStyleSheet)
+
+        # Only allow the power change to cause updates once a
+        # second to keep down on file sizes
+        self.powerTimer = QtCore.QTimer(self)
+        self.powerTimer.setSingleShot(True)
+        self.powerTimer.setInterval(1000)
+        self.sigStartTimer.connect(self.powerTimer.start)
         # I want to keep track of the last time the laser jumped. If it's a long
         # time, I want to have the file log the old and new wavelengths at the same
         # time, so that if I plot it later, it's not a giant jump. But if the
         # laser's jumping all over and noisy, I don't want to ad a shitton of points
         # and square pulses, because it'll look worse
-        self._lastWrite = time.time()
+        # self._lastWrite = time.time()
 
         # internal reference to the wavelength, in nm
         # Prevents precision issues if you use the value in
         # self.text() alone
-        self._value = 0
+        # self._value = 0
+
+        self.currentState = LaserState(time=time.time())
+        self.currentState.thresholdWavelength = self.settings["setpointErr"]
+        self.currentState.thresholdPower = self.settings["powerSetpoint"]
+        self.lastSavedState = LaserState()
+
 
         try:
             self.ws.attachCallback(self.parseWSCallback)
@@ -150,7 +220,6 @@ class WS6Monitor(QtWidgets.QLabel):
         sp = QtWidgets.QWidget(subMenu)
         layout = QtWidgets.QHBoxLayout(sp)
 
-
         self.sbSetPoint = SpinBox(subMenu, decimals = 7)
         self.sbSetPoint.setValue(self.settings["setpoint"])
         self.sbSetPoint.setMaximumWidth(70)
@@ -192,15 +261,28 @@ class WS6Monitor(QtWidgets.QLabel):
         group.buttonClicked.connect(
             lambda x: self.settings.__setitem__("units", str(x.text()))
         )
-
         wid.setLayout(layout)
-
         group.addButton(nm)
         group.addButton(eV)
         group.addButton(cm)
         group.buttonClicked.connect(self.updateUnits)
         action = QtWidgets.QWidgetAction(subMenu)
         action.setDefaultWidget(wid)
+        subMenu.addAction(action)
+
+        subMenu = menu.addMenu("Set power threshold")
+        self.sbPowerSetPoint = SpinBox(subMenu, decimals=2)
+        self.sbPowerSetPoint.setValue(self.settings["powerSetpoint"])
+        self.sbPowerSetPoint.setMaximumWidth(70)
+        self.sbPowerSetPoint.sigValueChanged.connect(
+            lambda x: self.settings.__setitem__("powerSetpoint", x.value())
+        )
+        self.sbPowerSetPoint.sigValueChanged.connect(
+            lambda x: self.currentState.setThresholdPower(x.value())
+        )
+        action = QtWidgets.QWidgetAction(subMenu)
+        action.setDefaultWidget(self.sbPowerSetPoint)
+
         subMenu.addAction(action)
 
         save = menu.addAction("Select Save File...")
@@ -210,27 +292,30 @@ class WS6Monitor(QtWidgets.QLabel):
 
         return menu
 
-    def handleWavelengthChange(self, oldVal, newVal):
+    def handleWavelengthChange(self):
         # print(f"value changed from {oldVal} to {newVal}")
-        self.saveWavelengthChange(oldVal, newVal)
+        self.saveWavelengthChange()
+        self.updateValue(self.currentState)
 
-        if abs(newVal - self.sbSetPoint.value()) > self.sbSetPointErr.value()*1e-3:
+        if abs(self.value() - self.sbSetPoint.value()) > self.sbSetPointErr.value()*1e-3:
             self.resetStyleSheet({"background-color":"red", "color":"yellow"})
 
-    def saveWavelengthChange(self, oldVal, newVal):
+    def saveWavelengthChange(self):
         if self.settings["logFile"] is None: return
         if self._logFile is None: return
         curTime = time.time()
-        # Say, if it's more than 10 seconds?
-        if curTime - self._lastWrite > 10:
-            st = "{},{:.4f}\n{},{:.4f}\n".format(curTime, oldVal, curTime, newVal)
+        self.currentState.time = time.time()
+        # Say, if it's more than 60 seconds?
+        if self.currentState - self.lastSavedState > 60:
+            st = self.lastSavedState.saveStr() + self.currentState.saveStr()
         else:
-            st = "{},{:.4f}\n".format(curTime, newVal)
+            st = self.currentState.saveStr()
+        self.lastSavedState = LaserState(self.currentState)
 
         try:
             self._logFile.write(st)
             self._logFile.flush()
-            self._lastWrite = curTime
+            # self._lastWrite = curTime
         except:
             log.exception("Couldn't save wavelengths")
 
@@ -253,14 +338,15 @@ class WS6Monitor(QtWidgets.QLabel):
             pass
         oh = ''
         if not os.path.isfile(loc):
-            oh += 'Time,wavelength\n'
-            oh += 's,nm\n'
-            oh += ',\n'
+            oh += 'Time,wavelength,power\n'
+            oh += 's,nm,uW\n'
+            oh += ',,\n'
 
         # Save the current value. But don't do it if
         # this is called before everything's been initialized
         if self.value() != 1:
-            oh += "{},{:.4f}\n".format(time.time(), self._value)
+            # oh += "{},{:.4f}\n".format(time.time(), self._value)
+            oh += self.currentState.saveStr()
         try:
             print("opening file", loc)
             self._logFile = open(loc, 'a+')
@@ -281,7 +367,9 @@ class WS6Monitor(QtWidgets.QLabel):
         :return:
         """
         try:
-            value = round(converter[self.settings["units"]][units](self._value), 4)
+            value = round(converter[self.settings["units"]][units](
+                self.currentState.wavelength
+            ), 4)
         except ZeroDivisionError:
             return 1 # Not sure when this one occurs
         except AttributeError:
@@ -317,12 +405,20 @@ class WS6Monitor(QtWidgets.QLabel):
             return
         if mode == WS6.c.cmiWavelength1:
             # don't waste time updating if there's no change
-            if round(dval, 4) == self.value(): return
-            self.sigWavelengthChanged.emit(self.value(), dval)
-            self.updateValue(dval)
-            self._value = dval
+            # if round(dval, 4) == self.value(): return
+            self.currentState.wavelength = round(dval, 4)
+            if self.currentState == self.lastSavedState: return
+            self.sigStateChanged.emit()
+            # self.updateValue(dval)
+            # self._value = dval
         elif mode == WS6.c.cmiPower:
-            pass
+            if self.powerTimer.isActive(): return
+            self.currentState.power = round(dval, 1)
+            if self.currentState == self.lastSavedState:
+                # print("states same", self.currentState.power, self.lastSavedState.power)
+                return
+            self.sigStartTimer.emit()
+            self.sigStateChanged.emit()
         elif mode == WS6.c.cmiExposureValue1:
             # Warn me if the exposure is taking too long
             if intVal > 100:
@@ -338,38 +434,42 @@ class WS6Monitor(QtWidgets.QLabel):
 
         wid = pg.PlotContainerWindow()
 
-
-
         pi = wid.plotWidget.plotItem
         pi.layout.removeItem(pi.getAxis('bottom'))
         caxis = DateAxis(orientation='bottom', parent=pi)
         caxis.linkToView(pi.vb)
         pi.axes["bottom"]["item"] = caxis
         pi.layout.addItem(caxis, 3, 1)
-
-
         pi.layout.removeItem(pi.getAxis('top'))
         caxis = DateAxis(orientation='top', parent=pi)
         caxis.linkToView(pi.vb)
         pi.axes["top"]["item"] = caxis
         pi.layout.addItem(caxis, 0, 1)
 
-        wid.plot(data)
+        p2 = pg.pg.ViewBox()
+        pi.getAxis("right").linkToView(p2)
+        pi.scene().addItem(p2)
+        p2.setXLink(pi.vb)
+        p2.addItem(pg.pg.PlotDataItem(data[:,0], data[:,2], pen='r'))
+        pi.vb.sigResized.connect(lambda: p2.setGeometry(pi.vb.sceneBoundingRect()))
+
+        wid.plot(data[:,0], data[:,1])
         wid.show()
 
         self._plot = wid
 
-    def updateValue(self, value, givenUnits="nm"):
+    def updateValue(self, state, givenUnits="nm"):
         prec = {
             "nm": 4,
             "cm-1": 2,
             "eV": 6
         }
-
+        value = state.wavelength
+        power = state.power
         units = self.settings["units"]
         value = converter[givenUnits][units](value)
 
-        txt = f"{value:.{prec[units]}f} {units}"
+        txt = f"{value:.{prec[units]}f} {units}\n({power})"
 
         self.setText(str(txt))
 
