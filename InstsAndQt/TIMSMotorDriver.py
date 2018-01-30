@@ -175,7 +175,7 @@ class TIMSArduino(BaseInstr):
         # prevent this, so just wait for it to boot
         time.sleep(2)
         self._instrument.open()
-        
+
     def close_(self):
         self.write('e')
         try:

@@ -1,5 +1,5 @@
 from InstsAndQt.Instruments import WS6
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 from pyqtgraph import SpinBox
 import time
 import os
@@ -120,7 +120,7 @@ class WS6Monitor(QtWidgets.QLabel):
         self.defaultStyleSettings = {
             "background-color": "white",
             "color": "black",
-            "font-size": "28px"
+            "font-size": 28
         }
 
         menu = self.getContextMenuTree()
@@ -136,7 +136,11 @@ class WS6Monitor(QtWidgets.QLabel):
         self.setWindowFlags(
             QtCore.Qt.Window | QtCore.Qt.CustomizeWindowHint | QtCore.Qt.WindowStaysOnTopHint
         )
-        self.setMinimumHeight(62)
+        # self.setMinimumHeight(62)
+        geo = self.geometry()
+        geo.setHeight(62)
+        geo.setWidth(165)
+        self.setGeometry(geo)
         self.sigStateChanged.connect(self.handleWavelengthChange)
 
         self.sigStyleSheet.connect(self.resetStyleSheet)
@@ -186,14 +190,34 @@ class WS6Monitor(QtWidgets.QLabel):
             self.resetStyleSheet()
         return super(WS6Monitor, self).changeEvent(ev)
 
+    def resizeEvent(self, a0):
+        try:
+            picture = QtGui.QPicture()
+            p = QtGui.QPainter(picture)
+            newSize = None
+            for size in np.array([-2, -1, 1, 2]) +self.defaultStyleSettings["font-size"]:
+                p.setFont(QtGui.QFont("", pointSize=size))
+                br = p.boundingRect(self.geometry(), QtCore.Qt.AlignLeft, self.text())
+                if br.width()*.75 < self.geometry().width() and br.height()*.75:
+                    newSize = int(size)
+            if newSize is not None:
+                self.defaultStyleSettings["font-size"] = newSize
+                print(newSize)
+                self.resetStyleSheet()
+        finally:
+            # Python crashes if you don't end the painter
+            p.end()
+        super(WS6Monitor, self).resizeEvent(a0)
+
     def resetStyleSheet(self, sheet=dict()):
         style = self.defaultStyleSettings.copy()
         style.update(sheet)
         self.setStyleSheet(f"QLabel {{ background-color: {style['background-color']};"
                            f"color: {style['color']};"
-                           f"font-size: {style['font-size']}}}")
+                           f"font-size: {style['font-size']}px}}")
 
     def mouseMoveEvent(self, evt):
+        evt.accept()
         d = evt.screenPos() - self.moveOffset
         self.move(d.x(), d.y())
 
@@ -239,9 +263,9 @@ class WS6Monitor(QtWidgets.QLabel):
         sp.setLayout(layout)
         action = QtWidgets.QWidgetAction(subMenu)
         action.setDefaultWidget(sp)
-
-
         subMenu.addAction(action)
+
+
         subMenu = menu.addMenu("Set Units")
         group = QtWidgets.QButtonGroup(subMenu)
         nm = QtWidgets.QRadioButton("nm")
@@ -305,8 +329,10 @@ class WS6Monitor(QtWidgets.QLabel):
         if self._logFile is None: return
         curTime = time.time()
         self.currentState.time = time.time()
-        # Say, if it's more than 60 seconds?
-        if self.currentState - self.lastSavedState > 60:
+        # Say, if it's more than 10 seconds?
+        if self.currentState - self.lastSavedState > 10:
+            # Update the last time to be the same as the current one.
+            self.lastSavedState.time = self.currentState.time
             st = self.lastSavedState.saveStr() + self.currentState.saveStr()
         else:
             st = self.currentState.saveStr()
@@ -470,6 +496,8 @@ class WS6Monitor(QtWidgets.QLabel):
         value = converter[givenUnits][units](value)
 
         txt = f"{value:.{prec[units]}f} {units}\n({power})"
+
+        # txt = f"<font size={self._fontSize}>{txt}</font>"
 
         self.setText(str(txt))
 
