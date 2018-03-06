@@ -124,7 +124,7 @@ class LakeshoreMonitor(QtWidgets.QMainWindow):
         self.updateTimer.timeout.connect(self.updateDisplays)
         self.updateTimer.start()
 
-        self.saveLoc = r'Z:\~Hunter Banks\Data\2017\\'
+        self.saveLoc = r'Z:\~HSG\Data\2018\\'
 
 
     def initUI(self):

@@ -93,7 +93,7 @@ class WS6Monitor(QtWidgets.QLabel):
 
         self.settings = Settings({
             "units": "nm",
-            "logFile": r"Z:\~HSG\Data\2017",
+            "logFile": r"Z:\~HSG\Data\2018",
             "setpoint": 764, #nm
             "setpointErr": 1, #pm
             "powerSetpoint": 10,  # uW

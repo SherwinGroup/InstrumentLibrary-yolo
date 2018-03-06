@@ -147,8 +147,8 @@ class TKCalibrator(QtWidgets.QMainWindow):
 
 
         self.settings = {
-            "saveDir": r'Z:\~HSG\Data\2017',
-            "thzSweepPoints": [0,15,25,32,35,39,44,50,54,58,60,63,68],
+            "saveDir": r'Z:\~HSG\Data\2018',
+            "thzSweepPoints": [0,15,25,32,35,39,44,50,54,58,60],
             "thzSweepPointsIter": iter([]),
             "saveData": [],
         }

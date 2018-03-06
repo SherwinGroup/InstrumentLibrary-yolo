@@ -68,7 +68,7 @@ class FELMonitor(QtWidgets.QWidget):
         mainlayout.addLayout(button1)
         mainlayout.setContentsMargins(0, 0, 0, 0)
 
-        self.logFile = r'Z:\~HSG\Data\2017'
+        self.logFile = r'Z:\~HSG\Data\2018'
 
 
         self.updateTimer.timeout.connect(self.updatePlot)
