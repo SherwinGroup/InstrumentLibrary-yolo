@@ -1,31 +1,23 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'C:\Users\dvalovcin\Documents\GitHub\InstrumentLibrary-yolo\InstsAndQt\Lakeshore330Monitor\lakeshore330Panel.ui'
+# Form implementation generated from reading ui file 'lakeshore330Panel.ui'
 #
-# Created by: PyQt4 UI code generator 4.11.4
+# Created by: PyQt5 UI code generator 5.6
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-try:
-    _encoding = QtWidgets.QApplication.UnicodeUTF8
-    def _translate(context, text, disambig):
-        return QtCore.QCoreApplication.translate(context, text, disambig, _encoding)
-except AttributeError:
-    def _translate(context, text, disambig):
-        return QtCore.QCoreApplication.translate(context, text, disambig)
-
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(255, 271)
+        MainWindow.resize(324, 223)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
-        MainWindow.setMinimumSize(QtCore.QSize(1, 1))
+        MainWindow.setMinimumSize(QtCore.QSize(100, 20))
         MainWindow.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
@@ -39,6 +31,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.centralwidget)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.splitter = QtWidgets.QSplitter(self.centralwidget)
+        self.splitter.setMinimumSize(QtCore.QSize(50, 20))
         self.splitter.setOrientation(QtCore.Qt.Vertical)
         self.splitter.setObjectName("splitter")
         self.gTemp = PlotWidget(self.splitter)
@@ -54,29 +47,45 @@ class Ui_MainWindow(object):
         self.layoutWidget = QtWidgets.QWidget(self.splitter)
         self.layoutWidget.setObjectName("layoutWidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.layoutWidget)
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout_4 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_4.setObjectName("horizontalLayout_4")
-        self.label = QtWidgets.QLabel(self.layoutWidget)
-        self.label.setObjectName("label")
-        self.horizontalLayout_4.addWidget(self.label)
+        self.lSampleTemp = QtWidgets.QLabel(self.layoutWidget)
+        self.lSampleTemp.setMinimumSize(QtCore.QSize(110, 20))
+        self.lSampleTemp.setObjectName("lSampleTemp")
+        self.horizontalLayout_4.addWidget(self.lSampleTemp)
         self.tTemp = QtWidgets.QLineEdit(self.layoutWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(1)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.tTemp.sizePolicy().hasHeightForWidth())
+        self.tTemp.setSizePolicy(sizePolicy)
+        self.tTemp.setMinimumSize(QtCore.QSize(50, 20))
+        self.tTemp.setCursor(QtGui.QCursor(QtCore.Qt.IBeamCursor))
         self.tTemp.setReadOnly(True)
         self.tTemp.setObjectName("tTemp")
         self.horizontalLayout_4.addWidget(self.tTemp)
         spacerItem = QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_4.addItem(spacerItem)
-        self.label_2 = QtWidgets.QLabel(self.layoutWidget)
-        self.label_2.setObjectName("label_2")
-        self.horizontalLayout_4.addWidget(self.label_2)
+        self.lSetpoint = QtWidgets.QLabel(self.layoutWidget)
+        self.lSetpoint.setMinimumSize(QtCore.QSize(80, 20))
+        self.lSetpoint.setObjectName("lSetpoint")
+        self.horizontalLayout_4.addWidget(self.lSetpoint)
         self.sbSetpoint = SpinBox(self.layoutWidget)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(1)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.sbSetpoint.sizePolicy().hasHeightForWidth())
+        self.sbSetpoint.setSizePolicy(sizePolicy)
+        self.sbSetpoint.setMinimumSize(QtCore.QSize(60, 20))
         self.sbSetpoint.setObjectName("sbSetpoint")
         self.horizontalLayout_4.addWidget(self.sbSetpoint)
         self.horizontalLayout_4.setStretch(0, 1)
-        self.horizontalLayout_4.setStretch(1, 10)
-        self.horizontalLayout_4.setStretch(2, 100)
+        self.horizontalLayout_4.setStretch(1, 1)
+        self.horizontalLayout_4.setStretch(2, 1)
         self.horizontalLayout_4.setStretch(3, 1)
-        self.horizontalLayout_4.setStretch(4, 10)
+        self.horizontalLayout_4.setStretch(4, 1)
         self.verticalLayout.addLayout(self.horizontalLayout_4)
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_5.setObjectName("horizontalLayout_5")
@@ -103,13 +112,13 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
-        MainWindow.setWindowTitle(_translate("MainWindow", "Sample Monitor", None))
-        self.label.setText(_translate("MainWindow", "Sample Temp (K):  ", None))
-        self.label_2.setText(_translate("MainWindow", "Setpoint (K):  ", None))
-        self.cbHeater.setItemText(0, _translate("MainWindow", "Off", None))
-        self.cbHeater.setItemText(1, _translate("MainWindow", "Low", None))
-        self.cbHeater.setItemText(2, _translate("MainWindow", "Medium", None))
-        self.cbHeater.setItemText(3, _translate("MainWindow", "High", None))
+        _translate = QtCore.QCoreApplication.translate
+        MainWindow.setWindowTitle(_translate("MainWindow", "Sample Monitor"))
+        self.lSampleTemp.setText(_translate("MainWindow", "Sample Temp (K):  "))
+        self.lSetpoint.setText(_translate("MainWindow", "Setpoint (K):  "))
+        self.cbHeater.setItemText(0, _translate("MainWindow", "Off"))
+        self.cbHeater.setItemText(1, _translate("MainWindow", "Low"))
+        self.cbHeater.setItemText(2, _translate("MainWindow", "Medium"))
+        self.cbHeater.setItemText(3, _translate("MainWindow", "High"))
 
 from pyqtgraph import PlotWidget, SpinBox
-

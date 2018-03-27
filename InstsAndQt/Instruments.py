@@ -54,6 +54,9 @@ class BaseInstr(object):
                 self._instrument = rm.open_resource(GPIB_Number)
                 log.debug( "GOT INSTRUMENT AT {}".format(GPIB_Number))
                 self._instrument.timeout = timeout
+            except visa.VisaIOError:
+                log.exception("Unable to open GPIB {}".format(GPIB_Number))
+                self._instrument = getCls(self)()
             except Exception as e:
                 log.exception('Error opening GPIB {}'.format(GPIB_Number))
                 raise

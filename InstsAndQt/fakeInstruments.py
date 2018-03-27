@@ -271,10 +271,41 @@ class Keithley2400Instr(FakeInstr):
         raise NotImplementedError
 
 class LakeShore330(FakeInstr):
+    P = 40
+    I = 5
+    D = 100
     def write(self, string):
-        pass
+        if "GAIN" in string:
+            self.P = int(string.split(' ')[1])
+        elif "RSET" in string:
+            self.I = int(string.split(' ')[1])
+        elif "RATE" in string:
+            self.D = int(string.split(' ')[1])
     def ask(self, string):
-        pass
+        if string=="CCHN?":
+            ret = "A"
+        elif string=="CUNI?":
+            ret = "K"
+        elif string=="CDATA?":
+            ret = 293 + np.random.randint(0, 20)/10.
+        elif string == "SDATA?":
+            ret = 293 + np.random.randint(0, 20) / 10.
+        elif string == "SETP?":
+            ret = 280
+        elif string == "HEAT?":
+            ret = 0
+        elif string=="RANG?":
+            ret = 0
+        elif string == "GAIN?":
+            ret = self.P
+        elif string == "RSET?":
+            ret = self.I
+        elif string == "RATE?":
+            ret = self.D
+
+        ret = str(ret) + "\n"
+        return ret
+
 
 class SPEX(FakeInstr):
     curStep = 70000 #Making life interesting for SPEX instrument

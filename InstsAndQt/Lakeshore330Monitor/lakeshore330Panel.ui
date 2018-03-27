@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>255</width>
-    <height>271</height>
+    <width>324</width>
+    <height>223</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -18,8 +18,8 @@
   </property>
   <property name="minimumSize">
    <size>
-    <width>1</width>
-    <height>1</height>
+    <width>50</width>
+    <height>20</height>
    </size>
   </property>
   <property name="maximumSize">
@@ -53,6 +53,12 @@
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
      <widget class="QSplitter" name="splitter">
+      <property name="minimumSize">
+       <size>
+        <width>50</width>
+        <height>20</height>
+       </size>
+      </property>
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
@@ -82,9 +88,15 @@
       <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="1,10,100,1,10">
+         <layout class="QHBoxLayout" name="horizontalLayout_4" stretch="1,1,1,1,1">
           <item>
-           <widget class="QLabel" name="label">
+           <widget class="QLabel" name="lSampleTemp">
+            <property name="minimumSize">
+             <size>
+              <width>110</width>
+              <height>20</height>
+             </size>
+            </property>
             <property name="text">
              <string>Sample Temp (K):  </string>
             </property>
@@ -92,6 +104,21 @@
           </item>
           <item>
            <widget class="QLineEdit" name="tTemp">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>50</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="cursor">
+             <cursorShape>IBeamCursor</cursorShape>
+            </property>
             <property name="readOnly">
              <bool>true</bool>
             </property>
@@ -111,14 +138,33 @@
            </spacer>
           </item>
           <item>
-           <widget class="QLabel" name="label_2">
+           <widget class="QLabel" name="lSetpoint">
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>20</height>
+             </size>
+            </property>
             <property name="text">
              <string>Setpoint (K):  </string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="SpinBox" name="sbSetpoint"/>
+           <widget class="SpinBox" name="sbSetpoint">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>1</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>60</width>
+              <height>20</height>
+             </size>
+            </property>
+           </widget>
           </item>
          </layout>
         </item>
