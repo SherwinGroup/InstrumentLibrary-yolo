@@ -1,5 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from .UIs.thorlabsPanel_ui import Ui_ThorlabsPanel
+from UIs.thorlabsPanel_ui import Ui_ThorlabsPanel
 try:
     from ..ThorlabsRotationStage import K10CR1
 except ValueError:
@@ -218,5 +218,6 @@ if __name__ == "__main__":
 
 
     e = QtWidgets.QApplication(sys.argv)
-    win = MotorWindow(device = TIMS0201(), parent = None)
+    win = K10CR1Panel()
+    win.show()
     sys.exit(e.exec_())

@@ -68,7 +68,7 @@ class FELMonitor(QtWidgets.QWidget):
         mainlayout.addLayout(button1)
         mainlayout.setContentsMargins(0, 0, 0, 0)
 
-        self.logFile = r'Z:\~HSG\Data\2017'
+        self.logFile = r'Z:\~HSG\Data\2018'
 
 
         self.updateTimer.timeout.connect(self.updatePlot)
@@ -85,8 +85,11 @@ class FELMonitor(QtWidgets.QWidget):
         loc = QtWidgets.QFileDialog.getOpenFileName(self, "Pick logging file",
                                                 self.logFile,
                                                 "Text File (*.txt)")[0]
+
         loc = str(loc)
         if not loc: return
+        self.data = np.empty((0, 4))
+        self.setWindowTitle("\\".join(loc.split("/")[-2:]))
         self.logFile = loc
         self.fh = open(self.logFile, 'rt')
 
