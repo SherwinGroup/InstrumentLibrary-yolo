@@ -36,7 +36,7 @@ class PyroCalibrator(QtWidgets.QMainWindow):
         # pulses
         self.ui.pyroWid.settings["exposing"] = True
 
-        self.saveDir = r'Z:\~HSG\Data\2017'
+        self.saveDir = r'Z:\~HSG\Data\2018'
 
     def initUI(self):
         self.ui = Ui_PyroCalibration()

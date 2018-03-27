@@ -179,7 +179,7 @@ class OscWid(QtWidgets.QWidget):
         self.settings["exposing"] = False
         self.settings["coupler"] = "Cavity Dump"
         self.settings["integratingMode"] = "Integrating"
-        self.settings["logFile"] = r'Z:\~HSG\Data\2017'
+        self.settings["logFile"] = r'Z:\~HSG\Data\2018'
         # self.loggingHandle = None
 
         # lists for holding the boundaries of the linear regions
