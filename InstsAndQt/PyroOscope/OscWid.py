@@ -588,13 +588,34 @@ class OscWid(QtWidgets.QWidget):
         if not os.path.isfile(loc):
             # self.loggingHandle = open(loc, 'a+')
             with open(loc, 'a+') as fh:
-                oh = 'Time,Pulse Energy,Peak Height,Ratio\n'
-                oh += 's,mJ,mV,\n'
-                oh += ',,,\n'
+                ## For only saving these valuse
+                ## Still here because I don't know if I'll want to
+                ## swap back to this?
+                # oh = 'Time,Pulse Energy,Peak Height,Ratio\n'
+                # oh += 's,mJ,mV,\n'
+                # oh += ',,,\n'
+                # fh.write(oh)
+
+                ## For saving more of the pulse parameters
+                ## Need to think about if there's a cleaner
+                ## way to do this. Some setting somewhere if
+                ## it later wants to be changed?
+                ##
+                ## First 4 columns are fixed to above
+                ## to fit with legacy code
+                oh = 'Time,Pulse Energy,Peak Height,Ratio,Field Strength,Field Intensity\n'
+                oh += 's,mJ,,mV,kV/cm,kW/cm2\n'
+                oh += ',,,,,\n'
                 fh.write(oh)
 
-    def writeToLog(self, st=''):
+    def writeToLog(self, pkpk=0, ratio=0):
         if self.settings["logFile"] is None: return
+        energy = float(self.ui.tFELP.text())
+        field = float(self.ui.tEField.text())
+        intensity = float(self.ui.tIntensity.text())
+        st = "{:.1f},{:.3f},{:.2f},{:.3f},{:.2f},{:.1f}\n"
+        st = st.format(time.time(), energy, pkpk * 1e3, ratio,
+                       field, intensity)
         try:
             with open(self.settings["logFile"], 'a') as fh:
                 fh.write(st)
@@ -698,9 +719,9 @@ class OscWid(QtWidgets.QWidget):
 
             if self.ui.bLogData.isChecked():
                 # print "Saved a pulse"
-                st = "{:.1f},{:.3f},{:.2f},{:.3f}\n"
-                st = st.format(time.time(), energy, pkpk*1e3, ratio)
-                self.writeToLog(st)
+                # st = "{:.1f},{:.3f},{:.2f},{:.3f}\n"
+                # st = st.format(time.time(), energy, pkpk*1e3, ratio)
+                self.writeToLog(pkpk, ratio)
 
             if self.settings["exposing"]:
                 self.settings["FELPulses"] += 1
