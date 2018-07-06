@@ -1,5 +1,9 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
-from UIs.thorlabsPanel_ui import Ui_ThorlabsPanel
+try:
+    from UIs.thorlabsPanel_ui import Ui_ThorlabsPanel
+except ModuleNotFoundError:
+    from .UIs.thorlabsPanel_ui import Ui_ThorlabsPanel
+
 try:
     from ..ThorlabsRotationStage import K10CR1
 except ValueError:

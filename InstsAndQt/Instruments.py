@@ -1082,9 +1082,17 @@ class LakeShore330(BaseInstr):
         self.setD(D)
 
 class SPEX(BaseInstr):
-    
     def __init__(self, GPIB_Number=None, timeout=3000):
         super(SPEX, self).__init__(GPIB_Number, timeout)
+
+        # try:
+        #     self.ask(" ")
+        # except visa.VisaIOError:
+        #     log.warning("SPEX write terminator has been chagned")
+        #     self._instrument._write_termination = ""
+        #     self.ask(" ")
+
+        self._instrument._write_termination = ""
         
         self.maxWavenumber = 31000
         self.stepsPerWavenumber = 400
@@ -1093,7 +1101,7 @@ class SPEX(BaseInstr):
             self.currentPositionSteps = self.curStep()
             self.currentPositionWN = self.stepsToWN(self.currentPositionSteps)
         except Exception as e:
-            if self.whereAmI()=="B":
+            if self.whereAmI().lower()=="b":
                 log.warning("Error! SPEX not initialized!")
             else:
                 log.warning("Error! Could not initialize settings.\n Instrument not initialized after boot? {}".format(e))
@@ -1136,7 +1144,7 @@ class SPEX(BaseInstr):
             return
         #start main program
         print('Starting main SPEX software')
-        ret = self.ask('O2000', timeout = 5)
+        ret = self.ask('O2000\r', timeout = 5)
         if not ret:
             print('Error starting SPEX main program. Retry init suggested')
             return
@@ -1158,15 +1166,15 @@ class SPEX(BaseInstr):
         #
         #speed type 0, 1000Hz min, 18000Hz max, 2000ms ramp time
         print('setting motor speed')
-        speedStr = '0,1000,18000,2000'
-        ret = self.ask('B'+speedStr)
+        speedStr = '1000,18000,2000'
+        ret = self.ask('B0,'+speedStr + "\r")
         if not ret:
             print('Error initalizing motor speed')
             return
         elif not ret.lower()[0]=='o':
             print("Bad motor speed set", ret)
             return
-        ret = self.ask('C0')
+        ret = self.ask('C0' + "\r")
         if not ret:
             print('Error confirming motor speed')
             return
@@ -1178,7 +1186,7 @@ class SPEX(BaseInstr):
         #Either enter manually or read from a file        
         currentPosition = self.currentPositionWN
         currentStep = self.wavenumberToSteps(currentPosition)
-        ret = self.ask('G0,'+str(currentStep))
+        ret = self.ask('G0,'+str(currentStep) + "\r")
         if not ret:
             print('Error setting position')
             return
@@ -1186,7 +1194,7 @@ class SPEX(BaseInstr):
             print("Motor position not correctly set?", ret)
         
         #verify position
-        ret = self.ask('H0')
+        ret = self.ask('H0\r')
         if not ret:
             print('Error quering current position')
             return
@@ -1235,7 +1243,7 @@ class SPEX(BaseInstr):
         
     def curStep(self):
         #Return the current position, in steps
-        ret = self.ask('H0')[:-1] #Ask, and remove the trailing /r
+        ret = self.ask('H0\r')[:-1] #Ask, and remove the trailing /r
         if ret[0] == 'o':
             return int(ret[1:])
         else:
@@ -1243,7 +1251,7 @@ class SPEX(BaseInstr):
         
     def relMove(self, moveAmount):
         """ Takes a relative amount of steps to move"""
-        self.write('F0,'+str(moveAmount))
+        self.write('F0,'+str(moveAmount) + "\r")
         
     def waitForMove(self):
         #This function runs until it sees that the motor is no longer moving
