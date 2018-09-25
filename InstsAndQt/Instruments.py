@@ -41,6 +41,22 @@ try:
 except Exception as e:
     __displayonly__ = False
 
+class FakeResourceManager(object):
+    """
+    If you try to instantiate visa.resourceManager() without installing the NIVISA
+    backend, it'll just error out. But if I'm debugging or something where I don't have
+    or need that backend, I stil want to be able to run.
+    """
+    @staticmethod
+    def list_resources():
+        return ["a", "b", "c"]
+
+    @staticmethod
+    def open_resource(*args):
+        # just error out so the code will make a fake 
+        # resource on it's own
+        raise visa.VisaIOError(2)
+
 class BaseInstr(object):
     """Base class which handles opening the GPIB and safely reading/writing to the instrument"""
     def __init__(self, GPIB_Number = None, timeout = 3000):
@@ -49,7 +65,10 @@ class BaseInstr(object):
             # self.instrument = FakeInstr()
             self._instrument = getCls(self)()
         else:
-            rm = visa.ResourceManager()
+            try:
+                rm = visa.ResourceManager()
+            except ValueError:
+                rm=FakeResourceManager()
             try:
                 self._instrument = rm.open_resource(GPIB_Number)
                 log.debug( "GOT INSTRUMENT AT {}".format(GPIB_Number))

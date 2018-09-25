@@ -9,6 +9,9 @@ try:
     rm = visa.ResourceManager()
 except ImportError:
     raise ImportError("Need pyvisa to operate ComboBox")
+except ValueError:
+    from InstsAndQt.Instruments import FakeResourceManager as RM
+    rm = RM()
 
 import logging
 

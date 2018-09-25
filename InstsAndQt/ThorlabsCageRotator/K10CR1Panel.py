@@ -23,15 +23,18 @@ class K10CR1Panel(QtWidgets.QWidget):
 
     def __init__(self, parent = None):
         super(K10CR1Panel, self).__init__()
-        self.motor = K10CR1()
-        self.initUI()
-
-        self.openMotor()
-
-        self.thWaitForMotor.finished.connect(self.cleanupMotorMove)
-
-
-        self.sigCreateGuiElement.connect(self.createGuiElement)
+        try:
+            # If you don't have the dlls for the motor, don't let it
+            # wrap it up, but still make the UI. Note: You shouldn't
+            # interact with the widget...
+            self.motor = K10CR1()
+            self.openMotor()
+        except OSError:
+            pass
+        finally:
+            self.initUI()
+            self.thWaitForMotor.finished.connect(self.cleanupMotorMove)
+            self.sigCreateGuiElement.connect(self.createGuiElement)
 
     def initUI(self):
         self.ui = Ui_ThorlabsPanel()
