@@ -56,6 +56,9 @@ class FakeInstr(object):
         if '*OPC?'==string:
             time.sleep(0.5)
             return '1\r'
+     
+    def query(self, string):
+        return self.ask(string)
         
     def close(self):
         print(self.__class__.__name__ + 'closed')
@@ -184,6 +187,15 @@ class Agilent6000(FakeInstr):
                 arr += np.random.randint(-10, 10)
                 return arr
 
+class C863(FakeInstr):
+    def ask(self, string):
+        ret = super(C863, self).ask(string)
+        if ret is not None:
+            return ret
+        if 'MOV?'==string:
+            return '0\r'
+        
+                
 class DG535(FakeInstr):
     _delA = (1, 0)
     _delB = (1, 0)
@@ -343,7 +355,8 @@ clsDict = {
     Instruments.Keithley2400Instr: Keithley2400Instr,
     Instruments.ActonSP: ActonSP,
     Instruments.ESP300: ESP300,
-    Instruments.LakeShore330: LakeShore330
+    Instruments.LakeShore330: LakeShore330,
+    Instruments.C863: C863
 }
 
 

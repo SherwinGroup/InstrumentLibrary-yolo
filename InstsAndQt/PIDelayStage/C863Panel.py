@@ -1,13 +1,13 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 try:
-    from UIs.thorlabsPanel_ui import Ui_ThorlabsPanel
+    from UIs.piPanel_ui import Ui_PIPanel
 except ModuleNotFoundError:
-    from .UIs.thorlabsPanel_ui import Ui_ThorlabsPanel
+    from .UIs.piPanel_ui import Ui_PIPanel
 
 try:
-    from ..ThorlabsRotationStage import K10CR1
+    from ..Instruments import C863
 except ValueError:
-    from InstsAndQt.ThorlabsRotationStage import K10CR1
+    from InstsAndQt.Instruments import C863
 from InstsAndQt.customQt import *
 import numpy as np
 import pyqtgraph
@@ -15,58 +15,35 @@ import logging
 log = logging.getLogger("Instruments")
 
 
-class K10CR1Panel(QtWidgets.QWidget):
+class C863Panel(QtWidgets.QWidget):
     thWaitForMotor = TempThread()
     sigCreateGuiElement = QtCore.pyqtSignal(object, object)
     # Emits a signal of error messages when encountered.
     sigErrorsEncountered = QtCore.pyqtSignal(object)
 
     def __init__(self, parent = None):
-        super(K10CR1Panel, self).__init__()
-        try:
-            # If you don't have the dlls for the motor, don't let it
-            # wrap it up, but still make the UI. Note: You shouldn't
-            # interact with the widget...
-            self.motor = K10CR1()
-            # self.openMotor()
-        except (OSError, AttributeError) as e:
-            print("Os error:", e)
-        finally:
-            self.initUI()
-            self.thWaitForMotor.finished.connect(self.cleanupMotorMove)
-            self.sigCreateGuiElement.connect(self.createGuiElement)
+        super(C863Panel, self).__init__()
 
-        # Try to open the motor, but do it as a click so that
-        # it gets printed
-        self.ui.bOpen.click() #open up the motor
+        self.instrument = None
+        self.initUI()
 
+
+        self.thWaitForMotor.finished.connect(self.cleanupMotorMove)
+        self.sigCreateGuiElement.connect(self.createGuiElement)
 
     def initUI(self):
-        self.ui = Ui_ThorlabsPanel()
+        self.ui = Ui_PIPanel()
         self.ui.setupUi(self)
 
-        # Easy list for iterating to set enabled/disabled when the device
-        # isn't opened
-        self.disableElements = [
-            self.ui.sbPosition,
-            self.ui.bSettings,
-            self.ui.bGoHome
-        ]
-
-        [ii.setEnabled(False) for ii in self.disableElements]
-
-        # self.ui.sbPosition.valueChanged.connect(self.startChangePosition)
-        self.ui.sbPosition.setOpts(step=1)
+        # self.ui.sbPosition.setOpts(step=1)
         self.ui.sbPosition.sigValueChanged.connect(lambda: self.startChangePosition(self.moveMotor))
-        self.ui.bOpen.clicked.connect(self.toggleMotor)
-        # self.ui.bSetPosition.clicked.connect(self.setCurrentPosition)
-        # self.ui.bGoHome.clicked.connect(self.goHome)
+        self.ui.sbPosition.setDecimals(6)
+        self.ui.sbPosition.setMaximum(100000)
         self.ui.bGoHome.clicked.connect(lambda: self.startChangePosition(target=self.goHome))
+        self.ui.cGPIB.setInstrumentClass(C863)
+        self.ui.cGPIB.sigInstrumentOpened.connect(self.openMotor)
+        self.ui.cGPIB.setAddress("ASRL3::INSTR")
 
-        menu = QtWidgets.QMenu()
-        menu.addAction("Set Position").triggered.connect(self.setCurrentPosition)
-        menu.addAction("Set Home Offset").triggered.connect(self.setHomeOffset)
-        self.ui.bSettings.setMenu(menu)
 
     def toggleMotor(self, val):
         if val:
@@ -74,44 +51,36 @@ class K10CR1Panel(QtWidgets.QWidget):
         else:
             self.closeMotor()
 
-    def openMotor(self):
-        mod = QtWidgets.QApplication.keyboardModifiers()
-        if mod == QtCore.Qt.ShiftModifier:
-            # add a way to re-instantiate the motor, causing it to restart everything.
-            # Think it's necessary if you plug the device in after starting the software
-            log.debug("Re-instantiating the motor")
-            try:
-                self.motor.close()
-            except:
-                pass
-            self.motor = K10CR1()
+    def openMotor(self, inst=None):
 
-        ret = self.motor.open()
-        if not ret:
-            # opening the motor failed, so disable everything
-            log.debug("calling Closing motor")
-            self.closeMotor()
-            return
-        for ii in self.disableElements: ii.setEnabled(True)
+        if inst is not None:
+            self.instrument = inst
+        # inst = C863()
+
+        inst.motorOn()
+
         self.ui.labelMoving.setText("Ready")
-        self.ui.bOpen.setChecked(True)
         self.ui.sbPosition.blockSignals(True)
-        self.ui.sbPosition.setValue(self.motor.getPosition())
+        self.ui.sbPosition.setValue(self.getPosition())
         self.ui.sbPosition.blockSignals(False)
 
-    def closeMotor(self):
-        log.debug("Closing motor")
-        if self.thWaitForMotor.isRunning():
-            ## Sometimes, it hangs (especially if the default home speed gets fucked)
-            ## and I want to restart it. Make sure you terminate the waiting thread
-            ## so that it can be restarted later.
-            self.thWaitForMotor.terminate()
-        self.motor.close()
-        for ii in self.disableElements: ii.setEnabled(False)
-        self.ui.labelMoving.setText("Closed")
-        self.ui.bOpen.setChecked(False)
+    def getPosition(self):
+        if self.instrument is None: return
+        pos = self.instrument.getPosition()
+        # convert the mm of the instrument to fs
+        pos = C863Panel.mmtofs(pos)
+        return pos
+
+    # def closeMotor(self):
+    #     log.debug("Closing motor")
+    #     self.motor.close()
+    #     for ii in self.disableElements: ii.setEnabled(False)
+    #     self.ui.labelMoving.setText("Closed")
+    #     self.ui.bOpen.setChecked(False)
 
     def setCurrentPosition(self):
+        ### Not yet implemented for the C863
+        raise NotImplementedError()
         val, ok = QtWidgets.QInputDialog.getDouble(self,"Current Position", "Current Angle:", 0)
         if ok:
             self.ui.sbPosition.blockSignals(True)
@@ -120,6 +89,8 @@ class K10CR1Panel(QtWidgets.QWidget):
             self.ui.sbPosition.blockSignals(False)
 
     def setHomeOffset(self):
+        ### Not yet implemented for the C863
+        raise NotImplementedError()
         val, ok = QtWidgets.QInputDialog.getDouble(self,"Current Position",
                                "Current Angle:",
                                self.motor.getHomeOffset())
@@ -131,9 +102,9 @@ class K10CR1Panel(QtWidgets.QWidget):
 
     def goHome(self):
         try:
-            ret = self.motor.home(
+            ret = self.instrument.gotoNegativeReference(
                 callback = lambda p: self.sigCreateGuiElement.emit(self._updatePosition, p),
-                timeout = False
+                timeout = None
             )
             if not ret:
                 self.setStatusWidget("Error", {"background-color": "red"})
@@ -154,7 +125,6 @@ class K10CR1Panel(QtWidgets.QWidget):
         self.setStatusWidget("Moving",
                              {"background-color" : "yellow"})
 
-
         if target:
             self.thWaitForMotor.target = target
             self.thWaitForMotor.start()
@@ -163,8 +133,11 @@ class K10CR1Panel(QtWidgets.QWidget):
         if value is None:
             value = self.ui.sbPosition.value()
         value = float(value)
+        # convert fs to mm
+        value=C863Panel.fstomm(value)
+
         try:
-            ret = self.motor.moveAbsolute(
+            ret = self.instrument.move(
                 value,
                 callback = lambda p: self.sigCreateGuiElement.emit(self._updatePosition, p)
             )
@@ -174,10 +147,11 @@ class K10CR1Panel(QtWidgets.QWidget):
             log.exception("Error moving axis")
             self.setStatusWidget("Timeout", {"background-color" : "red"})
             return
+        self.sigCreateGuiElement.emit(self._updatePosition, self.instrument.getPosition())
 
     def cleanupMotorMove(self, *args):
         self.ui.sbPosition.blockSignals(True)
-        self.ui.sbPosition.setValue(self.motor.getPosition())
+        self.ui.sbPosition.setValue(self.getPosition())
         self.ui.sbPosition.blockSignals(False)
 
         self.setStatusWidget("Ready", {"background-color" : "green"})
@@ -206,6 +180,9 @@ class K10CR1Panel(QtWidgets.QWidget):
                 styleSheetStr)
 
     def _updatePosition(self, val):
+        # assume it's coming from the update from the motor directly,
+        # which comes in mm
+        val = C863Panel.mmtofs(val)
         self.ui.sbPosition.blockSignals(True)
         self.ui.sbPosition.setValue(val)
         self.ui.sbPosition.blockSignals(False)
@@ -213,13 +190,26 @@ class K10CR1Panel(QtWidgets.QWidget):
     def createGuiElement(self, function, *args):
         function(*args)
 
-    def close(self):
-        print("i got closed")
-        self.closeMotor()
 
-    def closeEvent(self, ev):
-        self.close()
-        super(K10CR1Panel, self).closeEvent(ev)
+    @staticmethod
+    def fstomm(fs):
+        mm = fs * 1e-15 * 2.9979e8 * 1e3/2
+        print("{} fs -> {} mm".format(fs, mm))
+        return mm
+
+    @staticmethod
+    def mmtofs(mm):
+        fs = mm*2*1e-3/2.9979e8 * 1e15
+        print("{} mm -> {} fs".format(mm, fs))
+        return fs
+
+    # def close(self):
+    #     print("i got closed")
+    #     self.closeMotor()
+
+    # def closeEvent(self, ev):
+    #     self.close()
+    #     super(K10CR1Panel, self).closeEvent(ev)
 
 
 
@@ -237,6 +227,6 @@ if __name__ == "__main__":
 
 
     e = QtWidgets.QApplication(sys.argv)
-    win = K10CR1Panel()
+    win = C863Panel()
     win.show()
     sys.exit(e.exec_())

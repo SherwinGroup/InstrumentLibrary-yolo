@@ -142,7 +142,8 @@ class BaseInstr(object):
         try:
             ret = self._instrument.query(command)
             if strip>=0:
-                ret = ret.encode('ascii')
+                ... # issue with python 3 cchanginb byte strings
+                # ret = ret.encode('ascii')
             if strip>=1:
                 ret = ret[:-1]
         except:
@@ -479,6 +480,435 @@ class ArduinoWavemeter(BaseInstr):
             # \n, which map tries to parse to an int, which throws
             # the value error. Just remove the problem non-numbert
             return list(map(int, values.split(';')[:-1]))
+
+class C863(BaseInstr):
+    """
+    Physik Instrumente motor controller
+    """
+    def __init__(self, *args, **kwargs):
+        super(C863, self).__init__(*args, **kwargs)
+        self._instrument.baud_rate = 38400
+        self._instrument._write_termination = '\n'
+        self.address = 1
+
+    def errorCheck(self):
+        errcode = {}
+        errcode[0]="PI_CNTR_NO_ERROR No error"
+        errcode[1]="PI_CNTR_PARAM_SYNTAX Parameter syntax error"
+        errcode[2]="PI_CNTR_UNKNOWN_COMMAND Unknown command"
+        errcode[3]="PI_CNTR_COMMAND_TOO_LONG Command length out of imits or command buffer verrun"
+        errcode[4]="PI_CNTR_SCAN_ERROR Error while scanning"
+        errcode[5]="PI_CNTR_MOVE_WITHOUT_REF_OR_NO_SERVO Unallowable move ttempted on nreferenced axis, or ove attempted with ervo off"
+        errcode[6]="PI_CNTR_INVALID_SGA_PARAM Parameter for SGA not alid"
+        errcode[7]="PI_CNTR_POS_OUT_OF_LIMITS Position out of limits"
+        errcode[8]="PI_CNTR_VEL_OUT_OF_LIMITS Velocity out of limits"
+        errcode[9]="PI_CNTR_SET_PIVOT_NOT_POSSIBLE Attempt to set pivot point hile U,V and W not all 0"
+        errcode[10]="PI_CNTR_STOP Controller was stopped y command"
+        errcode[11]="PI_CNTR_SST_OR_SCAN_RANGE Parameter for SST or for ne of the embedded can algorithms out of ange"
+        errcode[12]="PI_CNTR_INVALID_SCAN_AXES Invalid axis combination or fast scan"
+        errcode[13]="PI_CNTR_INVALID_NAV_PARAM Parameter for NAV out of ange"
+        errcode[14]="PI_CNTR_INVALID_ANALOG_INPUT Invalid analog channel"
+        errcode[15]="PI_CNTR_INVALID_AXIS_IDENTIFIER Invalid axis identifier"
+        errcode[16]="PI_CNTR_INVALID_STAGE_NAME Unknown stage name"
+        errcode[17]="PI_CNTR_PARAM_OUT_OF_RANGE Parameter out of range"
+        errcode[18]="PI_CNTR_INVALID_MACRO_NAME Invalid macro name ww.pi.ws C-663 MS208E Release 1.0.0 Page 162GCS Commands"
+        errcode[19]="PI_CNTR_MACRO_RECORD Error while recording acro"
+        errcode[20]="PI_CNTR_MACRO_NOT_FOUND Macro not found"
+        errcode[21]="PI_CNTR_AXIS_HAS_NO_BRAKE Axis has no brake"
+        errcode[22]="PI_CNTR_DOUBLE_AXIS Axis identifier specified ore than once"
+        errcode[23]="PI_CNTR_ILLEGAL_AXIS Illegal axis"
+        errcode[24]="PI_CNTR_PARAM_NR Incorrect number of arameters"
+        errcode[25]="PI_CNTR_INVALID_REAL_NR Invalid floating point umber"
+        errcode[26]="PI_CNTR_MISSING_PARAM Parameter missing"
+        errcode[27]="PI_CNTR_SOFT_LIMIT_OUT_OF_RANGE Soft limit out of range"
+        errcode[28]="PI_CNTR_NO_MANUAL_PAD No manual pad found"
+        errcode[29]="PI_CNTR_NO_JUMP No more step-response alues"
+        errcode[30]="PI_CNTR_INVALID_JUMP No step-response values ecorded"
+        errcode[31]="PI_CNTR_AXIS_HAS_NO_REFERENCE Axis has no reference ensor"
+        errcode[32]="PI_CNTR_STAGE_HAS_NO_LIM_SWITCH Axis has no limit switch"
+        errcode[33]="PI_CNTR_NO_RELAY_CARD No relay card installed"
+        errcode[34]="PI_CNTR_CMD_NOT_ALLOWED_FOR_STAGE Command not allowed or selected stage(s)"
+        errcode[35]="PI_CNTR_NO_DIGITAL_INPUT No digital input installed"
+        errcode[36]="PI_CNTR_NO_DIGITAL_OUTPUT No digital output onfigured"
+        errcode[37]="PI_CNTR_NO_MCM No more MCM esponses"
+        errcode[38]="PI_CNTR_INVALID_MCM No MCM values ecorded"
+        errcode[39]="PI_CNTR_INVALID_CNTR_NUMBER Controller number invalid"
+        errcode[40]="PI_CNTR_NO_JOYSTICK_CONNECTED No joystick configured"
+        errcode[41]="PI_CNTR_INVALID_EGE_AXIS Invalid axis for electronic earing, axis can not be lave"
+        errcode[42]="PI_CNTR_SLAVE_POSITION_OUT_OF_RANGE Position of slave axis is ut of range"
+        errcode[43]="PI_CNTR_COMMAND_EGE_SLAVE Slave axis cannot be ommanded directly hen electronic gearing s enabled ww.pi.ws C-663 MS208E Release 1.0.0 Page 163GCS Commands"
+        errcode[44]="PI_CNTR_JOYSTICK_CALIBRATION_FAILED Calibration of joystick ailed"
+        errcode[45]="PI_CNTR_REFERENCING_FAILED Referencing failed"
+        errcode[46]="PI_CNTR_OPM_MISSING OPM (Optical Power eter) missing"
+        errcode[47]="PI_CNTR_OPM_NOT_INITIALIZED OPM (Optical Power eter) not initialized or annot be initialized"
+        errcode[48]="PI_CNTR_OPM_COM_ERROR OPM (Optical Power eter) Communication rror"
+        errcode[49]="PI_CNTR_MOVE_TO_LIMIT_SWITCH_FAILED Move to limit switch ailed"
+        errcode[50]="PI_CNTR_REF_WITH_REF_DISABLED Attempt to reference axis ith referencing disabled"
+        errcode[51]="PI_CNTR_AXIS_UNDER_JOYSTICK_CONTROL Selected axis is ontrolled by joystick"
+        errcode[52]="PI_CNTR_COMMUNICATION_ERROR Controller detected ommunication error"
+        errcode[53]="PI_CNTR_DYNAMIC_MOVE_IN_PROCESS MOV! motion still in rogress"
+        errcode[54]="PI_CNTR_UNKNOWN_PARAMETER Unknown parameter"
+        errcode[55]="PI_CNTR_NO_REP_RECORDED No commands were ecorded with REP"
+        errcode[56]="PI_CNTR_INVALID_PASSWORD Password invalid"
+        errcode[57]="PI_CNTR_INVALID_RECORDER_CHAN Data Record Table does ot exist"
+        errcode[58]="PI_CNTR_INVALID_RECORDER_SRC_OPT Source does not exist; umber too low or too igh"
+        errcode[59]="PI_CNTR_INVALID_RECORDER_SRC_CHAN Source Record Table umber too low or too igh"
+        errcode[60]="PI_CNTR_PARAM_PROTECTION Protected Param: current ommand Level (CCL) oo low"
+        errcode[61]="PI_CNTR_AUTOZERO_RUNNING Command execution not ossible while Autozero s running"
+        errcode[62]="PI_CNTR_NO_LINEAR_AXIS Autozero requires at east one linear axis"
+        errcode[63]="PI_CNTR_INIT_RUNNING Initialization still in rogress"
+        errcode[64]="PI_CNTR_READ_ONLY_PARAMETER Parameter is read-only ww.pi.ws C-663 MS208E Release 1.0.0 Page 164GCS Commands"
+        errcode[65]="PI_CNTR_PAM_NOT_FOUND Parameter not found in on-volatile memory"
+        errcode[66]="PI_CNTR_VOL_OUT_OF_LIMITS Voltage out of limits"
+        errcode[67]="PI_CNTR_WAVE_TOO_LARGE Not enough memory vailable for requested ave curve"
+        errcode[68]="PI_CNTR_NOT_ENOUGH_DDL_MEMORY Not enough memory vailable for DDL table; DL can not be started"
+        errcode[69]="PI_CNTR_DDL_TIME_DELAY_TOO_LARGE Time delay larger than DL table; DDL can not e started"
+        errcode[70]="PI_CNTR_DIFFERENT_ARRAY_LENGTH The requested arrays ave different lengths; uery them separately"
+        errcode[71]="PI_CNTR_GEN_SINGLE_MODE_RESTART Attempt to restart the enerator while it is unning in single step ode"
+        errcode[72]="PI_CNTR_ANALOG_TARGET_ACTIVE Motion commands and ave generator ctivation are not allowed hen analog target is ctive"
+        errcode[73]="PI_CNTR_WAVE_GENERATOR_ACTIVE Motion commands are ot allowed when wave enerator output is ctive; use WGO to isable generator output"
+        errcode[74]="PI_CNTR_AUTOZERO_DISABLED No sensor channel or no iezo channel connected o selected axis (sensor nd piezo matrix)"
+        errcode[75]="PI_CNTR_NO_WAVE_SELECTED Generator started (WGO) ithout having selected a ave table (WSL)."
+        errcode[76]="PI_CNTR_IF_BUFFER_OVERRUN Interface buffer did verrun and command ouldn't be received orrectly"
+        errcode[77]="PI_CNTR_NOT_ENOUGH_RECORDED_DATA Data Record Table does ot hold enough ecorded data"
+        errcode[78]="PI_CNTR_TABLE_DEACTIVATED Data Record Table is not onfigured for recording ww.pi.ws C-663 MS208E Release 1.0.0 Page 165GCS Commands"
+        errcode[79]="PI_CNTR_OPENLOOP_VALUE_SET_WHEN_SERVO_ON Open-loop commands SVA, SVR) are not llowed when servo is on"
+        errcode[80]="PI_CNTR_RAM_ERROR Hardware error affecting AM"
+        errcode[81]="PI_CNTR_MACRO_UNKNOWN_COMMAND Not macro command"
+        errcode[82]="PI_CNTR_MACRO_PC_ERROR Macro counter out of ange"
+        errcode[83]="PI_CNTR_JOYSTICK_ACTIVE Joystick is active"
+        errcode[84]="PI_CNTR_MOTOR_IS_OFF Motor is off"
+        errcode[85]="PI_CNTR_ONLY_IN_MACRO Macro-only command"
+        errcode[86]="PI_CNTR_JOYSTICK_UNKNOWN_AXIS Invalid joystick axis"
+        errcode[87]="PI_CNTR_JOYSTICK_UNKNOWN_ID Joystick unknown"
+        errcode[88]="PI_CNTR_REF_MODE_IS_ON Move without referenced tage"
+        errcode[89]="PI_CNTR_NOT_ALLOWED_IN_CURRENT_MOTION_MODE Command not allowed in urrent motion mode"
+        errcode[90]="PI_CNTR_DIO_AND_TRACING_NOT_POSSIBLE No tracing possible while igital IOs are used on his HW revision. econnect to switch peration mode."
+        errcode[91]="PI_CNTR_COLLISION Move not possible, would ause collision"
+        errcode[92]="PI_CNTR_SLAVE_NOT_FAST_ENOUGH Stage is not capable of ollowing the master. heck the gear atio(SRA)."
+        errcode[93]="PI_CNTR_CMD_NOT_ALLOWED_WHILE_AXIS_IN_MOTION This command is not llowed while the ffected axis or its aster is in motion."
+        errcode[100]="PI_LABVIEW_ERROR PI LabVIEW driver eports error. See source ontrol for details."
+        errcode[200]="PI_CNTR_NO_AXIS No stage connected to xis"
+        errcode[201]="PI_CNTR_NO_AXIS_PARAM_FILE File with axis parameters ot found"
+        errcode[202]="PI_CNTR_INVALID_AXIS_PARAM_FILE Invalid axis parameter ile"
+        errcode[203]="PI_CNTR_NO_AXIS_PARAM_BACKUP Backup file with axis arameters not found"
+        errcode[204]="PI_CNTR_RESERVED_204 PI internal error code 204 ww.pi.ws C-663 MS208E Release 1.0.0 Page 166GCS Commands"
+        errcode[205]="PI_CNTR_SMO_WITH_SERVO_ON SMO with servo on"
+        errcode[206]="PI_CNTR_UUDECODE_INCOMPLETE_HEADER uudecode: incomplete eader"
+        errcode[207]="PI_CNTR_UUDECODE_NOTHING_TO_DECODE uudecode: nothing to ecode"
+        errcode[208]="PI_CNTR_UUDECODE_ILLEGAL_FORMAT uudecode: illegal UUE ormat"
+        errcode[209]="PI_CNTR_CRC32_ERROR CRC32 error"
+        errcode[210]="PI_CNTR_ILLEGAL_FILENAME Illegal file name (must be errcode[8-0]=format"
+        errcode[211]="PI_CNTR_FILE_NOT_FOUND File not found on ontroller"
+        errcode[212]="PI_CNTR_FILE_WRITE_ERROR Error writing file on ontroller"
+        errcode[213]="PI_CNTR_DTR_HINDERS_VELOCITY_CHANGE VEL command not llowed in DTR ommand Mode"
+        errcode[214]="PI_CNTR_POSITION_UNKNOWN Position calculations ailed"
+        errcode[215]="PI_CNTR_CONN_POSSIBLY_BROKEN The connection between ontroller and stage may e broken"
+        errcode[216]="PI_CNTR_ON_LIMIT_SWITCH The connected stage has riven into a limit switch, ome controllers need LR to resume operation"
+        errcode[217]="PI_CNTR_UNEXPECTED_STRUT_STOP Strut test command ailed because of an nexpected strut stop"
+        errcode[218]="PI_CNTR_POSITION_BASED_ON_ESTIMATION While MOV! is running osition can only be stimated!"
+        errcode[219]="PI_CNTR_POSITION_BASED_ON_INTERPOLATION Position was calculated uring MOV motion"
+        errcode[230]="PI_CNTR_INVALID_HANDLE Invalid handle"
+        errcode[231]="PI_CNTR_NO_BIOS_FOUND No bios found"
+        errcode[232]="PI_CNTR_SAVE_SYS_CFG_FAILED Save system onfiguration failed"
+        errcode[233]="PI_CNTR_LOAD_SYS_CFG_FAILED Load system onfiguration failed"
+        errcode[301]="PI_CNTR_SEND_BUFFER_OVERFLOW Send buffer overflow"
+        errcode[302]="PI_CNTR_VOLTAGE_OUT_OF_LIMITS Voltage out of limits ww.pi.ws C-663 MS208E Release 1.0.0 Page 167GCS Commands"
+        errcode[303]="PI_CNTR_OPEN_LOOP_MOTION_SET_WHEN_SERVO_ON Open-loop motion ttempted when servo N"
+        errcode[304]="PI_CNTR_RECEIVING_BUFFER_OVERFLOW Received command is oo long"
+        errcode[305]="PI_CNTR_EEPROM_ERROR Error while eading/writing EEPROM"
+        errcode[306]="PI_CNTR_I2C_ERROR Error on I2C bus"
+        errcode[307]="PI_CNTR_RECEIVING_TIMEOUT Timeout while receiving ommand"
+        errcode[308]="PI_CNTR_TIMEOUT A lengthy operation has ot finished in the xpected time"
+        errcode[309]="PI_CNTR_MACRO_OUT_OF_SPACE Insufficient space to tore macro"
+        errcode[310]="PI_CNTR_EUI_OLDVERSION_CFGDATA Configuration data has ld version number"
+        errcode[311]="PI_CNTR_EUI_INVALID_CFGDATA Invalid configuration data"
+        errcode[333]="PI_CNTR_HARDWARE_ERROR Internal hardware error"
+        errcode[400]="PI_CNTR_WAV_INDEX_ERROR Wave generator index rror"
+        errcode[401]="PI_CNTR_WAV_NOT_DEFINED Wave table not defined"
+        errcode[402]="PI_CNTR_WAV_TYPE_NOT_SUPPORTED Wave type not supported"
+        errcode[403]="PI_CNTR_WAV_LENGTH_EXCEEDS_LIMIT Wave length exceeds imit"
+        errcode[404]="PI_CNTR_WAV_PARAMETER_NR Wave parameter number rror"
+        errcode[405]="PI_CNTR_WAV_PARAMETER_OUT_OF_LIMIT Wave parameter out of ange"
+        errcode[406]="PI_CNTR_WGO_BIT_NOT_SUPPORTED WGO command bit not upported"
+        errcode[500]="PI_CNTR_EMERGENCY_STOP_BUTTON_ACTIVATED The \"red knob\" is still et and disables system"
+        errcode[501]="PI_CNTR_EMERGENCY_STOP_BUTTON_WAS_ACTIVATED The \"red knob\" was ctivated and still isables system - eanimation required"
+        errcode[502]="PI_CNTR_REDUNDANCY_LIMIT_EXCEEDED Position consistency heck failed"
+        errcode[503]="PI_CNTR_COLLISION_SWITCH_ACTIVATED Hardware collision ensor(s) are activated ww.pi.ws C-663 MS208E Release 1.0.0 Page 168GCS Commands"
+        errcode[504]="PI_CNTR_FOLLOWING_ERROR Strut following error ccurred, e.g. caused by verload or encoder ailure"
+        errcode[555]="PI_CNTR_UNKNOWN_ERROR BasMac: unknown ontroller error"
+        errcode[601]="PI_CNTR_NOT_ENOUGH_MEMORY Not enough memory"
+        errcode[602]="PI_CNTR_HW_VOLTAGE_ERROR Hardware voltage error"
+        errcode[603]="PI_CNTR_HW_TEMPERATURE_ERROR Hardware temperature ut of range"
+        errcode[1000]="PI_CNTR_TOO_MANY_NESTED_MACROS Too many nested macros"
+        errcode[1001]="PI_CNTR_MACRO_ALREADY_DEFINED Macro already defined"
+        errcode[1002]="PI_CNTR_NO_MACRO_RECORDING Macro recording not ctivated"
+        errcode[1003]="PI_CNTR_INVALID_MAC_PARAM Invalid parameter for AC"
+        errcode[1004]="PI_CNTR_MACRO_DELETE_ERROR Deleting macro failed"
+        errcode[1005]="PI_CNTR_CONTROLLER_BUSY Controller is busy with ome lengthy operation e.g. reference move, ast scan algorithm)"
+        errcode[1006]="PI_CNTR_INVALID_IDENTIFIER Invalid identifier (invalid pecial characters, ...)"
+        errcode[1007]="PI_CNTR_UNKNOWN_VARIABLE_OR_ARGUMENT Variable or argument not efined"
+        errcode[1008]="PI_CNTR_RUNNING_MACRO Controller is (already) unning a macro"
+        errcode[1009]="PI_CNTR_MACRO_INVALID_OPERATOR Invalid or missing perator for condition. heck necessary spaces round operator."
+        errcode[1063]="PI_CNTR_EXT_PROFILE_UNALLOWED_CMD User Profile Mode: ommand is not allowed, heck for required reparatory commands"
+        errcode[1064]="PI_CNTR_EXT_PROFILE_EXPECTING_MOTION_ERROR User Profile Mode: First arget position in User rofile is too far from urrent position"
+        errcode[1065]="PI_CNTR_PROFILE_ACTIVE Controller is (already) in ser Profile Mode"
+        errcode[1066]="PI_CNTR_PROFILE_INDEX_OUT_OF_RANGE User Profile Mode: Block r Data Set index out of llowed range ww.pi.ws C-663 MS208E Release 1.0.0 Page 169GCS Commands"
+        errcode[1071]="PI_CNTR_PROFILE_OUT_OF_MEMORY User Profile Mode: Out of emory"
+        errcode[1072]="PI_CNTR_PROFILE_WRONG_CLUSTER User Profile Mode: luster is not assigned to his axis"
+        errcode[1073]="PI_CNTR_PROFILE_UNKNOWN_CLUSTER_IDENTIFIER Unknown cluster dentifier"
+        errcode[2000]="PI_CNTR_ALREADY_HAS_SERIAL_NUMBER Controller already has a erial number"
+        errcode[4000]="PI_CNTR_SECTOR_ERASE_FAILED Sector erase failed"
+        errcode[4001]="PI_CNTR_FLASH_PROGRAM_FAILED Flash program failed"
+        errcode[4002]="PI_CNTR_FLASH_READ_FAILED Flash read failed"
+        errcode[4003]="PI_CNTR_HW_MATCHCODE_ERROR HW match code issing/invalid"
+        errcode[4004]="PI_CNTR_FW_MATCHCODE_ERROR FW match code issing/invalid"
+        errcode[4005]="PI_CNTR_HW_VERSION_ERROR HW version issing/invalid"
+        errcode[4006]="PI_CNTR_FW_VERSION_ERROR FW version issing/invalid"
+        errcode[4007]="PI_CNTR_FW_UPDATE_ERROR FW update failed"
+        errcode[4008]="PI_CNTR_FW_CRC_PAR_ERROR FW Parameter CRC rong"
+        errcode[4009]="PI_CNTR_FW_CRC_FW_ERROR FW CRC wrong"
+        errcode[5000]="PI_CNTR_INVALID_PCC_SCAN_DATA PicoCompensation scan ata is not valid"
+        errcode[5001]="PI_CNTR_PCC_SCAN_RUNNING PicoCompensation is unning, some actions an not be executed uring canning/recording"
+        errcode[5002]="PI_CNTR_INVALID_PCC_AXIS Given axis can not be efined as PPC axis"
+        errcode[5003]="PI_CNTR_PCC_SCAN_OUT_OF_RANGE Defined scan area is arger than the travel ange"
+        errcode[5004]="PI_CNTR_PCC_TYPE_NOT_EXISTING Given PicoCompensation ype is not defined"
+        errcode[5005]="PI_CNTR_PCC_PAM_ERROR PicoCompensation arameter error"
+        errcode[5006]="PI_CNTR_PCC_TABLE_ARRAY_TOO_LARGE PicoCompensation table s larger than maximum able length ww.pi.ws C-663 MS208E Release 1.0.0 Page 170GCS Commands"
+        errcode[5100]="PI_CNTR_NEXLINE_ERROR Common error in Nexline irmware module"
+        errcode[5101]="PI_CNTR_CHANNEL_ALREADY_USED Output channel for exline can not be edefined for other usage"
+        errcode[5102]="PI_CNTR_NEXLINE_TABLE_TOO_SMALL Memory for Nexline ignals is too small"
+        errcode[5103]="PI_CNTR_RNP_WITH_SERVO_ON RNP can not be xecuted if axis is in losed loop"
+        errcode[5104]="PI_CNTR_RNP_NEEDED Relax procedure (RNP) eeded"
+        errcode[5200]="PI_CNTR_AXIS_NOT_CONFIGURED Axis must be configured or this action nterface Errors"
+        errcode[0]="COM_NO_ERROR No error occurred during unction call"
+        errcode[-1]="COM_ERROR Error during com peration (could not be pecified)"
+        errcode[-2]="SEND_ERROR Error while sending data"
+        errcode[-3]="REC_ERROR Error while receiving data"
+        errcode[-4]="NOT_CONNECTED_ERROR Not connected (no port ith given ID open)"
+        errcode[-5]="COM_BUFFER_OVERFLOW Buffer overflow"
+        errcode[-6]="CONNECTION_FAILED Error while opening port"
+        errcode[-7]="COM_TIMEOUT Timeout error"
+        errcode[-8]="COM_MULTILINE_RESPONSE There are more lines aiting in buffer"
+        errcode[-9]="COM_INVALID_ID There is no interface or LL handle with the iven ID"
+        errcode[-10]="COM_NOTIFY_EVENT_ERROR Event/message for otification could not be pened"
+        errcode[-11]="COM_NOT_IMPLEMENTED Function not supported y this interface type"
+        errcode[-12]="COM_ECHO_ERROR Error while sending echoed data"
+        errcode[-13]="COM_GPIB_EDVR IEEE488: System error ww.pi.ws C-663 MS208E Release 1.0.0 Page 171GCS Commands"
+        errcode[-14]="COM_GPIB_ECIC IEEE488: Function equires GPIB board to e CIC"
+        errcode[-15]="COM_GPIB_ENOL IEEE488: Write function etected no listeners"
+        errcode[-16]="COM_GPIB_EADR IEEE488: Interface board ot addressed correctly"
+        errcode[-17]="COM_GPIB_EARG IEEE488: Invalid rgument to function call"
+        errcode[-18]="COM_GPIB_ESAC IEEE488: Function equires GPIB board to e SAC"
+        errcode[-19]="COM_GPIB_EABO IEEE488: I/O operation borted"
+        errcode[-20]="COM_GPIB_ENEB IEEE488: Interface board ot found"
+        errcode[-21]="COM_GPIB_EDMA IEEE488: Error erforming DMA"
+        errcode[-22]="COM_GPIB_EOIP IEEE488: I/O operation tarted before previous peration completed"
+        errcode[-23]="COM_GPIB_ECAP IEEE488: No capability or intended operation"
+        errcode[-24]="COM_GPIB_EFSO IEEE488: File system peration error"
+        errcode[-25]="COM_GPIB_EBUS IEEE488: Command rror during device call"
+        errcode[-26]="COM_GPIB_ESTB IEEE488: Serial pollstatus byte lost"
+        errcode[-27]="COM_GPIB_ESRQ IEEE488: SRQ remains sserted"
+        errcode[-28]="COM_GPIB_ETAB IEEE488: Return buffer ull"
+        errcode[-29]="COM_GPIB_ELCK IEEE488: Address or oard locked"
+        errcode[-30]="COM_RS_INVALID_DATA_BITS RS-232: 5 data bits with 2 stop bits is an invalid ombination, as is 6, 7, or 8 data bits with 1.5 stop its"
+        errcode[-31]="COM_ERROR_RS_SETTINGS RS-232: Error configuring he COM port"
+        errcode[-32]="COM_INTERNAL_RESOURCES_ERROR Error dealing with internal ystem resources events, threads, ...) ww.pi.ws C-663 MS208E Release 1.0.0 Page 172GCS Commands"
+        errcode[-33]="COM_DLL_FUNC_ERROR A DLL or one of the equired functions could ot be loaded"
+        errcode[-34]="COM_FTDIUSB_INVALID_HANDLE FTDIUSB: invalid handle"
+        errcode[-35]="COM_FTDIUSB_DEVICE_NOT_FOUND FTDIUSB: device not ound"
+        errcode[-36]="COM_FTDIUSB_DEVICE_NOT_OPENED FTDIUSB: device not pened"
+        errcode[-37]="COM_FTDIUSB_IO_ERROR FTDIUSB: IO error"
+        errcode[-38]="COM_FTDIUSB_INSUFFICIENT_RESOURCES FTDIUSB: insufficient esources"
+        errcode[-39]="COM_FTDIUSB_INVALID_PARAMETER FTDIUSB: invalid arameter"
+        errcode[-40]="COM_FTDIUSB_INVALID_BAUD_RATE FTDIUSB: invalid baud ate"
+        errcode[-41]="COM_FTDIUSB_DEVICE_NOT_OPENED_FOR_ERASE FTDIUSB: device not pened for erase"
+        errcode[-42]="COM_FTDIUSB_DEVICE_NOT_OPENED_FOR_WRITE FTDIUSB: device not pened for write"
+        errcode[-43]="COM_FTDIUSB_FAILED_TO_WRITE_DEVICE FTDIUSB: failed to write evice"
+        errcode[-44]="COM_FTDIUSB_EEPROM_READ_FAILED FTDIUSB: EEPROM ead failed"
+        errcode[-45]="COM_FTDIUSB_EEPROM_WRITE_FAILED FTDIUSB: EEPROM rite failed"
+        errcode[-46]="COM_FTDIUSB_EEPROM_ERASE_FAILED FTDIUSB: EEPROM rase failed"
+        errcode[-47]="COM_FTDIUSB_EEPROM_NOT_PRESENT FTDIUSB: EEPROM not resent"
+        errcode[-48]="COM_FTDIUSB_EEPROM_NOT_PROGRAMMED FTDIUSB: EEPROM not rogrammed"
+        errcode[-49]="COM_FTDIUSB_INVALID_ARGS FTDIUSB: invalid rguments"
+        errcode[-50]="COM_FTDIUSB_NOT_SUPPORTED FTDIUSB: not supported"
+        errcode[-51]="COM_FTDIUSB_OTHER_ERROR FTDIUSB: other error"
+        errcode[-52]="COM_PORT_ALREADY_OPEN Error while opening the OM port: was already pen"
+        errcode[-53]="COM_PORT_CHECKSUM_ERROR Checksum error in eceived data from COM ort ww.pi.ws C-663 MS208E Release 1.0.0 Page 173GCS Commands"
+        errcode[-54]="COM_SOCKET_NOT_READY Socket not ready, you hould call the function gain"
+        errcode[-55]="COM_SOCKET_PORT_IN_USE Port is used by another ocket"
+        errcode[-56]="COM_SOCKET_NOT_CONNECTED Socket not connected (or ot valid)"
+        errcode[-57]="COM_SOCKET_TERMINATED Connection terminated by peer)"
+        errcode[-58]="COM_SOCKET_NO_RESPONSE Can't connect to peer"
+        errcode[-59]="COM_SOCKET_INTERRUPTED Operation was nterrupted by a onblocked signal"
+        errcode[-60]="COM_PCI_INVALID_ID No Device with this ID is resent"
+        errcode[-61]="COM_PCI_ACCESS_DENIED Driver could not be pened (on Vista: run as dministrator!) LL Errors"
+        errcode[-1001]="PI_UNKNOWN_AXIS_IDENTIFIER Unknown axis identifier"
+        errcode[-1002]="PI_NR_NAV_OUT_OF_RANGE Number for NAV out of ange--must be in 1,10000]"
+        errcode[-1003]="PI_INVALID_SGA Invalid value for SGA-- ust be one of {1, 10,100, 1000}"
+        errcode[-1004]="PI_UNEXPECTED_RESPONSE Controller sent nexpected response"
+        errcode[-1005]="PI_NO_MANUAL_PAD No manual control pad nstalled, calls to SMA nd related commands re not allowed"
+        errcode[-1006]="PI_INVALID_MANUAL_PAD_KNOB Invalid number for anual control pad knob"
+        errcode[-1007]="PI_INVALID_MANUAL_PAD_AXIS Axis not currently ontrolled by a manual ontrol pad"
+        errcode[-1008]="PI_CONTROLLER_BUSY Controller is busy with ome lengthy operation e.g. reference move, fast can algorithm) ww.pi.ws C-663 MS208E Release 1.0.0 Page 174GCS Commands"
+        errcode[-1009]="PI_THREAD_ERROR Internal error--could not tart thread"
+        errcode[-1010]="PI_IN_MACRO_MODE Controller is (already) in acro mode--command ot valid in macro mode"
+        errcode[-1011]="PI_NOT_IN_MACRO_MODE Controller not in macro ode--command not alid unless macro mode ctive"
+        errcode[-1012]="PI_MACRO_FILE_ERROR Could not open file to rite or read macro"
+        errcode[-1013]="PI_NO_MACRO_OR_EMPTY No macro with given ame on controller, or acro is empty"
+        errcode[-1014]="PI_MACRO_EDITOR_ERROR Internal error in macro ditor"
+        errcode[-1015]="PI_INVALID_ARGUMENT One or more arguments iven to function is invalid empty string, index out f range, ...)"
+        errcode[-1016]="PI_AXIS_ALREADY_EXISTS Axis identifier is already n use by a connected tage"
+        errcode[-1017]="PI_INVALID_AXIS_IDENTIFIER Invalid axis identifier"
+        errcode[-1018]="PI_COM_ARRAY_ERROR Could not access array ata in COM server"
+        errcode[-1019]="PI_COM_ARRAY_RANGE_ERROR Range of array does not it the number of arameters"
+        errcode[-1020]="PI_INVALID_SPA_CMD_ID Invalid parameter ID iven to SPA or SPA?"
+        errcode[-1021]="PI_NR_AVG_OUT_OF_RANGE Number for AVG out of ange--must be >0"
+        errcode[-1022]="PI_WAV_SAMPLES_OUT_OF_RANGE Incorrect number of amples given to WAV"
+        errcode[-1023]="PI_WAV_FAILED Generation of wave failed"
+        errcode[-1024]="PI_MOTION_ERROR Motion error: position rror too large, servo is witched off automatically"
+        errcode[-1025]="PI_RUNNING_MACRO Controller is (already) unning a macro"
+        errcode[-1026]="PI_PZT_CONFIG_FAILED Configuration of PZT tage or amplifier failed ww.pi.ws C-663 MS208E Release 1.0.0 Page 175GCS Commands"
+        errcode[-1027]="PI_PZT_CONFIG_INVALID_PARAMS Current settings are not alid for desired onfiguration"
+        errcode[-1028]="PI_UNKNOWN_CHANNEL_IDENTIFIER Unknown channel dentifier"
+        errcode[-1029]="PI_WAVE_PARAM_FILE_ERROR Error while eading/writing wave enerator parameter file"
+        errcode[-1030]="PI_UNKNOWN_WAVE_SET Could not find description f wave form. Maybe G.INI is missing?"
+        errcode[-1031]="PI_WAVE_EDITOR_FUNC_NOT_LOADED The WGWaveEditor DLL unction was not found at tartup"
+        errcode[-1032]="PI_USER_CANCELLED The user cancelled a ialog"
+        errcode[-1033]="PI_C844_ERROR Error from C-844 ontroller"
+        errcode[-1034]="PI_DLL_NOT_LOADED DLL necessary to call unction not loaded, or unction not found in DLL"
+        errcode[-1035]="PI_PARAMETER_FILE_PROTECTED The open parameter file s protected and cannot e edited"
+        errcode[-1036]="PI_NO_PARAMETER_FILE_OPENED There is no parameter file pen"
+        errcode[-1037]="PI_STAGE_DOES_NOT_EXIST Selected stage does not xist"
+        errcode[-1038]="PI_PARAMETER_FILE_ALREADY_OPENED There is already a arameter file open. lose it before opening a ew file"
+        errcode[-1039]="PI_PARAMETER_FILE_OPEN_ERROR Could not open arameter file"
+        errcode[-1040]="PI_INVALID_CONTROLLER_VERSION The version of the onnected controller is nvalid"
+        errcode[-1041]="PI_PARAM_SET_ERROR Parameter could not be et with SPA--parameter ot defined for this ontroller!"
+        errcode[-1042]="PI_NUMBER_OF_POSSIBLE_WAVES_EXCEEDED The maximum number of ave definitions has een exceeded ww.pi.ws C-663 MS208E Release 1.0.0 Page 176GCS Commands"
+        errcode[-1043]="PI_NUMBER_OF_POSSIBLE_GENERATORS_EXCEEDED The maximum number of ave generators has een exceeded"
+        errcode[-1044]="PI_NO_WAVE_FOR_AXIS_DEFINED No wave defined for pecified axis"
+        errcode[-1045]="PI_CANT_STOP_OR_START_WAV Wave output to axis lready stopped/started"
+        errcode[-1046]="PI_REFERENCE_ERROR Not all axes could be eferenced"
+        errcode[-1047]="PI_REQUIRED_WAVE_NOT_FOUND Could not find parameter et required by frequency elation"
+        errcode[-1048]="PI_INVALID_SPP_CMD_ID Command ID given to PP or SPP? is not valid"
+        errcode[-1049]="PI_STAGE_NAME_ISNT_UNIQUE A stage name given to ST is not unique"
+        errcode[-1050]="PI_FILE_TRANSFER_BEGIN_MISSING A uuencoded file ransfered did not start ith \"begin\" followed by he proper filename"
+        errcode[-1051]="PI_FILE_TRANSFER_ERROR_TEMP_FILE Could not create/read file n host PC"
+        errcode[-1052]="PI_FILE_TRANSFER_CRC_ERROR Checksum error when ransfering a file to/from he controller"
+        errcode[-1053]="PI_COULDNT_FIND_PISTAGES_DAT The PiStages.dat atabase could not be ound. This file is equired to connect a tage with the CST ommand"
+        errcode[-1054]="PI_NO_WAVE_RUNNING No wave being output to pecified axis"
+        errcode[-1055]="PI_INVALID_PASSWORD Invalid password"
+        errcode[-1056]="PI_OPM_COM_ERROR Error during ommunication with OPM Optical Power Meter), aybe no OPM onnected"
+        errcode[-1057]="PI_WAVE_EDITOR_WRONG_PARAMNUM WaveEditor: Error during ave creation, incorrect umber of parameters"
+        errcode[-1058]="PI_WAVE_EDITOR_FREQUENCY_OUT_OF_RANGE WaveEditor: Frequency ut of range ww.pi.ws C-663 MS208E Release 1.0.0 Page 177GCS Commands"
+        errcode[-1059]="PI_WAVE_EDITOR_WRONG_IP_VALUE WaveEditor: Error during ave creation, incorrect ndex for integer arameter"
+        errcode[-1060]="PI_WAVE_EDITOR_WRONG_DP_VALUE WaveEditor: Error during ave creation, incorrect ndex for floating point arameter"
+        errcode[-1061]="PI_WAVE_EDITOR_WRONG_ITEM_VALUE WaveEditor: Error during ave creation, could not alculate value"
+        errcode[-1062]="PI_WAVE_EDITOR_MISSING_GRAPH_COMPONENT WaveEditor: Graph isplay component not nstalled"
+        errcode[-1063]="PI_EXT_PROFILE_UNALLOWED_CMD User Profile Mode: ommand is not allowed, heck for required reparatory commands"
+        errcode[-1064]="PI_EXT_PROFILE_EXPECTING_MOTION_ERROR User Profile Mode: First arget position in User rofile is too far from urrent position"
+        errcode[-1065]="PI_EXT_PROFILE_ACTIVE Controller is (already) in ser Profile Mode"
+        errcode[-1066]="PI_EXT_PROFILE_INDEX_OUT_OF_RANGE User Profile Mode: Block r Data Set index out of llowed range"
+        errcode[-1067]="PI_PROFILE_GENERATOR_NO_PROFILE ProfileGenerator: No rofile has been created et"
+        errcode[-1068]="PI_PROFILE_GENERATOR_OUT_OF_LIMITS ProfileGenerator: enerated profile xceeds limits of one or oth axes"
+        errcode[-1069]="PI_PROFILE_GENERATOR_UNKNOWN_PARAMETER ProfileGenerator: nknown parameter ID in et/Get Parameter ommand"
+        errcode[-1070]="PI_PROFILE_GENERATOR_PAR_OUT_OF_RANGE ProfileGenerator: arameter out of allowed ange"
+        errcode[-1071]="PI_EXT_PROFILE_OUT_OF_MEMORY User Profile Mode: Out of emory"
+        errcode[-1072]="PI_EXT_PROFILE_WRONG_CLUSTER User Profile Mode: luster is not assigned to his axis ww.pi.ws C-663 MS208E Release 1.0.0 Page 178GCS Commands ww.pi.ws C-663 MS208E Release 1.0.0 Page 179"
+        errcode[-1073]="PI_EXT_PROFILE_UNKNOWN_CLUSTER_IDENTIFIER Unknown cluster dentifier"
+        errcode[-1074]="PI_INVALID_DEVICE_DRIVER_VERSION The installed device river doesn't match the equired version. Please ee the documentation to etermine the required evice driver version."
+        errcode[-1075]="PI_INVALID_LIBRARY_VERSION The library used doesn't atch the required ersion. Please see the ocumentation to etermine the required ibrary version."
+        errcode[-1076]="PI_INTERFACE_LOCKED The interface is currently ocked by another unction. Please try again ater."
+        errcode[-1077]="PI_PARAM_DAT_FILE_INVALID_VERSION Version of parameter AT file does not match he required version. urrent files are available t www.pi.ws."
+        errcode[-1078]="PI_CANNOT_WRITE_TO_PARAM_DAT_FILE Cannot write to arameter DAT file to tore user defined stage ype."
+        errcode[-1079]="PI_CANNOT_CREATE_PARAM_DAT_FILE Cannot create parameter AT file to store user efined stage type."
+        errcode[-1080]="PI_PARAM_DAT_FILE_INVALID_REVISION Parameter DAT file does ot have correct revision."
+        errcode[-1081]="PI_USERSTAGES_DAT_FILE_INVALID_REVISION User stages DAT file oes not have correct evisio"
+
+        retcode = int(self.query("ERR?"))
+        return retcode, errcode.get(retcode, "Unknown Code")
+
+    def move(self, pos, waitForStop = True, *args, **kwargs):
+        self.write("MOV {} {}".format(self.address, pos))
+        code, desc = self.errorCheck()
+        if code:
+            log.warning("Error moving referencing C863 stage {}: {}".format(code, desc))
+        if waitForStop:
+            self.waitForMove(*args, **kwargs)
+        # self.write("MOV {}".format(pos))
+
+    def getPosition(self):
+        return float(self.query("MOV?").split("=")[1])
+
+    def home(self):
+        self.write("GOH {}".format(self.address))
+
+    def setMotorState(self, state):
+        """ True for on, False for off"""
+        print("sending command",
+              "SVO {} {}".format(self.address, int(bool(state))))
+        self.write("SVO {} {}".format(self.address, int(bool(state))))
+
+    def motorOn(self):
+        self.setMotorState(1)
+
+    def motorOff(self):
+        self.setMotorState(0)
+
+    def getMotorState(self):
+        return int(self.query("SVO?").split("=")[1])
+
+    def gotoNegativeReference(self, waitForStop = True, *args, **kwargs):
+        self.write("FNL {}".format(self.address))
+        code, desc = self.errorCheck()
+        if code:
+            log.warning("Error negative referencing C863 stage {}: {}".format(code, desc))
+            return False
+        if waitForStop:
+            self.waitForMove(*args, **kwargs)
+
+    def checkMoving(self):
+        ### I was having too much trouble gettnig the \x05 commands to be
+        ##  sent and parsed properly, but using the the SRG? and checking
+        ##  the status buffer is more reliable.
+        # check to see if the motor is still moving
+        # stupid ascii stuff made this annoying
+        # self._instrument.write('\x05\10', termination=False)
+        # ret = self.read()
+        # print("checkmove is ", ret)
+        # return int(ret)
+        return self.checkStatus() & 0b0010000000000000
+
+    def checkStatus(self):
+        # self._instrument.write('\x04\10', termination=False)
+        # time.sleep(0.3)
+        # ret = self._instrument.read('\n')
+        ret = self.query("SRG? {} {}".format(self.address, 1)).split('=')[1]
+        print("Check status return", ret)
+        return int(ret, 0)
+
+    def waitForMove(self, timeout=10, callback=None):
+        # Timeout in seconds
+        stTime = time.time()
+        endTime = stTime
+        endTime += np.inf if timeout is None else timeout
+
+        # callback for update that can be called while waiting
+        if not hasattr(callback, "__call__"):
+            callback = lambda x: None
+
+        while self.checkMoving():
+            # print(self.checkMoving())
+            time.sleep(0.25)
+            callback(self.getPosition())
+            # print(self.checkStatus())
+            if time.time()>endTime: break
+
+
+
+
+
+
 
 class DG535(BaseInstr):
 

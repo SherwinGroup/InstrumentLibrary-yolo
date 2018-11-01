@@ -141,6 +141,7 @@ class MOT_HomingParameters(Structure):
 
 class ThorlabsIntegratedStepper(object):
     serialNo = None
+    defaultHomeOffset = 0
     def __init__(self):
         self.dll = self.registerFunctions()
         # keep track of whether we're open or not
@@ -269,6 +270,8 @@ class ThorlabsIntegratedStepper(object):
                 time.sleep(startPolling/1000.)
             else:
                 log.warning("Error starting the dll polling!")
+
+        self.setHomeOffset(self.defaultHomeOffset)
 
         return True
 
@@ -935,6 +938,7 @@ class ThorlabsIntegratedStepper(object):
 
 class K10CR1(ThorlabsIntegratedStepper):
     serialNo = b"55000760"
+    defaultHomeOffset = 7
 
 
 if __name__ == '__main__':
@@ -946,10 +950,14 @@ if __name__ == '__main__':
     print("Open", k.open())
 
     print("acc/vel", k.getVelocity(), k.getAcceleration())
+    k.setAcceleration(10)
+    k.setVelocity(10)
+    print("acc/vel after set", k.getVelocity(), k.getAcceleration())
+
 
     # k.setHomeOffset(-3)
     print("home")
-    k.home()
+    k.home(callback=lambda x: print("Homing", x))
     print("pos", k.getPosition())
     time.sleep(.2)
     print("pos", k.getPosition())
