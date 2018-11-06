@@ -1800,7 +1800,7 @@ class SR760(BaseInstr):
 class SR830Instr(BaseInstr):
     def __init__(self, GPIB_Number = None, timeout = 3000):
         super(SR830Instr, self).__init__(GPIB_Number, timeout)
-        self.write('OUTX 1')
+        self.write('OUTX 0')
                 
     def setRefFreq(self, freq):
         """Set the reference frequency  """
