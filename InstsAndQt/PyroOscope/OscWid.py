@@ -179,7 +179,7 @@ class OscWid(QtWidgets.QWidget):
         self.settings["exposing"] = False
         self.settings["coupler"] = "Cavity Dump"
         self.settings["integratingMode"] = "Integrating"
-        self.settings["logFile"] = r'Z:\~HSG\Data\2018'
+        self.settings["logFile"] = r'Z:\~HSG\Data\2021'
         # self.loggingHandle = None
 
         # lists for holding the boundaries of the linear regions
@@ -1122,6 +1122,8 @@ class OscWid(QtWidgets.QWidget):
                                            ratio = ratio,
                                            pulse_width = time*1e3)
             field = calc_THz_field(intensity)
+            # Note that calc_THz_field and calc_THz_intensity are defined in
+            #   image_spec_for_gui.py I'm not sure why this is the case.
 
             intensity = round(intensity/1000., 3)
             field = round(field/1000., 3)
